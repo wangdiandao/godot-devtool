@@ -1,0 +1,48 @@
+{
+  "name": "godot-devtool",
+  "version": "1.2.1",
+  "description": "MCP plugin package for AI-assisted Godot Engine development workflows.",
+  "keywords": [
+    "godot",
+    "mcp",
+    "devtool",
+    "game-development",
+    "ai"
+  ],
+  "homepage": "https://github.com/wangdiandao/godot-devtool#readme",
+  "bugs": {
+    "url": "https://github.com/wangdiandao/godot-devtool/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wangdiandao/godot-devtool.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "godot-devtool": "./build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/build.js",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "check:project": "npm run build && node scripts/check-project.js",
+    "verify:roadmap": "npm run build && node scripts/verify-roadmap-completion.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "axios": "^1.7.9",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
