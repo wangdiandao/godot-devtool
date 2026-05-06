@@ -1,3 +1,5 @@
+import { DIRECT_COMPATIBILITY_ALIASES } from './compatibilityTools.js';
+
 export const GODOT_TOOL_ALIASES: Record<string, string> = {
   scene_create: 'create_scene',
   scene_save: 'save_scene',
@@ -8,6 +10,7 @@ export const GODOT_TOOL_ALIASES: Record<string, string> = {
   script_read: 'read_script_file',
   project_get_info: 'get_project_info',
   debug_get_logs: 'get_debug_output',
+  ...DIRECT_COMPATIBILITY_ALIASES,
 };
 
 import { BASE_GODOT_TOOL_DEFINITIONS } from './definitions/index.js';

@@ -6,11 +6,6 @@
 
 ## 未来计划
 
-### 1.7.0 扩展工具兼容面
-
-- 为当前仅由不同名称 `godot-devtool` 工具覆盖的提交工具增加精确名称 wrapper 或 alias。
-- 增加项目、文件系统、UID、scene、node、script、signal、group、live editor、input、runtime、animation、TileMap、theme、profiling、batch refactoring、dependency analysis、shader、export、resource、autoload、physics、3D、particle、navigation、audio、AnimationTree、state machine、blend tree、analysis 和 QA/testing 缺口。
-
 ### 验证项目
 
 - 使用完成后的 `godot-devtool` 工具集将 `E:/test` 开发成基于方块的 survivor-like 游戏。

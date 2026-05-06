@@ -262,7 +262,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '1.6.0');
+  assert.equal(releaseVersion, '1.7.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -402,8 +402,8 @@ try {
   assert.match(readmeZh, /## 全部工具/);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
-  assert.match(readme, /skills\/\n  godot-devtool\/SKILL\.md/);
-  assert.match(readmeZh, /skills\/\n  godot-devtool\/SKILL\.md/);
+  assert.match(readme, /skills\/\r?\n  godot-devtool\/SKILL\.md/);
+  assert.match(readmeZh, /skills\/\r?\n  godot-devtool\/SKILL\.md/);
 
   assert.match(skillRaw, /^name: godot-devtool$/m);
   assert.match(skillRaw, /mcp_server: "godot-devtool"/);
@@ -437,6 +437,8 @@ try {
   assert.doesNotMatch(roadmapZh, /### 1\.5\.0/);
   assert.doesNotMatch(roadmap, /### 1\.6\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.6\.0/);
+  assert.doesNotMatch(roadmap, /### 1\.7\.0/);
+  assert.doesNotMatch(roadmapZh, /### 1\.7\.0/);
   assert.doesNotMatch(roadmap, /### 1\.3\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);

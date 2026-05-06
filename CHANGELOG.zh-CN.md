@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 1.7.0
+
+扩展工具兼容面版本。
+
+- 为已有项目、场景、节点、脚本、资源、运行、调试、导出和 UID 工具增加精确名称兼容别名。
+- 为 signal、InputMap、animation、shader、material、lighting、particle、TileMap、physics、navigation、audio、filesystem 和 dependency 工具增加 action 路由包装。
+- 为仍需要后续 bridge/runtime 支持的 live editor、running-game automation、profiling、QA、autoload 和 batch refactoring 工具名增加可发现的结构化 unsupported 响应。
+- 增加 1.7.0 完整兼容工具名集合的验证覆盖。
+- 更新 `1.7.0` 发布文档和构建包下载链接。
+
 ## 1.6.0
 
 安全与恢复版本。

@@ -7,6 +7,7 @@ import { SCRIPT_TOOL_DEFINITIONS } from './script.js';
 import { NODE_TOOL_DEFINITIONS } from './node.js';
 import { SCENE_TOOL_DEFINITIONS } from './scene.js';
 import { VISUAL_TOOL_DEFINITIONS } from './visual.js';
+import { COMPATIBILITY_TOOL_DEFINITIONS } from './compatibility.js';
 import type { GodotToolDefinition } from './types.js';
 
 export const GODOT_TOOL_DEFINITION_GROUPS: GodotToolDefinition[][] = [
@@ -19,6 +20,7 @@ export const GODOT_TOOL_DEFINITION_GROUPS: GodotToolDefinition[][] = [
   NODE_TOOL_DEFINITIONS,
   SCENE_TOOL_DEFINITIONS,
   VISUAL_TOOL_DEFINITIONS,
+  COMPATIBILITY_TOOL_DEFINITIONS,
 ];
 
 export const BASE_GODOT_TOOL_DEFINITIONS: GodotToolDefinition[] = GODOT_TOOL_DEFINITION_GROUPS.flat();

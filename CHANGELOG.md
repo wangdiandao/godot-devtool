@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.7.0
+
+Expanded tool compatibility surface release.
+
+- Added exact-name compatibility aliases for existing project, scene, node, script, resource, run, debug, export, and UID tools.
+- Added action-routed compatibility wrappers for signal, InputMap, animation, shader, material, lighting, particle, TileMap, physics, navigation, audio, filesystem, and dependency tools.
+- Added discoverable structured unsupported responses for live editor, running-game automation, profiling, QA, autoload, and batch-refactoring tool names that need future bridge/runtime support.
+- Updated verification coverage for the full 1.7.0 compatibility tool name set.
+- Updated release documentation and package download links for `1.7.0`.
+
 ## Version 1.6.0
 
 Safety and recovery release.

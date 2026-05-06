@@ -9,6 +9,7 @@ import { createResourceToolHandlers } from './resource.js';
 import { createSceneToolHandlers } from './scene.js';
 import { createScriptToolHandlers } from './script.js';
 import { createVisualToolHandlers } from './visual.js';
+import { createCompatibilityToolHandlers } from './compatibility.js';
 import type { ToolHandlerHost, ToolHandlerMap } from './types.js';
 
 export function createToolHandlers(host: ToolHandlerHost): ToolHandlerMap {
@@ -22,6 +23,7 @@ export function createToolHandlers(host: ToolHandlerHost): ToolHandlerMap {
     ...createNodeToolHandlers(host),
     ...createSceneToolHandlers(host),
     ...createVisualToolHandlers(host),
+    ...createCompatibilityToolHandlers(host),
   };
 }
 

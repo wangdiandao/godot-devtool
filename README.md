@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@ This project was initially inspired by [Coding-Solo/godot-mcp](https://github.co
 
 Latest release package:
 
-[godot-devtool-build-1.6.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.6.0/godot-devtool-build-1.6.0.zip)
+[godot-devtool-build-1.7.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.7.0/godot-devtool-build-1.7.0.zip)
 
 Extract the zip and point your MCP client at the extracted `build/index.js`.
 

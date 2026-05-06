@@ -68,6 +68,7 @@ import {
   writeSafetyPolicy,
 } from '../godot/safetyRecovery.js';
 import { getOperationsScriptPath } from '../godot/paths.js';
+import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
 
@@ -270,7 +271,7 @@ export class GodotServer {
     this.server = new Server(
       {
         name: 'godot-devtool',
-        version: '1.4.0',
+        version: '1.7.0',
       },
       {
         capabilities: {
@@ -346,7 +347,110 @@ export class GodotServer {
     };
   }
 
+  private async handleCompatibilityTool(toolName: string, args: any) {
+    const route = COMPATIBILITY_TOOL_ROUTES[toolName];
+    if (!route) {
+      return this.createErrorResponse(`Unknown compatibility tool: ${toolName}`);
+    }
+
+    if (route.unsupportedReason) {
+      return this.createJsonResponse({
+        toolName,
+        supported: false,
+        status: 'unsupported',
+        since: '1.7.0',
+        runMode: route.runMode ?? 'compatibility_unsupported',
+        riskLevel: route.riskLevel ?? 'read',
+        reason: route.unsupportedReason,
+        alternatives: [
+          'Call get_capabilities with includeAliases=true to discover supported canonical tools.',
+          'Use the named canonical tool when the response points to an available replacement.',
+        ],
+      });
+    }
+
+    const routedArgs = this.buildCompatibilityArgs(route, args || {});
+    switch (route.canonicalTool) {
+      case 'signal':
+        return this.handleP9SceneOperation('signal', routedArgs);
+      case 'project_input_action':
+        return this.handleProjectInputAction(routedArgs);
+      case 'animation':
+        return this.handleP9SceneOperation('animation', routedArgs);
+      case 'tilemap':
+        return this.handleP11SceneOperation('tilemap', routedArgs);
+      case 'shader':
+        return this.handleP10VisualOperation('shader', routedArgs);
+      case 'material':
+        return this.handleP10VisualOperation('material', routedArgs);
+      case 'lighting':
+        return this.handleP10VisualOperation('lighting', routedArgs);
+      case 'particle':
+        return this.handleP10VisualOperation('particle', routedArgs);
+      case 'navigation':
+        return this.handleP11SceneOperation('navigation', routedArgs);
+      case 'audio':
+        return this.handleP11SceneOperation('audio', routedArgs);
+      case 'animation_state_machine':
+        return this.handleP9SceneOperation('animation_state_machine', routedArgs);
+      case 'filesystem_list':
+        return this.handleFilesystemList(routedArgs);
+      case 'filesystem_read':
+        return this.handleFilesystemRead(routedArgs);
+      case 'filesystem_delete':
+        return this.handleFilesystemDelete(routedArgs);
+      case 'resource_create':
+        return this.handleResourceCreate(routedArgs);
+      case 'resource_save':
+        return this.handleResourceSave(routedArgs);
+      case 'script_write':
+        return this.handleScriptWrite(routedArgs);
+      case 'node_find':
+        return this.handleNodeFind(routedArgs);
+      case 'export_matrix':
+        return this.handleExportMatrix(routedArgs);
+      case 'physics':
+        return this.handleP11SceneOperation('physics', routedArgs);
+      case 'resource_dependency_graph':
+        return this.handleResourceDependencyGraph(routedArgs);
+      case 'get_project_info':
+        return this.handleGetProjectInfo(routedArgs);
+      default:
+        return this.createErrorResponse(
+          `Compatibility route ${toolName} points to unsupported canonical tool ${route.canonicalTool}`,
+          ['Update src/tools/compatibilityTools.ts and GodotServer.handleCompatibilityTool together']
+        );
+    }
+  }
+
+  private buildCompatibilityArgs(route: CompatibilityToolRoute, args: any): OperationParams {
+    const normalizedArgs = this.normalizeParameters(args || {});
+    const routedArgs: OperationParams = { ...normalizedArgs };
+
+    if (route.fieldMap) {
+      for (const [fromKey, toKey] of Object.entries(route.fieldMap)) {
+        if (normalizedArgs[fromKey] !== undefined && routedArgs[toKey] === undefined) {
+          routedArgs[toKey] = normalizedArgs[fromKey];
+        }
+      }
+    }
+
+    if (route.fixedArgs) {
+      Object.assign(routedArgs, route.fixedArgs);
+    }
+
+    return routedArgs;
+  }
+
   private getToolRiskLevel(toolName: string): string {
+    const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
+    if (compatibilityRoute) {
+      if (compatibilityRoute.unsupportedReason) {
+        return compatibilityRoute.riskLevel ?? 'read';
+      }
+      return this.getToolRiskLevel(compatibilityRoute.canonicalTool ?? toolName);
+    }
+
     if (['filesystem_delete', 'export_project', 'update_project_uids'].includes(toolName)) {
       return 'dangerous';
     }
@@ -396,6 +500,14 @@ export class GodotServer {
   }
 
   private getToolRunMode(toolName: string): string {
+    const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
+    if (compatibilityRoute) {
+      if (compatibilityRoute.unsupportedReason) {
+        return compatibilityRoute.runMode ?? 'compatibility_unsupported';
+      }
+      return this.getToolRunMode(compatibilityRoute.canonicalTool ?? toolName);
+    }
+
     if (['launch_editor'].includes(toolName)) {
       return 'editor_process';
     }
