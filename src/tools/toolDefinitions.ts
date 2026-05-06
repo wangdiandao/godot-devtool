@@ -850,17 +850,28 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
   },
   {
     name: 'animation',
-    description: 'Create, list, and configure basic AnimationPlayer animations',
+    description: 'Create, inspect, remove, and edit AnimationPlayer tracks and keyframes',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Project-relative scene path' },
-        action: { type: 'string', enum: ['list', 'create'], description: 'Animation action. Defaults to list.' },
+        action: {
+          type: 'string',
+          enum: ['list', 'create', 'add_track', 'set_keyframe', 'get_info', 'remove'],
+          description: 'Animation action. Defaults to list.',
+        },
         nodePath: { type: 'string', description: 'Parent node path for create action' },
+        animationPlayerPath: { type: 'string', description: 'AnimationPlayer node path for editing existing animations' },
         playerName: { type: 'string', description: 'AnimationPlayer node name. Defaults to AnimationPlayer.' },
         animationName: { type: 'string', description: 'Animation name. Defaults to default.' },
         length: { type: 'number', description: 'Animation length in seconds. Defaults to 1.0.' },
+        trackType: { type: 'string', enum: ['value', 'method', 'bezier'], description: 'Track type for add_track. Defaults to value.' },
+        trackPath: { type: 'string', description: 'Animation track path, such as Sprite2D:modulate or .:position' },
+        trackIndex: { type: 'number', description: 'Existing track index for keyframe insertion' },
+        time: { type: 'number', description: 'Keyframe time in seconds' },
+        value: { description: 'Keyframe value, using structured Variant values where needed' },
+        updateMode: { type: 'string', enum: ['continuous', 'discrete', 'capture'], description: 'Value track update mode' },
         tracks: {
           type: 'array',
           description: 'Optional value tracks with path and keyframes, e.g. [{ path: "Player:position", keyframes: [{ time: 0, value: { type: "Vector2", value: [0, 0] } }] }]',
@@ -889,14 +900,15 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
   },
   {
     name: 'animation_state_machine',
-    description: 'Create or inspect a basic AnimationTree state machine',
+    description: 'Create, inspect, and configure AnimationTree state machines',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Project-relative scene path' },
-        action: { type: 'string', enum: ['list', 'create'], description: 'State machine action. Defaults to create.' },
+        action: { type: 'string', enum: ['list', 'create', 'set_transition_parameters'], description: 'State machine action. Defaults to list.' },
         nodePath: { type: 'string', description: 'Parent node path for create action' },
+        treePath: { type: 'string', description: 'Existing AnimationTree node path for transition updates' },
         treeName: { type: 'string', description: 'AnimationTree node name. Defaults to AnimationTree.' },
         animationPlayerPath: { type: 'string', description: 'Optional AnimationPlayer node path used by the AnimationTree.' },
         states: {
@@ -920,9 +932,17 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
             properties: {
               from: { type: 'string' },
               to: { type: 'string' },
+              parameters: { type: 'object' },
             },
             required: ['from', 'to'],
           },
+        },
+        fromState: { type: 'string', description: 'Transition source state for set_transition_parameters' },
+        toState: { type: 'string', description: 'Transition target state for set_transition_parameters' },
+        transitionIndex: { type: 'number', description: 'Transition index for set_transition_parameters' },
+        transitionParameters: {
+          type: 'object',
+          description: 'AnimationNodeStateMachineTransition properties such as xfade_time, advance_mode, switch_mode, advance_condition, priority, and reset.',
         },
       },
       required: ['projectPath', 'scenePath'],
@@ -962,17 +982,30 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
   },
   {
     name: 'ui',
-    description: 'Create common Control UI nodes in a scene',
+    description: 'Create Control nodes, reusable UI templates, themes, and automatic signal wiring',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Project-relative scene path' },
-        action: { type: 'string', enum: ['create'], description: 'UI action. Defaults to create.' },
+        action: {
+          type: 'string',
+          enum: ['create', 'create_theme', 'apply_theme', 'create_template', 'auto_connect_signals'],
+          description: 'UI action. Defaults to create.',
+        },
         parentNodePath: { type: 'string', description: 'Parent node path. Defaults to root.' },
+        nodePath: { type: 'string', description: 'Existing Control node path for theme application or signal scanning' },
         nodeType: { type: 'string', description: 'Control node type, such as Control, Label, Button, or PanelContainer.' },
         nodeName: { type: 'string', description: 'Name for the new UI node' },
         text: { type: 'string', description: 'Optional text for Label/Button-like nodes' },
+        themePath: { type: 'string', description: 'Project-relative Theme .tres/.res path for create_theme/apply_theme' },
+        templateName: { type: 'string', enum: ['hud_bar', 'menu_panel', 'dialog_box'], description: 'Reusable Control tree template for create_template' },
+        targetNodePath: { type: 'string', description: 'Signal receiver node path for auto_connect_signals' },
+        signalMappings: { type: 'array', items: { type: 'object' }, description: 'Optional signal mappings: [{ nodePath, signalName, methodName }]' },
+        colors: { type: 'object', description: 'Theme colors keyed by Type/name, such as {"Label/font_color": Color}' },
+        constants: { type: 'object', description: 'Theme constants keyed by Type/name' },
+        fontSizes: { type: 'object', description: 'Theme font sizes keyed by Type/name' },
+        styleboxes: { type: 'object', description: 'Theme StyleBoxFlat entries keyed by Type/name' },
         layoutPreset: {
           type: 'string',
           enum: ['full_rect', 'center', 'top_left'],
@@ -990,7 +1023,11 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        action: { type: 'string', enum: ['create', 'read', 'update', 'apply'], description: 'Material action. Defaults to read.' },
+        action: {
+          type: 'string',
+          enum: ['create', 'read', 'update', 'apply', 'list_templates', 'create_from_template'],
+          description: 'Material action. Defaults to read.',
+        },
         resourcePath: { type: 'string', description: 'Project-relative material resource path for create/read/update' },
         materialPath: { type: 'string', description: 'Project-relative material resource path for apply' },
         materialType: {
@@ -1000,6 +1037,11 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
         },
         shaderPath: { type: 'string', description: 'Project-relative .gdshader path when creating ShaderMaterial' },
         presetName: { type: 'string', enum: ['unlit', 'lit', 'emissive', 'transparent'], description: 'Optional material preset applied before custom properties' },
+        templateName: {
+          type: 'string',
+          enum: ['block_unlit', 'emissive_pickup', 'transparent_ghost', 'ui_canvas'],
+          description: 'Reusable material template for create_from_template.',
+        },
         properties: { type: 'object', description: 'Material properties to set, using structured Variant values where needed' },
         scenePath: { type: 'string', description: 'Project-relative scene path for apply' },
         nodePath: { type: 'string', description: 'Target node path for apply' },
@@ -1024,6 +1066,8 @@ export const GODOT_TOOL_DEFINITIONS: any[] = [
         materialPath: { type: 'string', description: 'Project-relative ShaderMaterial resource path for set_parameters' },
         shaderType: { type: 'string', enum: ['canvas_item', 'spatial', 'particles'], description: 'Shader type for generated shader code' },
         code: { type: 'string', description: 'Full shader code for create' },
+        includePaths: { type: 'array', items: { type: 'string' }, description: 'Known shader include paths to report alongside parsed #include directives' },
+        textureDefaults: { type: 'object', description: 'Texture defaults keyed by sampler uniform name for generated ShaderMaterial setup' },
         parameters: { type: 'object', description: 'Shader parameter values for set_parameters' },
       },
       required: ['projectPath'],

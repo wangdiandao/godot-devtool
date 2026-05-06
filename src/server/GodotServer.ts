@@ -167,11 +167,25 @@ export class GodotServer {
     'animation_name': 'animationName',
     'tree_name': 'treeName',
     'animation_player_path': 'animationPlayerPath',
+    'track_type': 'trackType',
+    'track_path': 'trackPath',
+    'track_index': 'trackIndex',
+    'update_mode': 'updateMode',
+    'tree_path': 'treePath',
+    'from_state': 'fromState',
+    'to_state': 'toState',
+    'transition_index': 'transitionIndex',
+    'transition_parameters': 'transitionParameters',
     'signal_name': 'signalName',
     'target_node_path': 'targetNodePath',
     'method_name': 'methodName',
+    'signal_mappings': 'signalMappings',
     'group_name': 'groupName',
     'layout_preset': 'layoutPreset',
+    'theme_path': 'themePath',
+    'font_sizes': 'fontSizes',
+    'include_paths': 'includePaths',
+    'texture_defaults': 'textureDefaults',
     'preset_name': 'presetName',
     'create_output_directory': 'createOutputDirectory',
     'output_offset': 'outputOffset',
@@ -3117,17 +3131,23 @@ export class GodotServer {
   private async handleP9SceneOperation(operation: string, args: any) {
     args = this.normalizeParameters(args);
 
-    const requiredFields = operation === 'ui'
+    const uiAction = args.action ?? 'create';
+    const requiredFields = operation === 'ui' && uiAction === 'create'
       ? ['projectPath', 'scenePath', 'nodeType', 'nodeName']
       : ['projectPath', 'scenePath'];
     const validationError = this.validateSceneOperationArgs(args, requiredFields);
     if (validationError) return validationError;
 
-    if (operation === 'ui') {
+    if (operation === 'ui' && args.nodeType) {
       if (!this.validateClassName(args.nodeType)) {
         return this.createErrorResponse('Invalid node type', ['Use a built-in Control class name such as Control, Label, Button, or PanelContainer']);
       }
-      if (!this.validateNodeName(args.nodeName)) {
+    }
+    if (operation === 'ui') {
+      if (args.themePath && (!isSafeProjectRelativePath(args.themePath) || !/\.(tres|res)$/i.test(args.themePath))) {
+        return this.createErrorResponse('Invalid themePath', ['Provide a project-relative .tres or .res Theme path']);
+      }
+      if (args.nodeName && !this.validateNodeName(args.nodeName)) {
         return this.createErrorResponse('Invalid node name', ['Provide a node name without path separators or reserved filename characters']);
       }
     }
@@ -3146,17 +3166,35 @@ export class GodotServer {
         'playerName',
         'animationName',
         'length',
+        'trackType',
+        'trackPath',
+        'trackIndex',
+        'time',
+        'value',
+        'updateMode',
         'tracks',
+        'treePath',
         'treeName',
         'animationPlayerPath',
         'states',
         'transitions',
+        'fromState',
+        'toState',
+        'transitionIndex',
+        'transitionParameters',
         'signalName',
         'targetNodePath',
         'methodName',
+        'signalMappings',
         'groupName',
         'text',
         'layoutPreset',
+        'themePath',
+        'templateName',
+        'colors',
+        'constants',
+        'fontSizes',
+        'styleboxes',
         'properties',
       ]) {
         if (args[key] !== undefined) {
@@ -3241,8 +3279,11 @@ export class GodotServer {
         'shaderPath',
         'shaderType',
         'presetName',
+        'templateName',
         'propertyName',
         'code',
+        'includePaths',
+        'textureDefaults',
         'parameters',
         'properties',
         'processMaterialType',
@@ -3260,7 +3301,7 @@ export class GodotServer {
         return this.createErrorResponse(`Failed to run ${operation}: ${stderr}`);
       }
 
-      const mutatingActions = ['create', 'update', 'apply', 'set_parameters'];
+      const mutatingActions = ['create', 'update', 'apply', 'set_parameters', 'create_from_template'];
       if (mutatingActions.includes(action)) {
         await appendAuditEntry(args.projectPath, {
           operation,

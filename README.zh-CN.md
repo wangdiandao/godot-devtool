@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 最新发行包：
 
-[godot-devtool-build-1.2.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.2.1/godot-devtool-build-1.2.1.zip)
+[godot-devtool-build-1.3.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.0/godot-devtool-build-1.3.0.zip)
 
 解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
 
@@ -45,7 +45,7 @@ npm install
 npm run build
 ```
 
-MCP server 入口是：
+MCP server 入口：
 
 ```text
 build/index.js
@@ -174,13 +174,13 @@ npm run check:project -- E:/test
 
 | Tool | 说明 |
 | --- | --- |
-| `animation` | 列出或创建基础 AnimationPlayer animation |
-| `animation_state_machine` | 创建或检查 AnimationTree state machine |
+| `animation` | 列出、创建、检查、删除和编辑 AnimationPlayer tracks/keyframes |
+| `animation_state_machine` | 创建、检查和配置 AnimationTree state machine transition |
 | `signal` | 列出、连接或断开节点 signal |
 | `group` | 列出、添加或移除节点 group |
-| `ui` | 创建常见 Control UI 节点 |
-| `material` | 创建、读取、更新和应用 material |
-| `shader` | 创建/读取 shader，并配置 ShaderMaterial 参数 |
+| `ui` | 创建 Control 节点、UI tree 模板、Theme 资源、theme 应用和自动 signal wiring |
+| `material` | 创建、读取、更新、应用、列出模板并从可复用材质模板创建 material |
+| `shader` | 创建/读取 shader，检查 include 和 texture uniform，并配置 ShaderMaterial 参数 |
 | `lighting` | 创建和列出 Godot light/environment 节点 |
 | `particle` | 创建和列出 particle emitter 节点 |
 

@@ -4,6 +4,17 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 1.3.0
+
+视觉、Shader、动画和 UI 增强版本。
+
+- 增加 shader include 报告和 texture uniform 推断。
+- 通过 `material` 的 `list_templates` 和 `create_from_template` 增加可复用材质模板。
+- 扩展 `animation`，增加 `add_track`、`set_keyframe`、`get_info` 和 `remove` action。
+- 通过 `animation_state_machine` 增加 AnimationTree transition 参数编辑。
+- 扩展 `ui`，增加 Theme 资源创建、theme 应用、可复用 Control tree 模板和自动 signal 连接辅助。
+- 更新 `1.3.0` 发布文档和构建包下载链接。
+
 ## 1.2.1
 
 文档和发行包更新。
@@ -20,7 +31,7 @@
 TileSet 和地图生成版本。
 
 - 通过 `tilemap` 的 `add_atlas_source` action 增加 TileSet atlas source 管理。
-- 增加 tile 自定义 metadata、碰撞 polygon、导航 polygon 和 terrain 配置 action。
+- 增加 tile 自定义 metadata、collision polygon、navigation polygon 和 terrain 配置 action。
 - 增加带权重的确定性随机地图绘制。
 - 增加可复用地图模板，包括用于地形和障碍布局生成的 `survivor_arena`。
 

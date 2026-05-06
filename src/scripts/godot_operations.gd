@@ -381,6 +381,50 @@ func collect_shader_uniforms(shader_code):
         })
     return uniforms
 
+func collect_shader_includes(shader_code, extra_include_paths = []):
+    var includes = []
+    for raw_line in shader_code.split("\n"):
+        var line = raw_line.strip_edges()
+        if not line.begins_with("#include"):
+            continue
+        var include_path = line.replace("#include", "").strip_edges()
+        if include_path.length() >= 2 and include_path.begins_with("\"") and include_path.ends_with("\""):
+            include_path = include_path.substr(1, include_path.length() - 2)
+        elif include_path.length() >= 2 and include_path.begins_with("<") and include_path.ends_with(">"):
+            include_path = include_path.substr(1, include_path.length() - 2)
+        if include_path != "":
+            includes.append(include_path)
+    if extra_include_paths is Array:
+        for include_path in extra_include_paths:
+            if not includes.has(str(include_path)):
+                includes.append(str(include_path))
+    return includes
+
+func collect_shader_texture_uniforms(shader_code, texture_defaults = {}):
+    var texture_uniforms = []
+    for uniform in collect_shader_uniforms(shader_code):
+        var uniform_type = str(uniform.type).to_lower()
+        if not uniform_type.begins_with("sampler"):
+            continue
+        var uniform_name = str(uniform.name)
+        texture_uniforms.append({
+            "name": uniform_name,
+            "type": str(uniform.type),
+            "hint": str(uniform.hint),
+            "defaultTexture": texture_defaults.get(uniform_name, null) if texture_defaults is Dictionary else null
+        })
+    return texture_uniforms
+
+func shader_inspection_payload(action, shader_path, shader_code, include_paths = [], texture_defaults = {}):
+    return {
+        "action": action,
+        "shaderPath": shader_path,
+        "code": shader_code,
+        "uniforms": collect_shader_uniforms(shader_code),
+        "includes": collect_shader_includes(shader_code, include_paths),
+        "textureUniforms": collect_shader_texture_uniforms(shader_code, texture_defaults)
+    }
+
 func serialize_material_resource(material):
     var result = {
         "type": material.get_class(),
@@ -398,6 +442,41 @@ func serialize_material_resource(material):
                 parameters[uniform_name] = serialize_variant(material.get_shader_parameter(uniform_name))
         result["parameters"] = parameters
     return result
+
+func material_template_names():
+    return ["block_unlit", "emissive_pickup", "transparent_ghost", "ui_canvas"]
+
+func create_material_from_template(template_name):
+    var material = null
+    match template_name:
+        "block_unlit":
+            material = StandardMaterial3D.new()
+            material.albedo_color = Color(0.36, 0.72, 1.0, 1.0)
+            if object_has_property(material, "shading_mode"):
+                material.set("shading_mode", BaseMaterial3D.SHADING_MODE_UNSHADED)
+            material.roughness = 0.85
+        "emissive_pickup":
+            material = StandardMaterial3D.new()
+            material.albedo_color = Color(1.0, 0.84, 0.22, 1.0)
+            material.emission_enabled = true
+            material.emission = Color(1.0, 0.72, 0.12, 1.0)
+            material.roughness = 0.35
+        "transparent_ghost":
+            material = StandardMaterial3D.new()
+            material.albedo_color = Color(0.7, 0.95, 1.0, 0.38)
+            if object_has_property(material, "transparency"):
+                material.set("transparency", BaseMaterial3D.TRANSPARENCY_ALPHA)
+            material.roughness = 0.2
+        "ui_canvas":
+            material = CanvasItemMaterial.new()
+            if object_has_property(material, "blend_mode"):
+                material.set("blend_mode", CanvasItemMaterial.BLEND_MODE_MIX)
+            if object_has_property(material, "light_mode"):
+                material.set("light_mode", CanvasItemMaterial.LIGHT_MODE_UNSHADED)
+        _:
+            printerr("Unsupported material template: " + template_name)
+            quit(1)
+    return material
 
 func collect_lighting_nodes(node, path, results):
     if node is Light3D or node is Light2D or node is WorldEnvironment:
@@ -1435,6 +1514,157 @@ func script_attach(params):
         "scriptPath": full_script_path
     }))
 
+func animation_track_type_from_name(track_type):
+    match str(track_type).to_lower():
+        "method":
+            return Animation.TYPE_METHOD
+        "bezier":
+            return Animation.TYPE_BEZIER
+        _:
+            return Animation.TYPE_VALUE
+
+func animation_update_mode_from_name(update_mode):
+    match str(update_mode).to_lower():
+        "discrete":
+            return Animation.UPDATE_DISCRETE
+        "capture":
+            return Animation.UPDATE_CAPTURE
+        _:
+            return Animation.UPDATE_CONTINUOUS
+
+func animation_find_player(scene_root, params):
+    if params.has("animation_player_path") and str(params.animation_player_path) != "":
+        var player_by_path = find_node_by_tool_path(scene_root, str(params.animation_player_path))
+        if player_by_path and player_by_path is AnimationPlayer:
+            return player_by_path
+        printerr("Failed to find AnimationPlayer: " + str(params.animation_player_path))
+        quit(1)
+    var parent_path = str(params.node_path) if params.has("node_path") and str(params.node_path) != "" else "root"
+    var parent = find_node_by_tool_path(scene_root, parent_path)
+    if not parent:
+        printerr("Failed to find animation parent node: " + parent_path)
+        quit(1)
+    var player_name = str(params.player_name) if params.has("player_name") and str(params.player_name) != "" else "AnimationPlayer"
+    var player = find_direct_child_by_name(parent, player_name)
+    if player and player is AnimationPlayer:
+        return player
+    if player:
+        printerr("Existing child is not an AnimationPlayer: " + player_name)
+        quit(1)
+    printerr("Failed to find AnimationPlayer child: " + player_name)
+    quit(1)
+
+func animation_get_library(player):
+    if player.has_animation_library(""):
+        return player.get_animation_library("")
+    var library = AnimationLibrary.new()
+    player.add_animation_library("", library)
+    return library
+
+func animation_get_resource(player, animation_name, create_if_missing = false):
+    var library = animation_get_library(player)
+    if library.has_animation(animation_name):
+        return {"library": library, "animation": library.get_animation(animation_name)}
+    if create_if_missing:
+        var animation_resource = Animation.new()
+        library.add_animation(animation_name, animation_resource)
+        return {"library": library, "animation": animation_resource}
+    printerr("Animation not found: " + animation_name)
+    quit(1)
+
+func serialize_animation_track(animation_resource, track_index):
+    var keyframes = []
+    for key_index in range(animation_resource.track_get_key_count(track_index)):
+        keyframes.append({
+            "index": key_index,
+            "time": animation_resource.track_get_key_time(track_index, key_index),
+            "value": serialize_variant(animation_resource.track_get_key_value(track_index, key_index))
+        })
+    return {
+        "index": track_index,
+        "type": animation_resource.track_get_type(track_index),
+        "path": str(animation_resource.track_get_path(track_index)),
+        "keyframes": keyframes
+    }
+
+func animation_get_info(player, animation_name):
+    var animation_data = animation_get_resource(player, animation_name, false)
+    var animation_resource = animation_data.animation
+    var tracks = []
+    for track_index in range(animation_resource.get_track_count()):
+        tracks.append(serialize_animation_track(animation_resource, track_index))
+    return {
+        "animationName": animation_name,
+        "length": animation_resource.length,
+        "trackCount": animation_resource.get_track_count(),
+        "tracks": tracks
+    }
+
+func animation_find_track(animation_resource, params):
+    if params.has("track_index"):
+        return int(params.track_index)
+    if params.has("track_path"):
+        var target_path = NodePath(str(params.track_path))
+        for track_index in range(animation_resource.get_track_count()):
+            if animation_resource.track_get_path(track_index) == target_path:
+                return track_index
+    return -1
+
+func animation_add_track(scene_root, params):
+    var player = animation_find_player(scene_root, params)
+    var animation_name = str(params.animation_name) if params.has("animation_name") and str(params.animation_name) != "" else "default"
+    var animation_data = animation_get_resource(player, animation_name, true)
+    var animation_resource = animation_data.animation
+    if params.has("length"):
+        animation_resource.length = float(params.length)
+    if not params.has("track_path"):
+        printerr("track_path is required")
+        quit(1)
+    var track_index = animation_resource.add_track(animation_track_type_from_name(params.get("track_type", "value")))
+    animation_resource.track_set_path(track_index, NodePath(str(params.track_path)))
+    if animation_resource.track_get_type(track_index) == Animation.TYPE_VALUE:
+        animation_resource.value_track_set_update_mode(track_index, animation_update_mode_from_name(params.get("update_mode", "continuous")))
+    return {
+        "playerPath": find_tool_path_by_reference(scene_root, player, "root"),
+        "animation": animation_get_info(player, animation_name),
+        "track": serialize_animation_track(animation_resource, track_index)
+    }
+
+func animation_set_keyframe(scene_root, params):
+    var player = animation_find_player(scene_root, params)
+    var animation_name = str(params.animation_name) if params.has("animation_name") and str(params.animation_name) != "" else "default"
+    var animation_data = animation_get_resource(player, animation_name, true)
+    var animation_resource = animation_data.animation
+    var track_index = animation_find_track(animation_resource, params)
+    if track_index < 0:
+        if not params.has("track_path"):
+            printerr("track_index or track_path is required")
+            quit(1)
+        track_index = animation_resource.add_track(animation_track_type_from_name(params.get("track_type", "value")))
+        animation_resource.track_set_path(track_index, NodePath(str(params.track_path)))
+    if not params.has("time") or not params.has("value"):
+        printerr("time and value are required")
+        quit(1)
+    animation_resource.track_insert_key(track_index, float(params.time), variant_from_json(params.value))
+    return {
+        "playerPath": find_tool_path_by_reference(scene_root, player, "root"),
+        "animation": animation_get_info(player, animation_name),
+        "track": serialize_animation_track(animation_resource, track_index)
+    }
+
+func animation_remove(scene_root, params):
+    var player = animation_find_player(scene_root, params)
+    var animation_name = str(params.animation_name) if params.has("animation_name") and str(params.animation_name) != "" else "default"
+    var library = animation_get_library(player)
+    if not library.has_animation(animation_name):
+        printerr("Animation not found: " + animation_name)
+        quit(1)
+    library.remove_animation(animation_name)
+    return {
+        "playerPath": find_tool_path_by_reference(scene_root, player, "root"),
+        "removedAnimation": animation_name
+    }
+
 func animation(params):
     var scene_data = load_scene_instance(params.scene_path)
     var full_scene_path = scene_data.path
@@ -1448,6 +1678,34 @@ func animation(params):
             "scenePath": params.scene_path,
             "players": players
         }))
+        return
+
+    if action == "get_info":
+        var info_player = animation_find_player(scene_root, params)
+        var info_animation_name = str(params.animation_name) if params.has("animation_name") and str(params.animation_name) != "" else "default"
+        print(JSON.stringify({
+            "scenePath": params.scene_path,
+            "playerPath": find_tool_path_by_reference(scene_root, info_player, "root"),
+            "animation": animation_get_info(info_player, info_animation_name)
+        }))
+        return
+
+    if action == "add_track":
+        var add_track_result = animation_add_track(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(add_track_result))
+        return
+
+    if action == "set_keyframe":
+        var keyframe_result = animation_set_keyframe(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(keyframe_result))
+        return
+
+    if action == "remove":
+        var remove_result = animation_remove(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(remove_result))
         return
 
     if action != "create":
@@ -1510,6 +1768,58 @@ func animation(params):
         "trackCount": animation_resource.get_track_count()
     }))
 
+func animation_tree_find_node(scene_root, params):
+    if params.has("tree_path") and str(params.tree_path) != "":
+        var tree_by_path = find_node_by_tool_path(scene_root, str(params.tree_path))
+        if tree_by_path and tree_by_path is AnimationTree:
+            return tree_by_path
+        printerr("Failed to find AnimationTree: " + str(params.tree_path))
+        quit(1)
+    var parent_path = str(params.node_path) if params.has("node_path") and str(params.node_path) != "" else "root"
+    var parent = find_node_by_tool_path(scene_root, parent_path)
+    if not parent:
+        printerr("Failed to find AnimationTree parent node: " + parent_path)
+        quit(1)
+    var tree_name = str(params.tree_name) if params.has("tree_name") and str(params.tree_name) != "" else "AnimationTree"
+    var tree = find_direct_child_by_name(parent, tree_name)
+    if tree and tree is AnimationTree:
+        return tree
+    printerr("Failed to find AnimationTree child: " + tree_name)
+    quit(1)
+
+func animation_tree_transition_index(machine, params):
+    if params.has("transition_index"):
+        return int(params.transition_index)
+    var from_state = str(params.from_state) if params.has("from_state") else ""
+    var to_state = str(params.to_state) if params.has("to_state") else ""
+    for transition_index in range(machine.get_transition_count()):
+        if str(machine.get_transition_from(transition_index)) == from_state and str(machine.get_transition_to(transition_index)) == to_state:
+            return transition_index
+    return -1
+
+func animation_tree_set_transition_parameters(scene_root, params):
+    var tree = animation_tree_find_node(scene_root, params)
+    if not (tree.tree_root is AnimationNodeStateMachine):
+        printerr("AnimationTree tree_root is not an AnimationNodeStateMachine")
+        quit(1)
+    if not params.has("transition_parameters") or not (params.transition_parameters is Dictionary):
+        printerr("transition_parameters is required")
+        quit(1)
+    var machine = tree.tree_root
+    var transition_index = animation_tree_transition_index(machine, params)
+    if transition_index < 0 or transition_index >= machine.get_transition_count():
+        printerr("Failed to find AnimationTree transition")
+        quit(1)
+    var transition = machine.get_transition(transition_index)
+    apply_properties_to_object(transition, params.transition_parameters)
+    return {
+        "treePath": find_tool_path_by_reference(scene_root, tree, "root"),
+        "transitionIndex": transition_index,
+        "from": str(machine.get_transition_from(transition_index)),
+        "to": str(machine.get_transition_to(transition_index)),
+        "parameters": params.transition_parameters
+    }
+
 func animation_state_machine(params):
     var scene_data = load_scene_instance(params.scene_path)
     var full_scene_path = scene_data.path
@@ -1523,6 +1833,12 @@ func animation_state_machine(params):
             "scenePath": params.scene_path,
             "trees": trees
         }))
+        return
+
+    if action == "set_transition_parameters":
+        var transition_result = animation_tree_set_transition_parameters(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(transition_result))
         return
 
     if action != "create":
@@ -1568,7 +1884,10 @@ func animation_state_machine(params):
             if not (transition is Dictionary) or not transition.has("from") or not transition.has("to"):
                 printerr("Transition entries require from and to")
                 quit(1)
-            state_machine.add_transition(str(transition.from), str(transition.to), AnimationNodeStateMachineTransition.new())
+            var transition_resource = AnimationNodeStateMachineTransition.new()
+            if transition.has("parameters") and transition.parameters is Dictionary:
+                apply_properties_to_object(transition_resource, transition.parameters)
+            state_machine.add_transition(str(transition.from), str(transition.to), transition_resource)
 
     tree.tree_root = state_machine
     if params.has("animation_player_path") and str(params.animation_player_path) != "":
@@ -1703,11 +2022,236 @@ func group_tool(params):
         "action": action
     }))
 
+func ui_apply_layout_preset(node, layout_preset):
+    match str(layout_preset):
+        "full_rect":
+            node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+        "center":
+            node.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+        "top_left":
+            node.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+        _:
+            printerr("Unsupported layout preset: " + str(layout_preset))
+            quit(1)
+
+func ui_apply_control_properties(node, params):
+    if params.has("text") and object_has_property(node, "text"):
+        node.set("text", str(params.text))
+    if params.has("layout_preset"):
+        ui_apply_layout_preset(node, params.layout_preset)
+    if params.has("properties") and params.properties is Dictionary:
+        for property_name in params.properties.keys():
+            if property_name == "name":
+                printerr("Use nodeName to name UI nodes")
+                quit(1)
+            node.set(property_name, variant_from_json(params.properties[property_name]))
+
+func ui_theme_type_and_name(key):
+    var parts = str(key).split("/")
+    if parts.size() < 2:
+        return {"type": "Control", "name": str(key)}
+    return {"type": str(parts[0]), "name": str(parts[1])}
+
+func ui_make_stylebox_flat(data):
+    var box = StyleBoxFlat.new()
+    if data is Dictionary:
+        if data.has("bg_color"):
+            box.bg_color = variant_from_json(data.bg_color)
+        if data.has("border_color"):
+            box.border_color = variant_from_json(data.border_color)
+        if data.has("border_width_all"):
+            box.set_border_width_all(int(data.border_width_all))
+        if data.has("corner_radius_all"):
+            box.set_corner_radius_all(int(data.corner_radius_all))
+        if data.has("content_margin_all"):
+            box.set_content_margin_all(float(data.content_margin_all))
+    return box
+
+func ui_create_theme(params):
+    if not params.has("theme_path"):
+        printerr("theme_path is required")
+        quit(1)
+    var theme = Theme.new()
+    if params.has("colors") and params.colors is Dictionary:
+        for key in params.colors.keys():
+            var parsed = ui_theme_type_and_name(key)
+            theme.set_color(parsed.name, parsed.type, variant_from_json(params.colors[key]))
+    if params.has("constants") and params.constants is Dictionary:
+        for key in params.constants.keys():
+            var parsed_constant = ui_theme_type_and_name(key)
+            theme.set_constant(parsed_constant.name, parsed_constant.type, int(params.constants[key]))
+    if params.has("font_sizes") and params.font_sizes is Dictionary:
+        for key in params.font_sizes.keys():
+            var parsed_font_size = ui_theme_type_and_name(key)
+            theme.set_font_size(parsed_font_size.name, parsed_font_size.type, int(params.font_sizes[key]))
+    if params.has("styleboxes") and params.styleboxes is Dictionary:
+        for key in params.styleboxes.keys():
+            var parsed_stylebox = ui_theme_type_and_name(key)
+            theme.set_stylebox(parsed_stylebox.name, parsed_stylebox.type, ui_make_stylebox_flat(params.styleboxes[key]))
+    var saved_theme_path = save_resource_checked(theme, params.theme_path)
+    return {
+        "action": "create_theme",
+        "themePath": saved_theme_path
+    }
+
+func ui_apply_theme(scene_root, params):
+    if not params.has("theme_path") or not params.has("node_path"):
+        printerr("theme_path and node_path are required")
+        quit(1)
+    var node = find_node_by_tool_path(scene_root, params.node_path)
+    if not node or not (node is Control):
+        printerr("Failed to find Control node: " + str(params.node_path))
+        quit(1)
+    var theme = load(normalize_resource_path(params.theme_path))
+    if not theme or not (theme is Theme):
+        printerr("Failed to load Theme: " + str(params.theme_path))
+        quit(1)
+    node.theme = theme
+    return {
+        "action": "apply_theme",
+        "nodePath": str(params.node_path),
+        "themePath": normalize_resource_path(params.theme_path)
+    }
+
+func ui_create_template(scene_root, params):
+    var parent_path = str(params.parent_node_path) if params.has("parent_node_path") and str(params.parent_node_path) != "" else "root"
+    var parent = find_node_by_tool_path(scene_root, parent_path)
+    if not parent:
+        printerr("Failed to find UI parent node: " + parent_path)
+        quit(1)
+    var template_name = str(params.template_name) if params.has("template_name") and str(params.template_name) != "" else "hud_bar"
+    var root_name = str(params.node_name) if params.has("node_name") and str(params.node_name) != "" else template_name.to_pascal_case()
+    var root = Control.new()
+    root.name = root_name
+    match template_name:
+        "hud_bar":
+            root.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+            var label = Label.new()
+            label.name = "ValueLabel"
+            label.text = str(params.text) if params.has("text") else "HP 100"
+            root.add_child(label)
+            label.owner = scene_root
+        "menu_panel":
+            root.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+            var panel = PanelContainer.new()
+            panel.name = "Panel"
+            var box = VBoxContainer.new()
+            box.name = "Actions"
+            var title = Label.new()
+            title.name = "Title"
+            title.text = str(params.text) if params.has("text") else "Menu"
+            var button = Button.new()
+            button.name = "PrimaryButton"
+            button.text = "Start"
+            box.add_child(title)
+            box.add_child(button)
+            panel.add_child(box)
+            root.add_child(panel)
+            set_owner_recursive(panel, scene_root)
+        "dialog_box":
+            root.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+            var dialog = PanelContainer.new()
+            dialog.name = "Dialog"
+            var dialog_label = Label.new()
+            dialog_label.name = "Message"
+            dialog_label.text = str(params.text) if params.has("text") else "Message"
+            dialog.add_child(dialog_label)
+            root.add_child(dialog)
+            set_owner_recursive(dialog, scene_root)
+        _:
+            printerr("Unsupported UI template: " + template_name)
+            quit(1)
+    if params.has("properties"):
+        apply_properties_to_object(root, params.properties)
+    parent.add_child(root)
+    set_owner_recursive(root, scene_root)
+    return {
+        "action": "create_template",
+        "templateName": template_name,
+        "parentNodePath": parent_path,
+        "path": find_tool_path_by_reference(scene_root, root, "root")
+    }
+
+func ui_collect_signal_candidates(node, path, mappings):
+    if node is Button:
+        mappings.append({
+            "nodePath": path,
+            "signalName": "pressed",
+            "methodName": "_on_" + str(node.name).to_snake_case() + "_pressed"
+        })
+    for child in node.get_children():
+        ui_collect_signal_candidates(child, path + "/" + str(child.name), mappings)
+
+func ui_auto_connect_signals(scene_root, params):
+    var source_path = str(params.node_path) if params.has("node_path") and str(params.node_path) != "" else "root"
+    var source_root = find_node_by_tool_path(scene_root, source_path)
+    if not source_root:
+        printerr("Failed to find UI signal source: " + source_path)
+        quit(1)
+    var target_path = str(params.target_node_path) if params.has("target_node_path") and str(params.target_node_path) != "" else "root"
+    var target = find_node_by_tool_path(scene_root, target_path)
+    if not target:
+        printerr("Failed to find UI signal target: " + target_path)
+        quit(1)
+    var mappings = params.signal_mappings if params.has("signal_mappings") and params.signal_mappings is Array else []
+    if mappings.is_empty():
+        ui_collect_signal_candidates(source_root, source_path, mappings)
+    var connected = []
+    var skipped = []
+    for mapping in mappings:
+        if not (mapping is Dictionary) or not mapping.has("node_path") or not mapping.has("signal_name") or not mapping.has("method_name"):
+            skipped.append({"mapping": mapping, "reason": "missing node_path, signal_name, or method_name"})
+            continue
+        var signal_node = find_node_by_tool_path(scene_root, str(mapping.node_path))
+        if not signal_node:
+            skipped.append({"mapping": mapping, "reason": "source node not found"})
+            continue
+        if not target.has_method(str(mapping.method_name)):
+            skipped.append({"mapping": mapping, "reason": "target method not found"})
+            continue
+        var callable = Callable(target, str(mapping.method_name))
+        if not signal_node.is_connected(str(mapping.signal_name), callable):
+            var result = signal_node.connect(str(mapping.signal_name), callable, CONNECT_PERSIST)
+            if result != OK:
+                skipped.append({"mapping": mapping, "reason": "connect failed: " + str(result)})
+                continue
+        connected.append(mapping)
+    return {
+        "action": "auto_connect_signals",
+        "sourceNodePath": source_path,
+        "targetNodePath": target_path,
+        "connected": connected,
+        "skipped": skipped
+    }
+
 func ui_tool(params):
     var scene_data = load_scene_instance(params.scene_path)
     var full_scene_path = scene_data.path
     var scene_root = scene_data.root
     var action = str(params.action) if params.has("action") else "create"
+
+    if action == "create_theme":
+        print(JSON.stringify(ui_create_theme(params)))
+        return
+
+    if action == "apply_theme":
+        var theme_result = ui_apply_theme(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(theme_result))
+        return
+
+    if action == "create_template":
+        var template_result = ui_create_template(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(template_result))
+        return
+
+    if action == "auto_connect_signals":
+        var connect_result = ui_auto_connect_signals(scene_root, params)
+        pack_and_save_scene(scene_root, full_scene_path)
+        print(JSON.stringify(connect_result))
+        return
+
     if action != "create":
         printerr("Unsupported ui action: " + action)
         quit(1)
@@ -1727,27 +2271,7 @@ func ui_tool(params):
         quit(1)
 
     node.name = str(params.node_name)
-    if params.has("text") and object_has_property(node, "text"):
-        node.set("text", str(params.text))
-
-    if params.has("layout_preset"):
-        match str(params.layout_preset):
-            "full_rect":
-                node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-            "center":
-                node.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-            "top_left":
-                node.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-            _:
-                printerr("Unsupported layout preset: " + str(params.layout_preset))
-                quit(1)
-
-    if params.has("properties") and params.properties is Dictionary:
-        for property_name in params.properties.keys():
-            if property_name == "name":
-                printerr("Use nodeName to name UI nodes")
-                quit(1)
-            node.set(property_name, variant_from_json(params.properties[property_name]))
+    ui_apply_control_properties(node, params)
 
     parent.add_child(node)
     set_owner_recursive(node, scene_root)
@@ -1762,6 +2286,29 @@ func ui_tool(params):
 
 func material_tool(params):
     var action = str(params.action) if params.has("action") else "read"
+
+    if action == "list_templates":
+        print(JSON.stringify({
+            "action": action,
+            "templates": material_template_names()
+        }))
+        return
+
+    if action == "create_from_template":
+        if not params.has("resource_path") or not params.has("template_name"):
+            printerr("resource_path and template_name are required")
+            quit(1)
+        var template_material = create_material_from_template(str(params.template_name))
+        if params.has("properties"):
+            apply_properties_to_object(template_material, params.properties)
+        var template_path = save_resource_checked(template_material, params.resource_path)
+        print(JSON.stringify({
+            "action": action,
+            "templateName": str(params.template_name),
+            "resourcePath": template_path,
+            "material": serialize_material_resource(template_material)
+        }))
+        return
 
     if action == "create":
         if not params.has("resource_path"):
@@ -1872,11 +2419,13 @@ func shader_tool(params):
         var code = str(params.code) if params.has("code") and str(params.code) != "" else "shader_type " + shader_type + ";\nuniform vec4 tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);\n"
         shader.code = code
         var full_shader_path = save_resource_checked(shader, params.shader_path)
-        print(JSON.stringify({
-            "action": action,
-            "shaderPath": full_shader_path,
-            "uniforms": collect_shader_uniforms(shader.code)
-        }))
+        print(JSON.stringify(shader_inspection_payload(
+            action,
+            full_shader_path,
+            shader.code,
+            params.include_paths if params.has("include_paths") else [],
+            params.texture_defaults if params.has("texture_defaults") else {}
+        )))
         return
 
     if action == "read" or action == "inspect":
@@ -1887,12 +2436,13 @@ func shader_tool(params):
         if not loaded_shader or not (loaded_shader is Shader):
             printerr("Failed to load shader: " + str(params.shader_path))
             quit(1)
-        print(JSON.stringify({
-            "action": action,
-            "shaderPath": normalize_resource_path(params.shader_path),
-            "code": loaded_shader.code,
-            "uniforms": collect_shader_uniforms(loaded_shader.code)
-        }))
+        print(JSON.stringify(shader_inspection_payload(
+            action,
+            normalize_resource_path(params.shader_path),
+            loaded_shader.code,
+            params.include_paths if params.has("include_paths") else [],
+            params.texture_defaults if params.has("texture_defaults") else {}
+        )))
         return
 
     if action == "set_parameters":

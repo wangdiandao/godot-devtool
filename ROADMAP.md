@@ -6,14 +6,6 @@ This document tracks future development plans only. Completed releases are track
 
 ## Future Versions
 
-### 1.3.0 Visual, Shader, Animation, And UI Enhancements
-
-- Add texture uniform inference and shader include awareness.
-- Add reusable material and visual templates.
-- Add richer AnimationPlayer track and keyframe editing.
-- Add AnimationTree transition parameter tools.
-- Add theme resources, Control tree templates, and automatic signal connection helpers for UI.
-
 ### 1.4.0 Physics, Navigation, And Debug Analysis
 
 - Add named collision layer/mask management.

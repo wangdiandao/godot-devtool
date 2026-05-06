@@ -189,26 +189,67 @@ try {
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
 
-  assert.match(readme, /version-1\.2\.1/);
-  assert.match(readmeZh, /version-1\.2\.1/);
+  const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
+  const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
+  const animationTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'animation');
+  const animationTreeTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'animation_state_machine');
+  const uiTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'ui');
+  assert.ok(shaderTool);
+  assert.ok(materialTool);
+  assert.ok(animationTool);
+  assert.ok(animationTreeTool);
+  assert.ok(uiTool);
+  for (const action of ['create', 'read', 'inspect', 'set_parameters']) {
+    assert.ok(shaderTool.inputSchema.properties.action.enum.includes(action), `shader action missing: ${action}`);
+  }
+  for (const field of ['includePaths', 'textureDefaults']) {
+    assert.ok(shaderTool.inputSchema.properties[field], `shader field missing: ${field}`);
+  }
+  for (const action of ['create', 'read', 'update', 'apply', 'list_templates', 'create_from_template']) {
+    assert.ok(materialTool.inputSchema.properties.action.enum.includes(action), `material action missing: ${action}`);
+  }
+  for (const action of ['list', 'create', 'add_track', 'set_keyframe', 'get_info', 'remove']) {
+    assert.ok(animationTool.inputSchema.properties.action.enum.includes(action), `animation action missing: ${action}`);
+  }
+  for (const action of ['list', 'create', 'set_transition_parameters']) {
+    assert.ok(animationTreeTool.inputSchema.properties.action.enum.includes(action), `animation_state_machine action missing: ${action}`);
+  }
+  for (const action of ['create', 'create_theme', 'apply_theme', 'create_template', 'auto_connect_signals']) {
+    assert.ok(uiTool.inputSchema.properties.action.enum.includes(action), `ui action missing: ${action}`);
+  }
+
+  assert.match(operationsScript, /func collect_shader_includes/);
+  assert.match(operationsScript, /func collect_shader_texture_uniforms/);
+  assert.match(operationsScript, /func create_material_from_template/);
+  assert.match(operationsScript, /func animation_add_track/);
+  assert.match(operationsScript, /func animation_set_keyframe/);
+  assert.match(operationsScript, /func animation_get_info/);
+  assert.match(operationsScript, /func animation_remove/);
+  assert.match(operationsScript, /func animation_tree_set_transition_parameters/);
+  assert.match(operationsScript, /func ui_create_theme/);
+  assert.match(operationsScript, /func ui_create_template/);
+  assert.match(operationsScript, /func ui_auto_connect_signals/);
+
+  assert.match(readme, /version-1\.3\.0/);
+  assert.match(readmeZh, /version-1\.3\.0/);
   assert.match(readme, /Latest release package/);
-  assert.match(readme, /godot-devtool-build-1\.2\.1\.zip/);
+  assert.match(readme, /godot-devtool-build-1\.3\.0\.zip/);
   assert.match(readmeZh, /最新发行包/);
-  assert.match(readmeZh, /godot-devtool-build-1\.2\.1\.zip/);
+  assert.match(readmeZh, /godot-devtool-build-1\.3\.0\.zip/);
   assert.match(readme, /## All Tools/);
   assert.match(readmeZh, /## 全部工具/);
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of ['1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of ['1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
 
   assert.match(roadmap, /\[中文\]\(ROADMAP\.zh-CN\.md\)/);
   assert.match(roadmapZh, /\[English\]\(ROADMAP\.md\)/);
-  assert.doesNotMatch(roadmap, /## Version 1\.[0-2]\.0/);
-  assert.doesNotMatch(roadmapZh, /## 1\.[0-2]\.0/);
+  assert.doesNotMatch(roadmap, /### 1\.3\.0/);
+  assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);
   assert.match(roadmapZh, /## 未来计划/);
 

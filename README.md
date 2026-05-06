@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@ This project was initially inspired by [Coding-Solo/godot-mcp](https://github.co
 
 Latest release package:
 
-[godot-devtool-build-1.2.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.2.1/godot-devtool-build-1.2.1.zip)
+[godot-devtool-build-1.3.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.0/godot-devtool-build-1.3.0.zip)
 
 Extract the zip and point your MCP client at the extracted `build/index.js`.
 
@@ -174,13 +174,13 @@ npm run check:project -- E:/test
 
 | Tool | Description |
 | --- | --- |
-| `animation` | List or create basic AnimationPlayer animations |
-| `animation_state_machine` | Create or inspect AnimationTree state machines |
+| `animation` | List, create, inspect, remove, and edit AnimationPlayer tracks/keyframes |
+| `animation_state_machine` | Create, inspect, and configure AnimationTree state machine transitions |
 | `signal` | List, connect, or disconnect node signals |
 | `group` | List, add, or remove node groups |
-| `ui` | Create common Control UI nodes |
-| `material` | Create, read, update, and apply materials |
-| `shader` | Create/read shaders and configure ShaderMaterial parameters |
+| `ui` | Create Control nodes, reusable UI trees, Theme resources, theme assignments, and automatic signal wiring |
+| `material` | Create, read, update, apply, list templates, and create reusable material templates |
+| `shader` | Create/read shaders, inspect includes and texture uniforms, and configure ShaderMaterial parameters |
 | `lighting` | Create and list Godot light and environment nodes |
 | `particle` | Create and list particle emitter nodes |
 

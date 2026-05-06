@@ -4,6 +4,17 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.3.0
+
+Visual, shader, animation, and UI enhancement release.
+
+- Added shader include reporting and texture uniform inference for shader inspection.
+- Added reusable material templates through `material` `list_templates` and `create_from_template`.
+- Expanded `animation` with `add_track`, `set_keyframe`, `get_info`, and `remove` actions.
+- Added AnimationTree transition parameter editing through `animation_state_machine`.
+- Expanded `ui` with Theme resource creation, theme application, reusable Control tree templates, and automatic signal connection helpers.
+- Updated release documentation and package download links for `1.3.0`.
+
 ## Version 1.2.1
 
 Documentation and release packaging update.
