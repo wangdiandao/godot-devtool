@@ -2,7 +2,7 @@
 name: godot-devtool
 description: "Teach MCP clients and connected AI assistants how to use the godot-devtool MCP server for Godot projects: inspect first, prefer structured tools, edit safely, validate changes, and prepare exports."
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill as the operating guide for any MCP client or connected AI assistant using the `godot-devtool` MCP server with Godot 4 projects.
 
-Compatibility: `godot-devtool` 1.5.0.
+Compatibility: `godot-devtool` 1.6.0.
 
 ## Client Setup
 
@@ -95,6 +95,18 @@ Stay inside the Godot project boundary:
 - `resource_load`, `resource_create`, `resource_save`
 
 Preview deletion impact before destructive operations.
+
+### Use Safety And Recovery Tools
+
+For broad or high-risk writes, inspect the project policy and preview the write impact:
+
+- `get_safety_policy` to read the configured `.godot-devtool/safety.json` allowlist.
+- `set_safety_policy` to enable write allowlists and blocked path rules.
+- `preview_write_safety` to review policy decisions and diff summaries before writing.
+- `get_audit_replay` to summarize recent audited operations.
+- `get_rollback_suggestions` to get honest rollback guidance for changed files.
+
+No configured policy keeps existing behavior compatible. When a policy is enabled, blocked writes should be resolved by narrowing the operation or updating the allowlist intentionally.
 
 ### Use The Editor Bridge
 

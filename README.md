@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@ This project was initially inspired by [Coding-Solo/godot-mcp](https://github.co
 
 Latest release package:
 
-[godot-devtool-build-1.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.5.0/godot-devtool-build-1.5.0.zip)
+[godot-devtool-build-1.6.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.6.0/godot-devtool-build-1.6.0.zip)
 
 Extract the zip and point your MCP client at the extracted `build/index.js`.
 
@@ -86,7 +86,8 @@ The skill teaches clients to inspect project state first, prefer structured MCP 
 3. Call `get_project_info`, `get_resource_index`, and `get_script_index` to understand the project.
 4. Use scene, node, script, resource, animation, visual, TileMap, physics, navigation, and audio tools to edit the project.
 5. Install the editor bridge with `install_editor_bridge` when live editor selection, undo/redo, or Inspector property commands are needed.
-6. Run `run_project`, `get_debug_output`, `check_gdscript_syntax`, `run_project_checks`, export checks, and generated CI snippets before release.
+6. Use `get_safety_policy`, `preview_write_safety`, `get_audit_replay`, and `get_rollback_suggestions` for high-risk writes.
+7. Run `run_project`, `get_debug_output`, `check_gdscript_syntax`, `run_project_checks`, export checks, and generated CI snippets before release.
 
 ## All Tools
 
@@ -101,6 +102,11 @@ The skill teaches clients to inspect project state first, prefer structured MCP 
 | `project_get_settings` | Read `project.godot` settings |
 | `project_set_setting` | Update `project.godot` settings with dry-run and audit logging |
 | `project_input_action` | List, create, update, or delete InputMap actions |
+| `get_safety_policy` | Read `.godot-devtool/safety.json` and default safety state |
+| `set_safety_policy` | Configure write allowlists and blocked path rules |
+| `preview_write_safety` | Preview policy decisions and diff summary metadata |
+| `get_audit_replay` | Summarize audit entries into replay steps and risk highlights |
+| `get_rollback_suggestions` | Return rollback guidance for changed files or audit entries |
 | `get_resource_index` | Categorized scenes, scripts, textures, audio, models, resources, shaders, and other files |
 | `resource_dependency_graph` | `res://` dependency graph with orphan resource detection |
 | `get_script_index` | GDScript files with class, base class, exports, and functions |

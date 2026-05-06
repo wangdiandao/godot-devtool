@@ -295,6 +295,107 @@ export const PROJECT_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     },
   },
   {
+    name: 'get_safety_policy',
+    description: 'Read the project-local godot-devtool safety policy and default enforcement state',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: 'Path to the Godot project directory',
+        },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
+    name: 'set_safety_policy',
+    description: 'Configure project write allowlists and blocked paths in .godot-devtool/safety.json',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        enabled: { type: 'boolean', description: 'Enable or disable policy enforcement' },
+        writeAllowlist: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Project-relative glob patterns allowed for writes, such as scripts/**',
+        },
+        blockedPaths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Project-relative glob patterns that are always blocked',
+        },
+      },
+      required: ['projectPath', 'enabled'],
+    },
+  },
+  {
+    name: 'preview_write_safety',
+    description: 'Preview safety policy and diff summary metadata for proposed writes or deletes',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        operation: { type: 'string', description: 'Operation name to evaluate' },
+        riskLevel: { type: 'string', enum: ['low', 'write', 'dangerous'], description: 'Risk level for the preview' },
+        changes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: 'Project-relative path' },
+              content: { type: 'string', description: 'Optional proposed UTF-8 file content' },
+              delete: { type: 'boolean', description: 'Preview deleting this path' },
+              recursive: { type: 'boolean', description: 'Preview recursive delete metadata' },
+              overwrite: { type: 'boolean', description: 'Preview overwrite intent' },
+            },
+            required: ['path'],
+          },
+        },
+      },
+      required: ['projectPath', 'operation', 'changes'],
+    },
+  },
+  {
+    name: 'get_audit_replay',
+    description: 'Summarize godot-devtool audit log entries into replay steps, counters, and risk highlights',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        limit: { type: 'number', description: 'Optional maximum number of recent valid audit entries to summarize' },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
+    name: 'get_rollback_suggestions',
+    description: 'Return honest rollback guidance for an operation, audit entry, or changed paths',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        operation: { type: 'string', description: 'Operation name, such as filesystem_write or filesystem_delete' },
+        changedFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Project-relative changed files',
+        },
+        skippedFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Project-relative skipped files',
+        },
+        details: {
+          type: 'object',
+          description: 'Optional audit details for the operation',
+        },
+      },
+      required: ['projectPath', 'operation'],
+    },
+  },
+  {
     name: 'run_project_checks',
     description: 'Run stable project checks for CI, review, and release workflows',
     inputSchema: {

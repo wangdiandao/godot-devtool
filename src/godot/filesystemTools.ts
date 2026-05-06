@@ -3,6 +3,12 @@ import { mkdir, readFile, readdir, rm, stat, writeFile } from 'fs/promises';
 import { dirname, join, relative, resolve } from 'path';
 
 import { isSafeProjectRelativePath } from './pathValidation.js';
+import {
+  assertWriteAllowed,
+  buildDiffSummary,
+  type DiffSummary,
+  type WriteSafetyResult,
+} from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 
 export interface ProjectDirectoryEntry {
@@ -36,11 +42,15 @@ export interface ProjectDeleteOptions {
 export interface ProjectChangeResult {
   changedFiles: string[];
   skippedFiles: string[];
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 export interface ProjectDeleteResult {
   deletedFiles: string[];
   skippedFiles: string[];
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 export interface ProjectDeletePreview {
@@ -50,6 +60,7 @@ export interface ProjectDeletePreview {
   recursive: boolean;
   willDelete: string[];
   requiresConfirmation: true;
+  diffSummary: DiffSummary;
 }
 
 export async function listProjectDirectory(
@@ -106,13 +117,23 @@ export async function writeProjectFile(
 ): Promise<ProjectChangeResult> {
   const safeFilePath = normalizeProjectRelativePath(filePath);
   const absoluteFilePath = resolveProjectPath(projectPath, safeFilePath);
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'filesystem_write',
+    riskLevel: 'write',
+    changes: [{ path: safeFilePath, content, overwrite: options.overwrite === true }],
+  });
+  const safety = await assertWriteAllowed(projectPath, {
+    operation: 'filesystem_write',
+    paths: [safeFilePath],
+    riskLevel: 'write',
+  });
   if (existsSync(absoluteFilePath) && options.overwrite !== true) {
     throw new Error(`File already exists: ${safeFilePath}. Pass overwrite=true to replace it.`);
   }
 
   await mkdir(dirname(absoluteFilePath), { recursive: true });
   await writeFile(absoluteFilePath, content, 'utf8');
-  const result = { changedFiles: [safeFilePath], skippedFiles: [] };
+  const result = { changedFiles: [safeFilePath], skippedFiles: [], safety, diffSummary };
 
   await appendAuditEntry(projectPath, {
     operation: 'filesystem_write',
@@ -138,12 +159,22 @@ export async function deleteProjectPath(
   }
 
   const absoluteTargetPath = resolveProjectPath(projectPath, safeTargetPath);
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'filesystem_delete',
+    riskLevel: 'dangerous',
+    changes: [{ path: safeTargetPath, delete: true, recursive: options.recursive === true }],
+  });
+  const safety = await assertWriteAllowed(projectPath, {
+    operation: 'filesystem_delete',
+    paths: [safeTargetPath],
+    riskLevel: 'dangerous',
+  });
   if (!existsSync(absoluteTargetPath)) {
-    return { deletedFiles: [], skippedFiles: [safeTargetPath] };
+    return { deletedFiles: [], skippedFiles: [safeTargetPath], safety, diffSummary };
   }
 
   await rm(absoluteTargetPath, { recursive: options.recursive === true, force: false });
-  const result = { deletedFiles: [safeTargetPath], skippedFiles: [] };
+  const result = { deletedFiles: [safeTargetPath], skippedFiles: [], safety, diffSummary };
 
   await appendAuditEntry(projectPath, {
     operation: 'filesystem_delete',
@@ -167,6 +198,11 @@ export async function previewProjectDelete(
 
   const absoluteTargetPath = resolveProjectPath(projectPath, safeTargetPath);
   if (!existsSync(absoluteTargetPath)) {
+    const diffSummary = await buildDiffSummary(projectPath, {
+      operation: 'filesystem_delete',
+      riskLevel: 'dangerous',
+      changes: [{ path: safeTargetPath, delete: true, recursive: options.recursive === true }],
+    });
     return {
       targetPath: safeTargetPath,
       exists: false,
@@ -174,6 +210,7 @@ export async function previewProjectDelete(
       recursive: options.recursive === true,
       willDelete: [],
       requiresConfirmation: true,
+      diffSummary,
     };
   }
 
@@ -181,6 +218,11 @@ export async function previewProjectDelete(
   const willDelete = targetStat.isDirectory()
     ? await listDeletionTargets(projectPath, absoluteTargetPath, options.recursive === true)
     : [safeTargetPath];
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'filesystem_delete',
+    riskLevel: 'dangerous',
+    changes: willDelete.map((path) => ({ path, delete: true, recursive: options.recursive === true })),
+  });
 
   return {
     targetPath: safeTargetPath,
@@ -189,6 +231,7 @@ export async function previewProjectDelete(
     recursive: options.recursive === true,
     willDelete,
     requiresConfirmation: true,
+    diffSummary,
   };
 }
 

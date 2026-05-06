@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 1.6.0
+
+安全与恢复版本。
+
+- 增加项目本地 safety policy，支持可配置写入 allowlist 和 blocked path 规则。
+- 为高风险写入和删除操作增加结构化 diff 摘要。
+- 增加 audit replay 摘要，包含 operation 计数、changed file 计数和 risk highlights。
+- 为创建、覆盖、删除、设置、workflow 和 bridge 变更增加 rollback 建议。
+- 更新 `1.6.0` 发布文档和构建包下载链接。
+
 ## 1.5.0
 
 导出、CI 和发布自动化版本。

@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 最新发行包：
 
-[godot-devtool-build-1.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.5.0/godot-devtool-build-1.5.0.zip)
+[godot-devtool-build-1.6.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.6.0/godot-devtool-build-1.6.0.zip)
 
 解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
 
@@ -101,6 +101,11 @@ npm run check:project -- E:/test
 | `project_get_settings` | 读取 `project.godot` 设置 |
 | `project_set_setting` | 更新 `project.godot` 设置，支持 dry-run 和 audit logging |
 | `project_input_action` | 列出、创建、更新或删除 InputMap action |
+| `get_safety_policy` | 读取 `.godot-devtool/safety.json` 和默认安全状态 |
+| `set_safety_policy` | 配置写入 allowlist 和 blocked path 规则 |
+| `preview_write_safety` | 预览 policy decision 和 diff summary metadata |
+| `get_audit_replay` | 将 audit entries 汇总为 replay steps 和 risk highlights |
+| `get_rollback_suggestions` | 针对 changed files 或 audit entries 返回 rollback 建议 |
 | `get_resource_index` | 分类列出 scene、script、texture、audio、model、resource、shader 和其他文件 |
 | `resource_dependency_graph` | 构建 `res://` 依赖图并检测孤立资源 |
 | `get_script_index` | GDScript 文件索引，包含 class、base class、export 和 function |
@@ -225,6 +230,12 @@ scripts/
 
 - 已完成变更：[CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)
 - 未来计划：[ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)
+
+## Godot 中文社区群
+
+扫码加入 Godot 中文社区群①（群号：1078844534）。
+
+![Godot 中文社区群二维码](docs/assets/godot-chinese-community-qq-qrcode.jpg)
 
 ## 许可证
 

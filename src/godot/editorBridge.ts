@@ -3,6 +3,12 @@ import { mkdir, readFile, readdir, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 
 import { normalizeProjectRelativePath } from './filesystemTools.js';
+import {
+  assertWriteAllowed,
+  buildDiffSummary,
+  type DiffSummary,
+  type WriteSafetyResult,
+} from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 
 const PLUGIN_CFG_PATH = 'addons/godot_devtool_bridge/plugin.cfg';
@@ -40,6 +46,8 @@ export interface EditorBridgeConfig {
 export interface EditorBridgeInstallResult {
   changedFiles: string[];
   skippedFiles: string[];
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
   bridge: {
     mode: EditorBridgeMode;
     instanceId: string;
@@ -68,6 +76,8 @@ export interface QueuedEditorBridgeCommand extends Required<EditorBridgeCommand>
   expiresAt: string;
   expiresAtMs: number;
   status: 'queued';
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 export interface EditorBridgeReceipt {
@@ -104,6 +114,20 @@ export async function installEditorBridge(
   };
   const changedFiles: string[] = [];
   const skippedFiles: string[] = [];
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'install_editor_bridge',
+    riskLevel: 'write',
+    changes: Object.entries(files).map(([relativePath, content]) => ({
+      path: relativePath,
+      content,
+      overwrite: options.overwrite === true,
+    })),
+  });
+  const safety = await assertWriteAllowed(projectPath, {
+    operation: 'install_editor_bridge',
+    riskLevel: 'write',
+    paths: Object.keys(files),
+  });
 
   for (const [relativePath, content] of Object.entries(files)) {
     const absolutePath = join(projectPath, relativePath);
@@ -129,6 +153,8 @@ export async function installEditorBridge(
   return {
     changedFiles,
     skippedFiles,
+    safety,
+    diffSummary,
     bridge: {
       mode: bridge.mode,
       instanceId: bridge.instanceId,
@@ -197,6 +223,20 @@ export async function enqueueEditorCommand(
   };
 
   const absolutePath = join(projectPath, commandPayload.commandPath);
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: `editor_${command.type}`,
+    riskLevel: 'write',
+    changes: [{
+      path: commandPayload.commandPath,
+      content: JSON.stringify(commandPayload, null, 2),
+      overwrite: false,
+    }],
+  });
+  const safety = await assertWriteAllowed(projectPath, {
+    operation: `editor_${command.type}`,
+    riskLevel: 'write',
+    paths: [commandPayload.commandPath],
+  });
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, JSON.stringify(commandPayload, null, 2), 'utf8');
   await appendAuditEntry(projectPath, {
@@ -208,6 +248,8 @@ export async function enqueueEditorCommand(
 
   return {
     ...commandPayload,
+    safety,
+    diffSummary,
   };
 }
 

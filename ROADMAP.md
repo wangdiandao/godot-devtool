@@ -6,13 +6,6 @@ This document tracks future development plans only. Completed releases are track
 
 ## Future Versions
 
-### 1.6.0 Safety And Recovery
-
-- Add configurable write allowlists.
-- Add batch diff summaries for high-risk write operations.
-- Add audit replay summaries.
-- Add rollback suggestions for supported write operations.
-
 ### 1.7.0 Expanded Tool Compatibility Surface
 
 - Add exact-name compatibility wrappers or aliases for submitted tools that are currently covered only by differently named `godot-devtool` tools, including `get_project_settings`, `set_project_setting`, `open_scene`, `play_scene`, `stop_scene`, `duplicate_node`, `move_node`, `update_property`, `connect_signal`, `disconnect_signal`, `list_scripts`, `read_script`, `create_script`, `attach_script`, `validate_script`, `get_input_actions`, `set_input_action`, `list_animations`, `create_animation`, `tilemap_set_cell`, `tilemap_fill_rect`, `create_shader`, `read_shader`, `assign_shader_material`, `set_shader_param`, `get_shader_params`, `list_export_presets`, `read_resource`, `create_resource`, `setup_lighting`, `create_particles`, `setup_navigation_region`, `setup_navigation_agent`, `add_audio_player`, `get_audio_bus_layout`, and `create_animation_tree`.

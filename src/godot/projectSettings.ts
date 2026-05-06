@@ -2,6 +2,12 @@ import { existsSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 
+import {
+  assertWriteAllowed,
+  buildDiffSummary,
+  type DiffSummary,
+  type WriteSafetyResult,
+} from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 
 type SettingValue = string | number | boolean | null | Record<string, unknown> | unknown[];
@@ -32,6 +38,8 @@ export interface ProjectSettingsWriteResult {
     before: string | null;
     after: string;
   }>;
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 export interface ProjectSettingsDeleteResult {
@@ -42,6 +50,8 @@ export interface ProjectSettingsDeleteResult {
     key: string;
     before: string | null;
   }>;
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 interface SectionRange {
@@ -127,8 +137,22 @@ export async function writeProjectSettings(
     .filter((change) => change.before !== change.after)
     .map((change) => change.key);
 
+  const nextContent = lines.join('\n');
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'project_set_setting',
+    riskLevel: 'write',
+    changes: [{ path: 'project.godot', content: nextContent, overwrite: true }],
+  });
+  const safety = options.dryRun || changedKeys.length === 0
+    ? diffSummary.policy
+    : await assertWriteAllowed(projectPath, {
+        operation: 'project_set_setting',
+        riskLevel: 'write',
+        paths: ['project.godot'],
+      });
+
   if (!options.dryRun && changedKeys.length > 0) {
-    await writeFile(projectFilePath, lines.join('\n'), 'utf8');
+    await writeFile(projectFilePath, nextContent, 'utf8');
     await appendAuditEntry(projectPath, {
       operation: 'project_set_setting',
       changedFiles: ['project.godot'],
@@ -142,6 +166,8 @@ export async function writeProjectSettings(
     dryRun: options.dryRun === true,
     changedKeys,
     preview,
+    safety,
+    diffSummary,
   };
 }
 
@@ -169,8 +195,21 @@ export async function deleteProjectSettings(
   }
 
   const deletedKeys = preview.filter((entry) => entry.before !== null).map((entry) => entry.key);
+  const nextContent = lines.join('\n');
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'project_delete_setting',
+    riskLevel: 'write',
+    changes: [{ path: 'project.godot', content: nextContent, overwrite: true }],
+  });
+  const safety = options.dryRun || deletedKeys.length === 0
+    ? diffSummary.policy
+    : await assertWriteAllowed(projectPath, {
+        operation: 'project_delete_setting',
+        riskLevel: 'write',
+        paths: ['project.godot'],
+      });
   if (!options.dryRun && deletedKeys.length > 0) {
-    await writeFile(projectFilePath, lines.join('\n'), 'utf8');
+    await writeFile(projectFilePath, nextContent, 'utf8');
     await appendAuditEntry(projectPath, {
       operation: 'project_delete_setting',
       changedFiles: ['project.godot'],
@@ -184,6 +223,8 @@ export async function deleteProjectSettings(
     dryRun: options.dryRun === true,
     deletedKeys,
     preview,
+    safety,
+    diffSummary,
   };
 }
 

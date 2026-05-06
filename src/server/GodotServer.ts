@@ -60,6 +60,13 @@ import {
   createProjectScript,
   writeProjectScript,
 } from '../godot/scriptTools.js';
+import {
+  buildAuditReplay,
+  buildDiffSummary,
+  readSafetyPolicy,
+  suggestRollback,
+  writeSafetyPolicy,
+} from '../godot/safetyRecovery.js';
 import { getOperationsScriptPath } from '../godot/paths.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
@@ -342,6 +349,9 @@ export class GodotServer {
   private getToolRiskLevel(toolName: string): string {
     if (['filesystem_delete', 'export_project', 'update_project_uids'].includes(toolName)) {
       return 'dangerous';
+    }
+    if (toolName === 'set_safety_policy') {
+      return 'write';
     }
     if (
       toolName.includes('create') ||
@@ -2284,6 +2294,105 @@ export class GodotServer {
       return this.createErrorResponse(
         `Failed to read audit log: ${error?.message || 'Unknown error'}`,
         ['Ensure the project path is readable']
+      );
+    }
+  }
+
+  private async handleGetSafetyPolicy(args: any) {
+    args = this.normalizeParameters(args);
+
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      return this.createJsonResponse(await readSafetyPolicy(args.projectPath));
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to read safety policy: ${error?.message || 'Unknown error'}`,
+        ['Ensure the project path is readable']
+      );
+    }
+  }
+
+  private async handleSetSafetyPolicy(args: any) {
+    args = this.normalizeParameters(args);
+
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      return this.createJsonResponse(await writeSafetyPolicy(args.projectPath, {
+        enabled: args.enabled === true,
+        writeAllowlist: args.writeAllowlist ?? [],
+        blockedPaths: args.blockedPaths ?? [],
+      }));
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to set safety policy: ${error?.message || 'Unknown error'}`,
+        ['Use project-relative allowlist and blocked path patterns such as scripts/**']
+      );
+    }
+  }
+
+  private async handlePreviewWriteSafety(args: any) {
+    args = this.normalizeParameters(args);
+
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.operation || !Array.isArray(args.changes)) {
+      return this.createErrorResponse('Missing required parameters', ['Provide operation and changes']);
+    }
+
+    try {
+      return this.createJsonResponse(await buildDiffSummary(args.projectPath, {
+        operation: args.operation,
+        riskLevel: args.riskLevel,
+        changes: args.changes,
+      }));
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to preview write safety: ${error?.message || 'Unknown error'}`,
+        ['Use project-relative change paths inside the Godot project']
+      );
+    }
+  }
+
+  private async handleGetAuditReplay(args: any) {
+    args = this.normalizeParameters(args);
+
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      return this.createJsonResponse(await buildAuditReplay(args.projectPath, { limit: args.limit }));
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to build audit replay: ${error?.message || 'Unknown error'}`,
+        ['Ensure .godot-devtool/audit.jsonl is readable']
+      );
+    }
+  }
+
+  private async handleGetRollbackSuggestions(args: any) {
+    args = this.normalizeParameters(args);
+
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.operation) {
+      return this.createErrorResponse('Missing required parameters', ['Provide operation']);
+    }
+
+    try {
+      return this.createJsonResponse(await suggestRollback(args.projectPath, {
+        operation: args.operation,
+        changedFiles: Array.isArray(args.changedFiles) ? args.changedFiles : [],
+        skippedFiles: Array.isArray(args.skippedFiles) ? args.skippedFiles : [],
+        details: args.details && typeof args.details === 'object' && !Array.isArray(args.details) ? args.details : {},
+      }));
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to get rollback suggestions: ${error?.message || 'Unknown error'}`,
+        ['Provide an operation name and optional changedFiles from the audit log']
       );
     }
   }

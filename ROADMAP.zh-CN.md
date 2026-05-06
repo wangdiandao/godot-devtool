@@ -6,13 +6,6 @@
 
 ## 未来计划
 
-### 1.6.0 安全与恢复
-
-- 增加可配置写入 allowlist。
-- 增加高风险写操作的批量 diff 摘要。
-- 增加 audit replay 摘要。
-- 增加受支持写操作的 rollback 建议。
-
 ### 1.7.0 扩展工具兼容面
 
 - 为当前仅由不同名称 `godot-devtool` 工具覆盖的提交工具增加精确名称 wrapper 或 alias。

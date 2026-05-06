@@ -9,6 +9,7 @@ const editorBridge = await import('../build/godot/editorBridge.js');
 const dependencies = await import('../build/godot/resourceDependencies.js');
 const filesystem = await import('../build/godot/filesystemTools.js');
 const exportConfig = await import('../build/godot/exportConfig.js');
+const safetyRecovery = await import('../build/godot/safetyRecovery.js');
 const toolDefinitions = await import('../build/tools/toolDefinitions.js');
 
 const projectPath = await mkdtemp(join(tmpdir(), 'godot-devtool-roadmap-'));
@@ -118,7 +119,73 @@ try {
 
   const preview = await filesystem.previewProjectDelete(projectPath, 'unused.tres');
   assert.equal(preview.willDelete.length, 1);
+  assert.ok(preview.diffSummary);
+  assert.equal(preview.diffSummary.files[0].action, 'delete');
   await stat(join(projectPath, 'unused.tres'));
+
+  const defaultPolicy = await safetyRecovery.readSafetyPolicy(projectPath);
+  assert.equal(defaultPolicy.usingDefaultPolicy, true);
+  assert.equal(defaultPolicy.policy.enabled, false);
+
+  const defaultSafety = await safetyRecovery.evaluateWriteSafety(projectPath, {
+    operation: 'filesystem_write',
+    paths: ['notes/default-policy.txt'],
+    riskLevel: 'write',
+  });
+  assert.equal(defaultSafety.decision, 'not_configured');
+  assert.equal(defaultSafety.allowed, true);
+
+  await safetyRecovery.writeSafetyPolicy(projectPath, {
+    enabled: true,
+    writeAllowlist: ['scripts/**', '.godot-devtool/**'],
+    blockedPaths: ['scripts/blocked.gd'],
+  });
+  const policy = await safetyRecovery.readSafetyPolicy(projectPath);
+  assert.equal(policy.usingDefaultPolicy, false);
+  assert.equal(policy.policy.enabled, true);
+
+  const allowedWrite = await filesystem.writeProjectFile(projectPath, 'scripts/allowed.gd', 'extends Node\n');
+  assert.equal(allowedWrite.safety.decision, 'allowed');
+  assert.equal(allowedWrite.diffSummary.files[0].action, 'create');
+
+  await assert.rejects(
+    () => filesystem.writeProjectFile(projectPath, 'scripts/blocked.gd', 'extends Node\n'),
+    /blocked by safety policy/
+  );
+
+  const writePreview = await safetyRecovery.buildDiffSummary(projectPath, {
+    operation: 'filesystem_write',
+    riskLevel: 'write',
+    changes: [{ path: 'scripts/allowed.gd', content: 'extends Node2D\n' }],
+  });
+  assert.equal(writePreview.files[0].action, 'modify');
+  assert.equal(writePreview.files[0].lineDelta, 0);
+  assert.equal(writePreview.policy.decision, 'allowed');
+
+  await writeFile(
+    join(projectPath, '.godot-devtool', 'audit.jsonl'),
+    [
+      JSON.stringify({ timestamp: '2026-05-06T00:00:00.000Z', operation: 'filesystem_write', changedFiles: ['scripts/allowed.gd'], skippedFiles: [], details: { overwrite: false } }),
+      '{not-json',
+      JSON.stringify({ timestamp: '2026-05-06T00:01:00.000Z', operation: 'filesystem_delete', changedFiles: ['unused.tres'], skippedFiles: [], details: { recursive: false } }),
+      '',
+    ].join('\n'),
+    'utf8'
+  );
+  const replay = await safetyRecovery.buildAuditReplay(projectPath, { limit: 10 });
+  assert.equal(replay.totalEntries, 2);
+  assert.equal(replay.parseErrors.length, 1);
+  assert.equal(replay.operationCounts.filesystem_write, 1);
+  assert.equal(replay.changedFileCounts['scripts/allowed.gd'], 1);
+  assert.ok(replay.riskHighlights.some((highlight) => highlight.operation === 'filesystem_delete'));
+
+  const rollback = await safetyRecovery.suggestRollback(projectPath, {
+    operation: 'filesystem_write',
+    changedFiles: ['scripts/allowed.gd'],
+    details: { overwrite: true },
+  });
+  assert.equal(rollback.supported, false);
+  assert.ok(rollback.suggestions.some((suggestion) => suggestion.includes('VCS')));
 
   await writeFile(
     join(projectPath, 'export_presets.cfg'),
@@ -195,7 +262,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '1.5.0');
+  assert.equal(releaseVersion, '1.6.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -205,6 +272,11 @@ try {
   const physicsTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'physics');
   const navigationTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'navigation');
   const ciSnippetTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'generate_ci_snippet');
+  const getSafetyPolicyTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'get_safety_policy');
+  const setSafetyPolicyTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'set_safety_policy');
+  const previewWriteSafetyTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'preview_write_safety');
+  const auditReplayTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'get_audit_replay');
+  const rollbackSuggestionsTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'get_rollback_suggestions');
   assert.ok(shaderTool);
   assert.ok(materialTool);
   assert.ok(animationTool);
@@ -213,6 +285,11 @@ try {
   assert.ok(physicsTool);
   assert.ok(navigationTool);
   assert.ok(ciSnippetTool);
+  assert.ok(getSafetyPolicyTool);
+  assert.ok(setSafetyPolicyTool);
+  assert.ok(previewWriteSafetyTool);
+  assert.ok(auditReplayTool);
+  assert.ok(rollbackSuggestionsTool);
   for (const action of ['create', 'read', 'inspect', 'set_parameters']) {
     assert.ok(shaderTool.inputSchema.properties.action.enum.includes(action), `shader action missing: ${action}`);
   }
@@ -263,6 +340,12 @@ try {
   for (const field of ['provider', 'includeExport', 'includeArtifactUpload']) {
     assert.ok(ciSnippetTool.inputSchema.properties[field], `generate_ci_snippet field missing: ${field}`);
   }
+  for (const field of ['enabled', 'writeAllowlist', 'blockedPaths']) {
+    assert.ok(setSafetyPolicyTool.inputSchema.properties[field], `set_safety_policy field missing: ${field}`);
+  }
+  for (const field of ['operation', 'riskLevel', 'changes']) {
+    assert.ok(previewWriteSafetyTool.inputSchema.properties[field], `preview_write_safety field missing: ${field}`);
+  }
 
   const exportInspection = await exportConfig.inspectExportPresets(projectPath);
   assert.ok(exportInspection.issues.some((issue) => issue.code === 'missing_export_template' && issue.suggestion));
@@ -312,6 +395,10 @@ try {
   assert.match(readme, /## All Tools/);
   assert.match(readme, /generate_ci_snippet/);
   assert.match(readmeZh, /generate_ci_snippet/);
+  assert.match(readme, /get_safety_policy/);
+  assert.match(readmeZh, /get_safety_policy/);
+  assert.match(readmeZh, /Godot 中文社区群/);
+  assert.match(readmeZh, /docs\/assets\/godot-chinese-community-qq-qrcode\.jpg/);
   assert.match(readmeZh, /## 全部工具/);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
@@ -337,7 +424,7 @@ try {
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of [releaseVersion, '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
@@ -348,6 +435,8 @@ try {
   assert.doesNotMatch(roadmapZh, /### 1\.4\.0/);
   assert.doesNotMatch(roadmap, /### 1\.5\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.5\.0/);
+  assert.doesNotMatch(roadmap, /### 1\.6\.0/);
+  assert.doesNotMatch(roadmapZh, /### 1\.6\.0/);
   assert.doesNotMatch(roadmap, /### 1\.3\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);

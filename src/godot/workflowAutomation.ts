@@ -5,6 +5,12 @@ import { dirname, join } from 'path';
 import { inspectExportPresets } from './exportConfig.js';
 import { isSafeProjectRelativePath } from './pathValidation.js';
 import { analyzeGodotProject, indexGodotProjectResources } from './projectAnalysis.js';
+import {
+  assertWriteAllowed,
+  buildDiffSummary,
+  type DiffSummary,
+  type WriteSafetyResult,
+} from './safetyRecovery.js';
 import { indexGDScriptFiles } from './scriptAnalysis.js';
 
 export interface WorkflowWriteOptions {
@@ -22,6 +28,8 @@ export interface WorkflowTestSceneOptions extends WorkflowWriteOptions {
 export interface WorkflowChangeResult {
   changedFiles: string[];
   skippedFiles: string[];
+  safety?: WriteSafetyResult;
+  diffSummary?: DiffSummary;
 }
 
 export interface AuditEntry {
@@ -267,6 +275,22 @@ async function writeProjectFiles(
 ): Promise<WorkflowChangeResult> {
   const changedFiles: string[] = [];
   const skippedFiles: string[] = [];
+  const relativePaths = Object.keys(files);
+
+  const diffSummary = await buildDiffSummary(projectPath, {
+    operation: 'workflow_write',
+    riskLevel: 'write',
+    changes: relativePaths.map((relativePath) => ({
+      path: relativePath,
+      content: files[relativePath],
+      overwrite: options.overwrite === true,
+    })),
+  });
+  const safety = await assertWriteAllowed(projectPath, {
+    operation: 'workflow_write',
+    riskLevel: 'write',
+    paths: relativePaths,
+  });
 
   for (const [relativePath, content] of Object.entries(files)) {
     if (!isSafeProjectRelativePath(relativePath)) {
@@ -284,7 +308,7 @@ async function writeProjectFiles(
     changedFiles.push(relativePath);
   }
 
-  return { changedFiles, skippedFiles };
+  return { changedFiles, skippedFiles, safety, diffSummary };
 }
 
 function buildCheckResult(checks: ProjectCheckResult['checks']): ProjectCheckResult {

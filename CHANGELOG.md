@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.6.0
+
+Safety and recovery release.
+
+- Added project-local safety policy support with configurable write allowlists and blocked path rules.
+- Added structured diff summaries for high-risk write and delete operations.
+- Added audit replay summaries with operation counters, changed-file counters, and risk highlights.
+- Added rollback suggestion guidance for created, overwritten, deleted, settings, workflow, and bridge changes.
+- Updated release documentation and package download links for `1.6.0`.
+
 ## Version 1.5.0
 
 Export, CI, and release automation release.

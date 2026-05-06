@@ -18,6 +18,11 @@ export function createProjectToolHandlers(host: ToolHandlerHost): ToolHandlerMap
     create_gameplay_prototype: (args) => host.handleCreateGameplayPrototype(args),
     create_workflow_test_scene: (args) => host.handleCreateWorkflowTestScene(args),
     get_audit_log: (args) => host.handleGetAuditLog(args),
+    get_safety_policy: (args) => host.handleGetSafetyPolicy(args),
+    set_safety_policy: (args) => host.handleSetSafetyPolicy(args),
+    preview_write_safety: (args) => host.handlePreviewWriteSafety(args),
+    get_audit_replay: (args) => host.handleGetAuditReplay(args),
+    get_rollback_suggestions: (args) => host.handleGetRollbackSuggestions(args),
     run_project_checks: (args) => host.handleRunProjectChecks(args),
     update_project_uids: (args) => host.handleUpdateProjectUids(args),
   };
