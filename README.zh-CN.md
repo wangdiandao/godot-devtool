@@ -64,6 +64,14 @@ get_capabilities
 npm run check:project -- E:/test
 ```
 
+### 4. 给 AI 助手提供操作指引
+
+本仓库包含一个面向支持 Skill 的 AI 助手的 Codex 风格 Skill：
+
+[skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
+
+该 Skill 会指导 AI 先检查项目状态，优先使用结构化 MCP 工具而不是直接改文件，对高风险操作使用 preview/dry-run，并在结束前运行验证。
+
 ## 环境要求
 
 - Godot Engine 4.x。
@@ -202,9 +210,11 @@ src/
   server/GodotServer.ts        # MCP server 生命周期、注册和分发
   tools/toolDefinitions.ts     # MCP tool schema 和兼容 alias
   godot/                       # Godot 项目分析、路径、文件、资源、导出和工作流
-  scripts/godot_operations.gd  # Headless Godot 操作桥
+  scripts/godot_operations/    # 用于生成 headless Godot 操作桥的源码片段
+skills/
+  godot-devtool/SKILL.md       # 面向此 MCP server 的 AI 助手工作流指引
 scripts/
-  build.js                     # TypeScript 构建后复制 Godot 操作脚本
+  build.js                     # TypeScript 构建后生成 build/scripts/godot_operations.gd
   check-project.js             # 项目健康检查入口
   verify-roadmap-completion.js # 已发布能力本地回归验证
 ```

@@ -176,6 +176,8 @@ try {
     license,
     tsconfigRaw,
     packageRaw,
+    skillRaw,
+    skillOpenAiRaw,
     gitignore,
   ] = await Promise.all([
     readRepoFile('README.md'),
@@ -187,6 +189,8 @@ try {
     readRepoFile('LICENSE'),
     readRepoFile('tsconfig.json'),
     readRepoFile('package.json'),
+    readRepoFile('skills/godot-devtool/SKILL.md'),
+    readRepoFile('skills/godot-devtool/agents/openai.yaml'),
     readRepoFile('.gitignore'),
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
@@ -243,6 +247,20 @@ try {
   assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readme, /## All Tools/);
   assert.match(readmeZh, /## 全部工具/);
+  assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
+  assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
+  assert.match(readme, /skills\/\n  godot-devtool\/SKILL\.md/);
+  assert.match(readmeZh, /skills\/\n  godot-devtool\/SKILL\.md/);
+
+  assert.match(skillRaw, /^name: godot-devtool$/m);
+  assert.match(skillRaw, /mcp_server: "godot-devtool"/);
+  assert.match(skillRaw, new RegExp(`version: "${escapedReleaseVersion}"`));
+  assert.match(skillRaw, new RegExp(`Compatibility: \`godot-devtool\` ${escapedReleaseVersion}\\.`));
+  assert.match(skillRaw, /get_capabilities/);
+  assert.match(skillRaw, /run_project_checks/);
+  assert.match(skillRaw, /When updating the `godot-devtool` package version/);
+  assert.match(skillOpenAiRaw, /display_name: "Godot Devtool"/);
+  assert.match(skillOpenAiRaw, /default_prompt: "Use \$godot-devtool/);
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);

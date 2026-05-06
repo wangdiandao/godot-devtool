@@ -64,6 +64,14 @@ For a local project check:
 npm run check:project -- E:/test
 ```
 
+### 4. Give AI Assistants Operating Guidance
+
+This repository includes a Codex-style skill for assistants that support skills:
+
+[skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
+
+The skill teaches assistants to inspect project state first, prefer structured MCP tools over raw file edits, use preview/dry-run flows for risky operations, and run validation before finishing.
+
 ## Requirements
 
 - Godot Engine 4.x.
@@ -202,9 +210,11 @@ src/
   server/GodotServer.ts        # MCP server lifecycle, registration, and dispatch
   tools/toolDefinitions.ts     # MCP tool schemas and compatibility aliases
   godot/                       # Godot project analysis, paths, files, resources, export, and workflows
-  scripts/godot_operations.gd  # Headless Godot operation bridge
+  scripts/godot_operations/    # Source fragments for the generated headless Godot operation bridge
+skills/
+  godot-devtool/SKILL.md       # AI assistant workflow guidance for this MCP server
 scripts/
-  build.js                     # Copies Godot operation scripts after TypeScript build
+  build.js                     # Generates build/scripts/godot_operations.gd after TypeScript build
   check-project.js             # Project health check entry
   verify-roadmap-completion.js # Local regression verification for released capabilities
 ```
