@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 1.4.0
+
+物理、导航和调试分析版本。
+
+- 扩展 `physics`，支持 collision layer/mask 更新、命名 layer 解析、collision info 检查、可复用 Shape 资源创建、Area trigger 模板、CharacterBody controller 模板和 scene physics 分析。
+- 扩展 `navigation`，支持 bake 配置、NavigationMesh bake 执行、path query 输出和 Line2D navigation debug geometry 生成。
+- 为 1.4.0 工具 schema 和生成的 Godot 操作函数增加发布验证覆盖。
+- 更新 `1.4.0` 发布文档和构建包下载链接。
+
 ## 1.3.1
 
 代码组织和可维护性版本。

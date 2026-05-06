@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.4.0
+
+Physics, navigation, and debug analysis release.
+
+- Expanded `physics` with collision layer/mask updates, named layer resolution, collision info inspection, reusable Shape resource creation, Area trigger templates, CharacterBody controller templates, and scene physics analysis.
+- Expanded `navigation` with bake configuration, NavigationMesh bake execution, path query output, and Line2D navigation debug geometry generation.
+- Added release verification coverage for the 1.4.0 tool schemas and generated Godot operation functions.
+- Updated release documentation and package download links for `1.4.0`.
+
 ## Version 1.3.1
 
 Code organization and maintainability release.

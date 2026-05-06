@@ -153,11 +153,22 @@ export class GodotServer {
     'source_id': 'sourceId',
     'atlas_coords': 'atlasCoords',
     'alternative_tile': 'alternativeTile',
+    'collision_layer': 'collisionLayer',
+    'collision_mask': 'collisionMask',
+    'collision_layer_names': 'collisionLayerNames',
+    'collision_mask_names': 'collisionMaskNames',
     'shape_type': 'shapeType',
+    'shape_resource_path': 'shapeResourcePath',
     'stream_path': 'streamPath',
     'bus': 'bus',
     'volume_db': 'volumeDb',
     'autoplay': 'autoplay',
+    'agent_radius': 'agentRadius',
+    'cell_size': 'cellSize',
+    'cell_height': 'cellHeight',
+    'start_position': 'startPosition',
+    'end_position': 'endPosition',
+    'debug_node_name': 'debugNodeName',
     'base_type': 'baseType',
     'class_name': 'className',
     'path_contains': 'pathContains',
@@ -244,7 +255,7 @@ export class GodotServer {
     this.server = new Server(
       {
         name: 'godot-devtool',
-        version: '1.0.0',
+        version: '1.4.0',
       },
       {
         capabilities: {
@@ -1206,7 +1217,7 @@ export class GodotServer {
 
     const result: any = {
       name: 'godot-devtool',
-      version: '1.0.0',
+      version: '1.4.0',
       serverMode: 'mcp_stdio',
       executionModes: ['file_system_or_node', 'headless_godot', 'process_control', 'editor_bridge_optional'],
       godotPathConfigured: Boolean(this.godotPath || process.env.GODOT_PATH),
@@ -3184,6 +3195,9 @@ export class GodotServer {
     if (args.tileSetPath && (!isSafeProjectRelativePath(args.tileSetPath) || !/\.(tres|res)$/i.test(args.tileSetPath))) {
       return this.createErrorResponse('Invalid tileSetPath', ['Provide a project-relative .tres or .res TileSet path']);
     }
+    if (args.shapeResourcePath && (!isSafeProjectRelativePath(args.shapeResourcePath) || !/\.(tres|res)$/i.test(args.shapeResourcePath))) {
+      return this.createErrorResponse('Invalid shapeResourcePath', ['Provide a project-relative .tres or .res shape resource path']);
+    }
     if (args.streamPath && !isSafeProjectRelativePath(args.streamPath)) {
       return this.createErrorResponse('Invalid streamPath', ['Provide a project-relative audio stream path']);
     }
@@ -3224,8 +3238,22 @@ export class GodotServer {
         'seed',
         'templateName',
         'tilePalette',
+        'collisionLayer',
+        'collisionMask',
+        'collisionLayerNames',
+        'collisionMaskNames',
         'shapeType',
+        'shapeResourcePath',
+        'dimensions',
+        'radius',
+        'height',
         'points',
+        'agentRadius',
+        'cellSize',
+        'cellHeight',
+        'startPosition',
+        'endPosition',
+        'debugNodeName',
         'streamPath',
         'bus',
         'volumeDb',

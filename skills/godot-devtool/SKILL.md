@@ -2,7 +2,7 @@
 name: godot-devtool
 description: "Use when operating Godot Engine projects through the godot-devtool MCP server: inspect projects, edit scenes/nodes/scripts/resources, use the editor bridge, run checks, debug output, and prepare exports while preserving project safety."
 metadata:
-  version: "1.3.1"
+  version: "1.4.0"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill when a task should be done through the `godot-devtool` MCP server. This skill is for AI assistants working on Godot 4 projects with the `godot-devtool` tools available.
 
-Compatibility: `godot-devtool` 1.3.1.
+Compatibility: `godot-devtool` 1.4.0.
 
 ## Start Every Session
 

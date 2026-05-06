@@ -6,15 +6,6 @@
 
 ## 未来计划
 
-### 1.4.0 物理、导航和调试分析
-
-- 增加命名 collision layer/mask 管理。
-- 增加可复用 Shape 资源和 Area trigger 模板。
-- 增加 CharacterBody controller 模板。
-- 增加 NavigationMesh/NavigationPolygon bake 配置。
-- 增加 path query 和 navigation debug geometry 生成。
-- 增加 scene physics 检查，用于发现缺失 shape、无效 mask、重叠 area 和 navigation 断点。
-
 ### 1.5.0 导出、CI 和发布自动化
 
 - 增加 export template 检查和可选安装指引。

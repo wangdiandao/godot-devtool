@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 最新发行包：
 
-[godot-devtool-build-1.3.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.1/godot-devtool-build-1.3.1.zip)
+[godot-devtool-build-1.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.4.0/godot-devtool-build-1.4.0.zip)
 
 解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
 
@@ -198,8 +198,8 @@ npm run check:project -- E:/test
 | --- | --- |
 | `tilemap` | 创建/列出 TileMap 节点、创建 TileSet、编辑 cell、添加 atlas source、配置 metadata/collision/navigation/terrain、随机绘制和应用模板 |
 | `geometry` | 创建和列出基础 2D geometry/debug drawing 节点 |
-| `physics` | 创建和列出 physics body、area 和 collision shape |
-| `navigation` | 创建/列出 NavigationRegion、NavigationAgent、NavigationObstacle，并写入 NavigationRegion2D polygon |
+| `physics` | 创建/列出 physics body，配置命名 collision layer/mask，创建 Shape 资源和模板，检查 collision info，并分析 scene physics 问题 |
+| `navigation` | 创建/列出 NavigationRegion、NavigationAgent、NavigationObstacle，配置/bake navigation 资源，查询 path，并生成 debug geometry |
 | `audio` | 创建/列出 AudioStreamPlayer 节点并检查 audio bus |
 
 ## 项目结构

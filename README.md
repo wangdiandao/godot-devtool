@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@ This project was initially inspired by [Coding-Solo/godot-mcp](https://github.co
 
 Latest release package:
 
-[godot-devtool-build-1.3.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.1/godot-devtool-build-1.3.1.zip)
+[godot-devtool-build-1.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.4.0/godot-devtool-build-1.4.0.zip)
 
 Extract the zip and point your MCP client at the extracted `build/index.js`.
 
@@ -198,8 +198,8 @@ The skill teaches assistants to inspect project state first, prefer structured M
 | --- | --- |
 | `tilemap` | Create/list TileMap nodes, create TileSets, edit cells, add atlas sources, configure metadata/collision/navigation/terrain, random paint, and apply templates |
 | `geometry` | Create and list basic 2D geometry/debug drawing nodes |
-| `physics` | Create and list physics bodies, areas, and collision shapes |
-| `navigation` | Create/list NavigationRegion, NavigationAgent, NavigationObstacle nodes, and write NavigationRegion2D polygons |
+| `physics` | Create/list physics bodies, configure named collision layers and masks, create Shape resources and templates, inspect collision info, and analyze scene physics issues |
+| `navigation` | Create/list NavigationRegion, NavigationAgent, NavigationObstacle nodes, configure/bake navigation resources, query paths, and generate debug geometry |
 | `audio` | Create/list AudioStreamPlayer nodes and inspect audio buses |
 
 ## Project Layout

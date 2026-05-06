@@ -307,7 +307,7 @@ function editorBridgePluginCfg(): string {
     'name="godot-devtool Editor Bridge"',
     'description="File-based live editor bridge for godot-devtool MCP."',
     'author="godot-devtool"',
-    'version="1.0.0"',
+    'version="1.4.0"',
     'script="godot_devtool_bridge.gd"',
     '',
   ].join('\n');

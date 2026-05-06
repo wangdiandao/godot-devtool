@@ -6,15 +6,6 @@ This document tracks future development plans only. Completed releases are track
 
 ## Future Versions
 
-### 1.4.0 Physics, Navigation, And Debug Analysis
-
-- Add named collision layer/mask management.
-- Add reusable Shape resources and Area trigger templates.
-- Add CharacterBody controller templates.
-- Add NavigationMesh/NavigationPolygon bake configuration.
-- Add path query and navigation debug geometry generation.
-- Add scene physics checks for missing shapes, invalid masks, overlapping areas, and navigation breaks.
-
 ### 1.5.0 Export, CI, And Release Automation
 
 - Add export template checks and optional setup guidance.

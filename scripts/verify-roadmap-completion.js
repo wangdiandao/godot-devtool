@@ -203,11 +203,15 @@ try {
   const animationTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'animation');
   const animationTreeTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'animation_state_machine');
   const uiTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'ui');
+  const physicsTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'physics');
+  const navigationTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'navigation');
   assert.ok(shaderTool);
   assert.ok(materialTool);
   assert.ok(animationTool);
   assert.ok(animationTreeTool);
   assert.ok(uiTool);
+  assert.ok(physicsTool);
+  assert.ok(navigationTool);
   for (const action of ['create', 'read', 'inspect', 'set_parameters']) {
     assert.ok(shaderTool.inputSchema.properties.action.enum.includes(action), `shader action missing: ${action}`);
   }
@@ -226,6 +230,35 @@ try {
   for (const action of ['create', 'create_theme', 'apply_theme', 'create_template', 'auto_connect_signals']) {
     assert.ok(uiTool.inputSchema.properties.action.enum.includes(action), `ui action missing: ${action}`);
   }
+  for (const action of [
+    'list',
+    'create',
+    'set_layers',
+    'get_collision_info',
+    'create_shape_resource',
+    'create_area_trigger_template',
+    'create_character_controller_template',
+    'analyze_scene_physics',
+  ]) {
+    assert.ok(physicsTool.inputSchema.properties.action.enum.includes(action), `physics action missing: ${action}`);
+  }
+  for (const field of ['collisionLayer', 'collisionMask', 'collisionLayerNames', 'shapeResourcePath', 'templateName', 'dimensions', 'radius', 'height']) {
+    assert.ok(physicsTool.inputSchema.properties[field], `physics field missing: ${field}`);
+  }
+  for (const action of [
+    'list',
+    'create',
+    'set_polygon',
+    'configure_bake',
+    'bake_navigation_mesh',
+    'query_path',
+    'create_debug_geometry',
+  ]) {
+    assert.ok(navigationTool.inputSchema.properties.action.enum.includes(action), `navigation action missing: ${action}`);
+  }
+  for (const field of ['agentRadius', 'cellSize', 'cellHeight', 'startPosition', 'endPosition', 'debugNodeName']) {
+    assert.ok(navigationTool.inputSchema.properties[field], `navigation field missing: ${field}`);
+  }
 
   assert.match(operationsScript, /func collect_shader_includes/);
   assert.match(operationsScript, /func collect_shader_texture_uniforms/);
@@ -238,6 +271,15 @@ try {
   assert.match(operationsScript, /func ui_create_theme/);
   assert.match(operationsScript, /func ui_create_template/);
   assert.match(operationsScript, /func ui_auto_connect_signals/);
+  assert.match(operationsScript, /func physics_set_layers/);
+  assert.match(operationsScript, /func physics_create_shape_resource/);
+  assert.match(operationsScript, /func physics_create_area_trigger_template/);
+  assert.match(operationsScript, /func physics_create_character_controller_template/);
+  assert.match(operationsScript, /func physics_analyze_scene/);
+  assert.match(operationsScript, /func navigation_configure_bake/);
+  assert.match(operationsScript, /func navigation_bake_mesh/);
+  assert.match(operationsScript, /func navigation_query_path/);
+  assert.match(operationsScript, /func navigation_create_debug_geometry/);
 
   assert.match(readme, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
@@ -260,17 +302,21 @@ try {
   assert.match(skillRaw, /run_project_checks/);
   assert.match(skillRaw, /When updating the `godot-devtool` package version/);
   assert.match(skillOpenAiRaw, /display_name: "Godot Devtool"/);
+  assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
+  assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
   assert.match(skillOpenAiRaw, /default_prompt: "Use \$godot-devtool/);
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of [releaseVersion, '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
 
   assert.match(roadmap, /\[中文\]\(ROADMAP\.zh-CN\.md\)/);
   assert.match(roadmapZh, /\[English\]\(ROADMAP\.md\)/);
+  assert.doesNotMatch(roadmap, /### 1\.4\.0/);
+  assert.doesNotMatch(roadmapZh, /### 1\.4\.0/);
   assert.doesNotMatch(roadmap, /### 1\.3\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);
