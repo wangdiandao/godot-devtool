@@ -4,6 +4,14 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.3.2
+
+Editor locale detection and runtime compatibility roadmap release.
+
+- Fixed the `GDT` editor dock locale detection so Godot editor language values such as `zh` show the Simplified Chinese status UI, while Traditional Chinese locales continue to fall back to English.
+- Added the `2.4.0 Runtime Compatibility Completion` roadmap section for receipt-only input routes, runtime recording/replay routes, capability metadata, and end-to-end Godot runtime fixtures.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.3.2`.
+
 ## Version 2.3.1
 
 Editor dock title and bilingual status display release.

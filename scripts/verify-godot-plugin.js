@@ -46,14 +46,15 @@ try {
   }
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, /PLUGIN_VERSION := "2\.3\.1"/, 'plugin.gd must report plugin version 2.3.1');
-  assert.match(pluginConfigSource, /version="2\.3\.1"/, 'plugin.cfg must report plugin version 2.3.1');
+  assert.match(pluginSource, /PLUGIN_VERSION := "2\.3\.2"/, 'plugin.gd must report plugin version 2.3.2');
+  assert.match(pluginConfigSource, /version="2\.3\.2"/, 'plugin.cfg must report plugin version 2.3.2');
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
   assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
   assert.match(pluginSource, /title\.text = "GDT"/, 'plugin.gd status dock heading must be GDT');
   assert.match(pluginSource, /TranslationServer\.get_locale/, 'plugin.gd must read the Godot engine locale');
-  assert.match(pluginSource, /zh_cn|zh_hans|zh_sg/, 'plugin.gd must detect Simplified Chinese locales');
+  assert.match(pluginSource, /normalized_locale == "zh"/, 'plugin.gd must detect generic Chinese locales used by the Godot editor');
+  assert.match(pluginSource, /zh_cn|zh_hans|zh_sg/, 'plugin.gd must detect explicit Simplified Chinese locales');
   assert.match(pluginSource, /MCP Server/, 'plugin.gd status dock must label MCP server state');
   assert.match(pluginSource, /MCP 服务/, 'plugin.gd status dock must include Simplified Chinese server label');
   assert.match(pluginSource, /Reconnect/, 'plugin.gd status dock must expose a reconnect action');

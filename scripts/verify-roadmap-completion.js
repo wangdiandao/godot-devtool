@@ -248,7 +248,9 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.3.1');
+  const latestReleaseZipVersion = '2.3.2';
+  const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
+  assert.equal(releaseVersion, '2.3.2');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -375,9 +377,9 @@ try {
   assert.match(readme, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readme, /Install From Release Zip/);
-  assert.match(readme, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
+  assert.match(readme, new RegExp(`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip`));
   assert.match(readmeZh, /从 Release Zip 安装/);
-  assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
+  assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip`));
   assert.match(readme, /## What It Can Do/);
   assert.match(readme, /## All \d+ Tools/);
   assert.match(readme, /### Project Tools \(\d+\)/);

@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.3.1"
+const PLUGIN_VERSION := "2.3.2"
 
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()
@@ -206,11 +206,21 @@ func _ui_text(key: String) -> String:
 	return key
 
 func _uses_simplified_chinese() -> bool:
-	var locale := TranslationServer.get_locale()
+	var locale_candidates := [TranslationServer.get_locale(), OS.get_locale()]
 	var editor_settings: EditorSettings = get_editor_interface().get_editor_settings()
-	if editor_settings and editor_settings.has_setting("interface/editor/editor_language"):
-		var editor_locale := str(editor_settings.get_setting("interface/editor/editor_language"))
-		if editor_locale != "":
-			locale = editor_locale
-	var normalized_locale := locale.replace("-", "_").to_lower()
-	return normalized_locale.begins_with("zh_cn") or normalized_locale.begins_with("zh_hans") or normalized_locale.begins_with("zh_sg")
+	if editor_settings:
+		for setting_name in ["interface/editor/editor_language", "interface/editor/language"]:
+			if editor_settings.has_setting(setting_name):
+				locale_candidates.push_front(str(editor_settings.get_setting(setting_name)))
+	for locale in locale_candidates:
+		if _is_simplified_chinese_locale(str(locale)):
+			return true
+	return false
+
+func _is_simplified_chinese_locale(locale: String) -> bool:
+	var normalized_locale := locale.strip_edges().replace("-", "_").to_lower()
+	if normalized_locale == "":
+		return false
+	if normalized_locale.begins_with("zh_tw") or normalized_locale.begins_with("zh_hk") or normalized_locale.begins_with("zh_mo") or normalized_locale.begins_with("zh_hant"):
+		return false
+	return normalized_locale == "zh" or normalized_locale.begins_with("zh_") or normalized_locale.begins_with("zh_cn") or normalized_locale.begins_with("zh_hans") or normalized_locale.begins_with("zh_sg")

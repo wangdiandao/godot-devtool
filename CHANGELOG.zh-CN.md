@@ -4,6 +4,14 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.3.2
+
+编辑器语言检测与运行时兼容能力路线图版本。
+
+- 修复 `GDT` 编辑器 dock 的语言检测，让 Godot 编辑器语言值为 `zh` 时也显示简体中文状态界面；繁体中文 locale 继续回退为英文。
+- 新增 `2.4.0 运行时兼容能力补全` 路线图章节，覆盖只返回回执的输入路由、运行时录制/回放路由、能力元数据和端到端 Godot runtime fixture。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.3.2`。
+
 ## 2.3.1
 
 编辑器 dock 标题与双语状态显示版本。
