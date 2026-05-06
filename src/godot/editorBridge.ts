@@ -25,7 +25,8 @@ export type EditorBridgeCommandType =
   | 'undo'
   | 'redo'
   | 'inspector_get_properties'
-  | 'inspector_set_properties';
+  | 'inspector_set_properties'
+  | string;
 
 export interface EditorBridgeConfig {
   mode: EditorBridgeMode;

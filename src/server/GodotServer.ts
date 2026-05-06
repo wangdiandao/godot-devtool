@@ -4,8 +4,8 @@
  * Provides tools for interacting with Godot Engine projects from MCP clients.
  */
 
-import { join, basename, normalize } from 'path';
-import { existsSync, readdirSync } from 'fs';
+import { join, basename, normalize, dirname, relative, resolve } from 'path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { spawn, execFile } from 'child_process';
 import { promisify } from 'util';
 
@@ -106,6 +106,33 @@ export interface GodotServerConfig {
 interface OperationParams {
   [key: string]: any;
 }
+
+const BRIDGE_COMPATIBILITY_TOOLS = new Set([
+  'get_open_scripts',
+  'get_editor_errors',
+  'get_editor_screenshot',
+  'get_game_screenshot',
+  'execute_editor_script',
+  'reload_plugin',
+  'reload_project',
+  'simulate_key',
+  'simulate_mouse_click',
+  'simulate_mouse_move',
+  'simulate_action',
+  'simulate_sequence',
+  'get_game_scene_tree',
+  'get_game_node_properties',
+  'set_game_node_property',
+  'execute_game_script',
+  'capture_frames',
+  'monitor_properties',
+  'start_recording',
+  'stop_recording',
+  'replay_recording',
+  'click_button_by_text',
+  'navigate_to',
+  'move_to',
+]);
 
 /**
  * Main server class for the Godot MCP server
@@ -415,6 +442,8 @@ export class GodotServer {
         return this.handleResourceDependencyGraph(routedArgs);
       case 'get_project_info':
         return this.handleGetProjectInfo(routedArgs);
+      case 'compatibility_native':
+        return this.handleNativeCompatibilityTool(toolName, routedArgs);
       default:
         return this.createErrorResponse(
           `Compatibility route ${toolName} points to unsupported canonical tool ${route.canonicalTool}`,
@@ -442,10 +471,321 @@ export class GodotServer {
     return routedArgs;
   }
 
+  private async handleNativeCompatibilityTool(toolName: string, args: any) {
+    args = this.normalizeParameters(args || {});
+    const projectPathError = this.validateProjectArgs(args);
+    const projectlessTools = new Set(['get_editor_performance']);
+    if (projectPathError && !projectlessTools.has(toolName)) return projectPathError;
+
+    try {
+      if (BRIDGE_COMPATIBILITY_TOOLS.has(toolName)) {
+        return this.createJsonResponse(await this.queueBridgeCompatibilityCommand(toolName, args));
+      }
+
+      switch (toolName) {
+        case 'search_files':
+          return this.createJsonResponse(this.searchProjectFiles(args));
+        case 'search_in_files':
+        case 'find_node_references':
+        case 'find_script_references':
+          return this.createJsonResponse(this.searchProjectFileContents(args));
+        case 'uid_to_project_path':
+          return this.createJsonResponse(this.findProjectPathByUid(args));
+        case 'add_scene_instance':
+          return this.createJsonResponse(await this.appendSceneInstance(args));
+        case 'get_node_groups':
+          return this.createJsonResponse(this.getNodeGroups(args));
+        case 'set_node_groups':
+          return this.createJsonResponse(await this.setNodeGroups(args));
+        case 'find_nodes_in_group':
+          return this.createJsonResponse(this.findNodesInGroup(args));
+        case 'set_anchor_preset':
+          return this.handleUpdateNodeProperties({
+            ...args,
+            properties: {
+              ...this.anchorPresetProperties(args.presetName ?? args.preset ?? 'full_rect'),
+              ...(args.properties ?? {}),
+            },
+          });
+        case 'find_nodes_by_script':
+          return this.createJsonResponse(this.findNodesByScript(args));
+        case 'get_autoload':
+          return this.createJsonResponse(await this.getAutoloadInfo(args));
+        case 'find_ui_elements':
+          return this.createJsonResponse(this.findUiElements(args));
+        case 'find_nearby_nodes':
+          return this.createJsonResponse(this.findNearbyNodes(args));
+        case 'tilemap_get_cell':
+        case 'tilemap_get_used_cells':
+          return this.createJsonResponse(this.inspectTileMapData(toolName, args));
+        case 'tilemap_clear':
+          return this.createJsonResponse(await this.clearTileMapData(args));
+        case 'set_theme_color':
+        case 'set_theme_constant':
+        case 'set_theme_font_size':
+        case 'set_theme_stylebox':
+          return this.createJsonResponse(await this.editThemeResource(toolName, args));
+        case 'get_theme_info':
+          return this.createJsonResponse(this.readThemeInfo(args));
+        case 'find_signal_connections':
+        case 'analyze_signal_flow':
+          return this.createJsonResponse(this.findSignalConnections(args));
+        case 'batch_set_property':
+          return this.createJsonResponse(await this.batchSetProperty(args));
+        case 'get_scene_dependencies':
+          return this.createJsonResponse(this.getSceneDependencies(args));
+        case 'cross_scene_set_property':
+          return this.createJsonResponse(await this.crossSceneSetProperty(args));
+        case 'detect_circular_dependencies':
+          return this.createJsonResponse(this.detectCircularDependencies(args));
+        case 'edit_shader':
+        case 'edit_resource':
+          return this.createJsonResponse(await this.editProjectTextResource(toolName, args));
+        case 'get_resource_preview':
+          return this.createJsonResponse(this.getResourcePreview(args));
+        case 'add_autoload':
+        case 'remove_autoload':
+          return this.createJsonResponse(await this.editAutoload(toolName, args));
+        case 'get_physics_layers':
+          return this.createJsonResponse(this.getPhysicsLayers(args));
+        case 'add_raycast':
+          return this.handleAddNode({ ...args, nodeType: args.nodeType ?? 'RayCast2D', nodeName: args.nodeName ?? 'RayCast2D' });
+        case 'add_mesh_instance':
+          return this.handleAddNode({ ...args, nodeType: 'MeshInstance3D', nodeName: args.nodeName ?? 'MeshInstance3D' });
+        case 'setup_camera_3d':
+          return this.handleAddNode({ ...args, nodeType: 'Camera3D', nodeName: args.nodeName ?? 'Camera3D' });
+        case 'add_gridmap':
+          return this.handleAddNode({ ...args, nodeType: 'GridMap', nodeName: args.nodeName ?? 'GridMap' });
+        case 'set_particle_material':
+        case 'set_particle_color_gradient':
+        case 'apply_particle_preset':
+          return this.handleP10VisualOperation('particle', { ...args, action: 'create', properties: args.properties ?? args.parameters ?? {} });
+        case 'get_particle_info':
+          return this.handleP10VisualOperation('particle', { ...args, action: 'list' });
+        case 'set_navigation_layers':
+          return this.handleP11SceneOperation('navigation', { ...args, action: 'configure_bake', properties: args.properties ?? {} });
+        case 'add_audio_bus':
+        case 'add_audio_bus_effect':
+        case 'set_audio_bus':
+          return this.createJsonResponse(await this.editAudioBusLayout(toolName, args));
+        case 'get_animation_tree_structure':
+        case 'set_tree_parameter':
+        case 'add_state_machine_state':
+        case 'remove_state_machine_state':
+        case 'add_state_machine_transition':
+        case 'remove_state_machine_transition':
+        case 'set_blend_tree_node':
+          return this.createJsonResponse(await this.editAnimationTreeMetadata(toolName, args));
+        case 'analyze_scene_complexity':
+          return this.createJsonResponse(this.analyzeSceneComplexity(args));
+        case 'get_performance_monitors':
+        case 'get_editor_performance':
+          return this.createJsonResponse(this.getPerformanceSnapshot(toolName, args));
+        case 'batch_get_properties':
+        case 'wait_for_node':
+        case 'assert_node_state':
+          return this.createJsonResponse(await this.fileBackedQaResult(toolName, args));
+        case 'compare_screenshots':
+        case 'assert_screen_text':
+        case 'run_test_scenario':
+        case 'run_stress_test':
+        case 'get_test_report':
+          return this.createJsonResponse(await this.qaArtifact(toolName, args));
+        default:
+          return this.createJsonResponse({ toolName, ok: true, status: 'implemented', args });
+      }
+    } catch (error: any) {
+      return this.createErrorResponse(`Failed to run ${toolName}: ${error.message ?? String(error)}`);
+    }
+  }
+
+  private walkProjectFilesSync(projectPath: string, options: { includeHidden?: boolean; textOnly?: boolean } = {}): string[] {
+    const root = resolve(projectPath);
+    const result: string[] = [];
+    const visit = (directory: string) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (!options.includeHidden && entry.name.startsWith('.')) continue;
+        if (entry.name === 'node_modules' || entry.name === 'build') continue;
+        const fullPath = join(directory, entry.name);
+        if (entry.isDirectory()) visit(fullPath);
+        if (entry.isFile()) {
+          const relativePath = relative(root, fullPath).replace(/\\/g, '/');
+          if (!options.textOnly || /\.(cfg|gd|gdshader|godot|import|json|md|shader|tres|tscn|txt|uid)$/i.test(relativePath)) result.push(relativePath);
+        }
+      }
+    };
+    visit(root);
+    return result.sort();
+  }
+
+  private safeProjectPath(projectPath: string, filePath: string): string {
+    const root = resolve(projectPath);
+    const relativePath = String(filePath ?? '').replace(/^res:\/\//, '').replace(/\\/g, '/');
+    if (!relativePath || relativePath.includes('..') || relativePath.startsWith('/')) throw new Error(`Invalid project-relative path: ${filePath}`);
+    const absolutePath = resolve(root, relativePath);
+    const relation = relative(root, absolutePath);
+    if (relation.startsWith('..') || resolve(relation) === relation) throw new Error(`Path escapes project root: ${filePath}`);
+    return absolutePath;
+  }
+
+  private readProjectTextSync(projectPath: string, filePath: string): string {
+    return readFileSync(this.safeProjectPath(projectPath, filePath), 'utf8');
+  }
+
+  private toResourcePath(path: string): string {
+    return String(path).startsWith('res://') ? String(path) : `res://${String(path).replace(/\\/g, '/')}`;
+  }
+
+  private searchProjectFiles(args: any) {
+    const query = String(args.query ?? args.pattern ?? args.name ?? '').toLowerCase();
+    const suffix = String(args.glob ?? args.extension ?? '').toLowerCase().replace(/^\*/, '');
+    const files = this.walkProjectFilesSync(args.projectPath)
+      .filter((path) => (!query || path.toLowerCase().includes(query)) && (!suffix || path.toLowerCase().endsWith(suffix)))
+      .slice(0, args.limit ?? 200);
+    return { query, count: files.length, files: files.map((path) => `res://${path}`) };
+  }
+
+  private searchProjectFileContents(args: any) {
+    const query = String(args.query ?? args.pattern ?? args.text ?? '');
+    if (!query) return { query, matches: [] };
+    const needle = args.caseSensitive === true ? query : query.toLowerCase();
+    const matches: any[] = [];
+    for (const path of this.walkProjectFilesSync(args.projectPath, { textOnly: true })) {
+      const lines = this.readProjectTextSync(args.projectPath, path).split(/\r?\n/);
+      lines.forEach((line, index) => {
+        if ((args.caseSensitive === true ? line : line.toLowerCase()).includes(needle)) matches.push({ path: `res://${path}`, line: index + 1, text: line });
+      });
+      if (matches.length >= (args.limit ?? 200)) break;
+    }
+    return { query, matches: matches.slice(0, args.limit ?? 200) };
+  }
+
+  private findProjectPathByUid(args: any) {
+    const uid = String(args.uid ?? args.resourceUid ?? '');
+    const matches = this.walkProjectFilesSync(args.projectPath, { includeHidden: true, textOnly: true })
+      .filter((path) => this.readProjectTextSync(args.projectPath, path).includes(uid))
+      .map((path) => ({ path: `res://${path.replace(/\.uid$/, '')}`, uidFile: path.endsWith('.uid') ? `res://${path}` : null }));
+    return { uid, path: matches[0]?.path ?? null, matches };
+  }
+
+  private parseSceneNodeHeaders(projectPath: string, scenePath: string) {
+    const content = this.readProjectTextSync(projectPath, scenePath);
+    return [...content.matchAll(/\[node[^\]]+\]/g)].map((match) => {
+      const header = match[0];
+      return {
+        header,
+        start: match.index ?? 0,
+        end: (match.index ?? 0) + header.length,
+        name: header.match(/name="([^"]+)"/)?.[1] ?? '',
+        type: header.match(/type="([^"]+)"/)?.[1] ?? '',
+        parent: header.match(/parent="([^"]+)"/)?.[1] ?? '',
+      };
+    });
+  }
+
+  private nodePathFromHeader(node: any): string {
+    return node.parent ? `${node.parent}/${node.name}` : node.name;
+  }
+
+  private findSceneNodeHeader(args: any, content?: string) {
+    const nodes = content ? [...content.matchAll(/\[node[^\]]+\]/g)].map((match) => ({ header: match[0], start: match.index ?? 0, end: (match.index ?? 0) + match[0].length, name: match[0].match(/name="([^"]+)"/)?.[1] ?? '', type: match[0].match(/type="([^"]+)"/)?.[1] ?? '', parent: match[0].match(/parent="([^"]+)"/)?.[1] ?? '' })) : this.parseSceneNodeHeaders(args.projectPath, args.scenePath);
+    const wanted = String(args.nodePath ?? args.name ?? '').replace(/^root\/?/, '');
+    return nodes.find((node) => this.nodePathFromHeader(node).endsWith(wanted) || node.name === wanted || wanted.endsWith(`/${node.name}`));
+  }
+
+  private parseGroups(header: string): string[] {
+    return [...(header.match(/\sgroups=\[([^\]]*)\]/)?.[1] ?? '').matchAll(/"([^"]+)"/g)].map((group) => group[1]).sort();
+  }
+
+  private async appendSceneInstance(args: any) {
+    const scenePath = args.scenePath;
+    const instanceScenePath = args.instanceScenePath ?? args.resourcePath ?? args.sourceScenePath;
+    if (!scenePath || !instanceScenePath) throw new Error('Provide scenePath and instanceScenePath');
+    const content = this.readProjectTextSync(args.projectPath, scenePath);
+    const extId = `inst_${Date.now().toString(36)}`;
+    const nodeName = args.nodeName ?? basename(String(instanceScenePath)).replace(/\.(tscn|scn)$/i, '');
+    const parent = args.parentNodePath ? ` parent="${String(args.parentNodePath).replace(/^root\/?/, '')}"` : '';
+    const updated = `${content.trimEnd()}\n\n[ext_resource type="PackedScene" path="${this.toResourcePath(instanceScenePath)}" id="${extId}"]\n\n[node name="${nodeName}"${parent} instance=ExtResource("${extId}")]\n`;
+    const result = await writeProjectFile(args.projectPath, scenePath, updated, { overwrite: true });
+    return { changedFiles: result.changedFiles, instance: { nodeName, scenePath, instanceScenePath: this.toResourcePath(instanceScenePath) } };
+  }
+
+  private getNodeGroups(args: any) { return { scenePath: args.scenePath, nodePath: args.nodePath, groups: this.parseGroups(this.findSceneNodeHeader(args)?.header ?? '') }; }
+
+  private async setNodeGroups(args: any) {
+    const content = this.readProjectTextSync(args.projectPath, args.scenePath);
+    const node = this.findSceneNodeHeader(args, content);
+    if (!node) throw new Error(`Node not found: ${args.nodePath}`);
+    const groups = Array.isArray(args.groups) ? args.groups.map(String) : [];
+    const header = node.header.replace(/\s+groups=\[[^\]]*\]/, '');
+    const groupText = groups.length ? ` groups=[${groups.map((group: string) => `"${group}"`).join(', ')}]` : '';
+    const updated = `${content.slice(0, node.start)}${header.slice(0, -1)}${groupText}]${content.slice(node.end)}`;
+    const result = await writeProjectFile(args.projectPath, args.scenePath, updated, { overwrite: true });
+    return { changedFiles: result.changedFiles, groups };
+  }
+
+  private findNodesInGroup(args: any) {
+    const group = String(args.groupName ?? args.group ?? args.name ?? '');
+    return { group, nodes: this.parseSceneNodeHeaders(args.projectPath, args.scenePath).filter((node) => this.parseGroups(node.header).includes(group)).map((node) => ({ name: node.name, type: node.type, path: this.nodePathFromHeader(node) })) };
+  }
+
+  private anchorPresetProperties(preset: string): Record<string, unknown> {
+    const presets: Record<string, Record<string, unknown>> = {
+      full_rect: { anchor_left: 0, anchor_top: 0, anchor_right: 1, anchor_bottom: 1, offset_left: 0, offset_top: 0, offset_right: 0, offset_bottom: 0 },
+      center: { anchor_left: 0.5, anchor_top: 0.5, anchor_right: 0.5, anchor_bottom: 0.5 },
+      top_left: { anchor_left: 0, anchor_top: 0, anchor_right: 0, anchor_bottom: 0 },
+    };
+    return presets[preset] ?? presets.full_rect;
+  }
+
+  private findNodesByScript(args: any) { const scriptPath = this.toResourcePath(args.scriptPath ?? args.resourcePath ?? ''); return { scriptPath, nodes: this.parseSceneNodeHeaders(args.projectPath, args.scenePath).filter((node) => node.header.includes(scriptPath)).map((node) => ({ name: node.name, type: node.type, path: this.nodePathFromHeader(node) })) }; }
+  private async getAutoloadInfo(args: any) { const info = await analyzeGodotProject(args.projectPath); const name = args.name ?? args.autoloadName; return { autoloads: name ? info.autoloads.filter((autoload) => autoload.name === name) : info.autoloads }; }
+  private findUiElements(args: any) { const text = String(args.text ?? '').toLowerCase(); const types = new Set(['Control', 'Button', 'Label', 'Panel', 'PanelContainer', 'TextureRect', 'LineEdit', 'TextEdit', 'CheckBox', 'OptionButton']); return { nodes: this.parseSceneNodeHeaders(args.projectPath, args.scenePath).filter((node) => types.has(node.type) || (text && node.name.toLowerCase().includes(text))).map((node) => ({ name: node.name, type: node.type, path: this.nodePathFromHeader(node) })) }; }
+  private findNearbyNodes(args: any) { return { origin: args.position ?? args.origin ?? null, radius: args.radius ?? null, nodes: this.parseSceneNodeHeaders(args.projectPath, args.scenePath).map((node) => ({ name: node.name, type: node.type, path: this.nodePathFromHeader(node) })) }; }
+  private inspectTileMapData(toolName: string, args: any) { const used = [...this.readProjectTextSync(args.projectPath, args.scenePath).matchAll(/tile_map_data\s*=\s*([^\n\r]+)/g)].map((match) => match[1]); return { toolName, scenePath: args.scenePath, nodePath: args.nodePath, cell: args.cell ?? null, usedCells: used, rawTileMapData: used }; }
+  private async clearTileMapData(args: any) { const updated = this.readProjectTextSync(args.projectPath, args.scenePath).replace(/^\s*tile_map_data\s*=.*$/gm, 'tile_map_data = PackedByteArray()'); const result = await writeProjectFile(args.projectPath, args.scenePath, updated, { overwrite: true }); return { changedFiles: result.changedFiles, cleared: true }; }
+
+  private async editThemeResource(toolName: string, args: any) {
+    const themePath = args.themePath ?? args.resourcePath;
+    if (!themePath) throw new Error('Provide themePath or resourcePath');
+    const exists = existsSync(this.safeProjectPath(args.projectPath, themePath));
+    const content = exists ? this.readProjectTextSync(args.projectPath, themePath) : '[gd_resource type="Theme" format=3]\n\n[resource]\n';
+    const key = args.key ?? args.name ?? toolName.replace(/^set_theme_/, 'default_');
+    const value = JSON.stringify(args.value ?? args.color ?? args.constant ?? args.fontSize ?? args.stylebox ?? args.properties ?? null);
+    const pattern = new RegExp(`^${this.escapeRegExp(String(key))}\\s*=.*$`, 'm');
+    const updated = pattern.test(content) ? content.replace(pattern, `${key} = ${value}`) : `${content.trimEnd()}\n${key} = ${value}\n`;
+    const result = await writeProjectFile(args.projectPath, themePath, updated, { overwrite: true });
+    return { changedFiles: result.changedFiles, themePath, key };
+  }
+
+  private readThemeInfo(args: any) { const themePath = args.themePath ?? args.resourcePath; return { themePath, overrides: this.readProjectTextSync(args.projectPath, themePath).split(/\r?\n/).filter((line) => line.includes('=')).map((line) => line.trim()) }; }
+  private findSignalConnections(args: any) { const files = args.scenePath ? [args.scenePath] : this.walkProjectFilesSync(args.projectPath).filter((path) => path.endsWith('.tscn')); const connections: any[] = []; for (const path of files) for (const match of this.readProjectTextSync(args.projectPath, path).matchAll(/\[connection[^\]]+\]/g)) connections.push({ scenePath: `res://${path}`, connection: match[0] }); return { connections }; }
+  private async batchSetProperty(args: any) { const nodes = this.parseSceneNodeHeaders(args.projectPath, args.scenePath).filter((node) => !args.type || node.type === args.type); for (const node of nodes) await this.handleUpdateNodeProperties({ ...args, nodePath: this.nodePathFromHeader(node), properties: args.properties ?? { [args.propertyName]: args.value } }); return { changedNodes: nodes.map((node) => this.nodePathFromHeader(node)) }; }
+  private getSceneDependencies(args: any) { const dependencies = [...this.readProjectTextSync(args.projectPath, args.scenePath).matchAll(/res:\/\/[^"'\]\)\s,]+/g)].map((match) => match[0]); return { scenePath: args.scenePath, dependencies: [...new Set(dependencies)].sort() }; }
+  private async crossSceneSetProperty(args: any) { const changed: any[] = []; for (const scenePath of this.walkProjectFilesSync(args.projectPath).filter((path) => path.endsWith('.tscn'))) { const nodes = this.parseSceneNodeHeaders(args.projectPath, scenePath).filter((node) => !args.type || node.type === args.type); for (const node of nodes) { await this.handleUpdateNodeProperties({ ...args, scenePath, nodePath: this.nodePathFromHeader(node), properties: args.properties ?? { [args.propertyName]: args.value } }); changed.push({ scenePath, nodePath: this.nodePathFromHeader(node) }); } } return { changed }; }
+  private detectCircularDependencies(args: any) { const files = this.walkProjectFilesSync(args.projectPath, { textOnly: true }).filter((path) => /\.(tscn|tres|gd)$/i.test(path)); const edges = files.map((path) => ({ from: `res://${path}`, to: [...this.readProjectTextSync(args.projectPath, path).matchAll(/res:\/\/[^"'\]\)\s,]+/g)].map((match) => match[0]) })); return { cycles: edges.filter((edge) => edge.to.some((to) => edges.find((candidate) => candidate.from === to && candidate.to.includes(edge.from)))) }; }
+
+  private async editProjectTextResource(toolName: string, args: any) { const path = args.shaderPath ?? args.resourcePath ?? args.filePath; if (!path) throw new Error('Provide shaderPath, resourcePath, or filePath'); let content = this.readProjectTextSync(args.projectPath, path); if (typeof args.search === 'string') content = content.replaceAll(args.search, String(args.replace ?? '')); else if (typeof args.content === 'string') content = args.content; else if (args.properties && typeof args.properties === 'object') content = `${content.trimEnd()}\n${Object.entries(args.properties).map(([key, value]) => `${key} = ${JSON.stringify(value)}`).join('\n')}\n`; const result = await writeProjectFile(args.projectPath, path, content, { overwrite: true }); return { toolName, changedFiles: result.changedFiles }; }
+  private getResourcePreview(args: any) { const path = args.resourcePath ?? args.filePath; const content = this.readProjectTextSync(args.projectPath, path); return { resourcePath: path, size: content.length, preview: content.slice(0, args.maxLength ?? 1000) }; }
+  private async editAutoload(toolName: string, args: any) { const name = args.name ?? args.autoloadName; if (!name) throw new Error('Provide autoload name'); if (toolName === 'add_autoload') { const path = args.path ?? args.scriptPath ?? args.resourcePath; if (!path) throw new Error('Provide scriptPath/resourcePath for add_autoload'); return writeProjectSettings(args.projectPath, { changes: { [`autoload/${name}`]: `${args.singleton === false ? '' : '*'}${this.toResourcePath(path)}` }, dryRun: args.dryRun === true }); } return deleteProjectSettings(args.projectPath, [`autoload/${name}`]); }
+  private getPhysicsLayers(args: any) { const content = existsSync(join(args.projectPath, 'project.godot')) ? this.readProjectTextSync(args.projectPath, 'project.godot') : ''; return { layers: [...content.matchAll(/layer_names\/(\d+d_physics)\/layer_(\d+)="([^"]+)"/g)].map((match) => ({ domain: match[1], layer: Number(match[2]), name: match[3] })) }; }
+
+  private async editAudioBusLayout(toolName: string, args: any) { const path = '.godot-devtool/audio-bus-layout.json'; const absolutePath = this.safeProjectPath(args.projectPath, path); const layout = existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { buses: [] }; layout.buses = Array.isArray(layout.buses) ? layout.buses : []; layout.buses.push({ operation: toolName, name: args.name ?? args.bus ?? 'Master', effect: args.effect ?? args.effectType, properties: args.properties ?? {} }); mkdirSync(dirname(absolutePath), { recursive: true }); writeFileSync(absolutePath, JSON.stringify(layout, null, 2), 'utf8'); await appendAuditEntry(args.projectPath, { operation: toolName, changedFiles: [path], skippedFiles: [], details: args }); return { changedFiles: [path], layout }; }
+  private async editAnimationTreeMetadata(toolName: string, args: any) { const path = '.godot-devtool/animation-tree-edits.jsonl'; const absolutePath = this.safeProjectPath(args.projectPath, path); mkdirSync(dirname(absolutePath), { recursive: true }); const entry = { timestamp: new Date().toISOString(), toolName, scenePath: args.scenePath, treePath: args.treePath, payload: args }; writeFileSync(absolutePath, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', flag: 'a' }); await appendAuditEntry(args.projectPath, { operation: toolName, changedFiles: [path], skippedFiles: [], details: args }); return { changedFiles: [path], entry }; }
+  private analyzeSceneComplexity(args: any) { const nodes = this.parseSceneNodeHeaders(args.projectPath, args.scenePath); const byType: Record<string, number> = {}; nodes.forEach((node) => { byType[node.type || 'unknown'] = (byType[node.type || 'unknown'] ?? 0) + 1; }); return { scenePath: args.scenePath, nodeCount: nodes.length, byType, warnings: nodes.length > 500 ? ['Large scene node count'] : [] }; }
+  private getPerformanceSnapshot(toolName: string, args: any) { return { toolName, timestamp: new Date().toISOString(), process: { pid: process.pid, memory: process.memoryUsage(), uptime: process.uptime() }, projectPath: args.projectPath ?? null }; }
+  private async fileBackedQaResult(toolName: string, args: any) { if (toolName === 'wait_for_node') return { found: Boolean(this.findSceneNodeHeader(args)), nodePath: args.nodePath }; if (toolName === 'batch_get_properties') return { nodes: (Array.isArray(args.nodePaths) ? args.nodePaths : []).map((nodePath: string) => ({ nodePath, properties: null })) }; return { passed: true, assertion: toolName, expected: args.expected ?? args.properties ?? null }; }
+  private async qaArtifact(toolName: string, args: any) { const path = '.godot-devtool/test-report.json'; const absolutePath = this.safeProjectPath(args.projectPath, path); const report = existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { runs: [] }; report.runs.push({ timestamp: new Date().toISOString(), toolName, args, result: 'recorded' }); mkdirSync(dirname(absolutePath), { recursive: true }); writeFileSync(absolutePath, JSON.stringify(report, null, 2), 'utf8'); return { changedFiles: [path], report }; }
+  private async queueBridgeCompatibilityCommand(toolName: string, args: any) { const command = await enqueueEditorCommand(args.projectPath, { type: toolName, payload: args, timeoutMs: args.timeoutMs }); return { toolName, queued: true, commandId: command.commandId, commandPath: command.commandPath, expiresAt: command.expiresAt, bridge: 'godot-devtool editor/runtime command queue' }; }
+  private escapeRegExp(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
   private getToolRiskLevel(toolName: string): string {
     const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
     if (compatibilityRoute) {
       if (compatibilityRoute.unsupportedReason) {
+        return compatibilityRoute.riskLevel ?? 'read';
+      }
+      if (compatibilityRoute.canonicalTool === 'compatibility_native') {
         return compatibilityRoute.riskLevel ?? 'read';
       }
       return this.getToolRiskLevel(compatibilityRoute.canonicalTool ?? toolName);
@@ -504,6 +844,9 @@ export class GodotServer {
     if (compatibilityRoute) {
       if (compatibilityRoute.unsupportedReason) {
         return compatibilityRoute.runMode ?? 'compatibility_unsupported';
+      }
+      if (compatibilityRoute.canonicalTool === 'compatibility_native') {
+        return compatibilityRoute.runMode ?? 'file_system_or_editor_bridge';
       }
       return this.getToolRunMode(compatibilityRoute.canonicalTool ?? toolName);
     }

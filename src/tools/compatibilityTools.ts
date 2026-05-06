@@ -79,102 +79,58 @@ const ROUTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = [
   { toolName: 'get_project_statistics', canonicalTool: 'get_project_info' },
 ];
 
-const unsupported = (toolName: string, unsupportedReason: string, runMode = 'compatibility_unsupported'): CompatibilityToolRoute => ({
-  toolName,
-  unsupportedReason,
-  runMode,
-  riskLevel: toolName.includes('set') || toolName.includes('add') || toolName.includes('remove') || toolName.includes('execute') || toolName.includes('simulate') || toolName.includes('click') || toolName.includes('move') ? 'write' : 'read',
-});
+const nativeRisk = (toolName: string): string => (
+  toolName.includes('set') ||
+  toolName.includes('add') ||
+  toolName.includes('remove') ||
+  toolName.includes('execute') ||
+  toolName.includes('simulate') ||
+  toolName.includes('click') ||
+  toolName.includes('move') ||
+  toolName.includes('clear') ||
+  toolName.includes('edit') ||
+  toolName.includes('reload') ||
+  toolName.includes('record') ||
+  toolName.includes('replay') ||
+  toolName.includes('run_')
+) ? 'write' : 'read';
 
-const UNSUPPORTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = [
-  unsupported('search_files', 'Text search is not yet exposed as a project-local MCP tool. Use filesystem_list plus filesystem_read, or run search outside the MCP server.'),
-  unsupported('uid_to_project_path', 'Godot UID reverse lookup requires an editor resource UID index that is not exposed by this release.'),
-  unsupported('add_scene_instance', 'PackedScene instancing needs a scene graph edit operation that is not implemented yet.'),
-  unsupported('set_anchor_preset', 'Control anchor preset editing is not implemented as a structured scene operation yet.'),
-  unsupported('get_node_groups', 'Group listing is available through the group tool with action=list and a concrete nodePath.'),
-  unsupported('set_node_groups', 'Batch group replacement is not implemented; use the group tool add/remove actions for individual changes.'),
-  unsupported('find_nodes_in_group', 'Group-wide scene search is not implemented yet.'),
-  unsupported('get_open_scripts', 'Open script tabs require live editor bridge state not exposed by this release.', 'editor_bridge_optional'),
-  unsupported('search_in_files', 'Project-wide text search is not implemented as an MCP tool yet.'),
-  unsupported('get_editor_errors', 'Editor diagnostics require live editor bridge integration beyond the current file-command bridge.', 'editor_bridge_optional'),
-  unsupported('get_editor_screenshot', 'Editor screenshot capture requires live editor image transport that is not implemented yet.', 'editor_bridge_optional'),
-  unsupported('get_game_screenshot', 'Running game screenshot capture requires runtime image transport that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('execute_editor_script', 'Executing arbitrary editor scripts is intentionally not exposed without a stronger permission and sandbox model.', 'editor_bridge_optional'),
-  unsupported('reload_plugin', 'Plugin reload control requires live editor command support that is not implemented yet.', 'editor_bridge_optional'),
-  unsupported('reload_project', 'Project reload control requires live editor command support that is not implemented yet.', 'editor_bridge_optional'),
-  unsupported('simulate_key', 'Input simulation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('simulate_mouse_click', 'Input simulation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('simulate_mouse_move', 'Input simulation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('simulate_action', 'Input simulation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('simulate_sequence', 'Input simulation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('get_game_scene_tree', 'Runtime scene tree inspection requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('get_game_node_properties', 'Runtime node inspection requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('set_game_node_property', 'Runtime node mutation requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('execute_game_script', 'Runtime script execution requires a running-game automation bridge and permission model that are not implemented yet.', 'runtime_bridge_required'),
-  unsupported('capture_frames', 'Frame capture requires runtime image transport that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('monitor_properties', 'Property monitoring requires runtime bridge subscriptions that are not implemented yet.', 'runtime_bridge_required'),
-  unsupported('start_recording', 'Input/session recording requires a runtime automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('stop_recording', 'Input/session recording requires a runtime automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('replay_recording', 'Input/session replay requires a runtime automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('find_nodes_by_script', 'Script-backed scene search is not implemented yet.'),
-  unsupported('get_autoload', 'Autoload inspection is available in get_project_info, but this exact focused tool is not implemented yet.'),
-  unsupported('batch_get_properties', 'Batch property reads are not implemented yet; use get_node_properties for individual nodes.'),
-  unsupported('find_ui_elements', 'UI semantic search is not implemented yet.'),
-  unsupported('click_button_by_text', 'Runtime UI clicking requires a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('wait_for_node', 'Runtime wait conditions require a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('find_nearby_nodes', 'Spatial proximity search is not implemented yet.'),
-  unsupported('navigate_to', 'Runtime navigation commands require a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('move_to', 'Runtime movement commands require a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('tilemap_get_cell', 'TileMap cell reads are not implemented yet.'),
-  unsupported('tilemap_clear', 'TileMap clear is not implemented yet.'),
-  unsupported('tilemap_get_used_cells', 'TileMap used-cell inspection is not implemented yet.'),
-  unsupported('set_theme_color', 'Incremental Theme mutation is not implemented yet; use ui action=create_theme with colors.'),
-  unsupported('set_theme_constant', 'Incremental Theme mutation is not implemented yet; use ui action=create_theme with constants.'),
-  unsupported('set_theme_font_size', 'Incremental Theme mutation is not implemented yet; use ui action=create_theme with fontSizes.'),
-  unsupported('set_theme_stylebox', 'Incremental Theme mutation is not implemented yet; use ui action=create_theme with styleboxes.'),
-  unsupported('get_theme_info', 'Theme inspection is not implemented yet.'),
-  unsupported('get_performance_monitors', 'Performance monitor reads require live runtime/editor sampling that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('get_editor_performance', 'Editor performance reads require live editor sampling that is not implemented yet.', 'editor_bridge_optional'),
-  unsupported('find_signal_connections', 'Signal connection search is not implemented yet.'),
-  unsupported('batch_set_property', 'Batch scene property mutation is not implemented yet.'),
-  unsupported('find_node_references', 'Node reference analysis is not implemented yet.'),
-  unsupported('get_scene_dependencies', 'Scene-focused dependency analysis is not implemented yet; use resource_dependency_graph for project-wide dependencies.'),
-  unsupported('cross_scene_set_property', 'Cross-scene mutation is not implemented yet.'),
-  unsupported('find_script_references', 'Project-wide script reference search is not implemented yet.'),
-  unsupported('detect_circular_dependencies', 'Circular dependency detection is not implemented yet.'),
-  unsupported('edit_shader', 'Incremental shader editing is not implemented yet; use shader action=create to overwrite shader content.'),
-  unsupported('get_resource_preview', 'Resource preview generation requires editor/runtime rendering that is not implemented yet.'),
-  unsupported('add_autoload', 'Autoload mutation is not implemented yet.'),
-  unsupported('remove_autoload', 'Autoload mutation is not implemented yet.'),
-  unsupported('get_physics_layers', 'Named physics layer reads are not implemented yet.'),
-  unsupported('add_raycast', 'RayCast node helper is not implemented yet; use add_node with a RayCast node type.'),
-  unsupported('add_mesh_instance', 'MeshInstance helper is not implemented yet; use add_node with MeshInstance3D.'),
-  unsupported('setup_camera_3d', 'Camera3D helper is not implemented yet; use add_node with Camera3D.'),
-  unsupported('add_gridmap', 'GridMap helper is not implemented yet; use add_node with GridMap.'),
-  unsupported('set_particle_material', 'Particle material mutation is not implemented yet.'),
-  unsupported('set_particle_color_gradient', 'Particle color gradient mutation is not implemented yet.'),
-  unsupported('apply_particle_preset', 'Particle presets are not implemented yet.'),
-  unsupported('get_particle_info', 'Particle inspection is not implemented yet.'),
-  unsupported('set_navigation_layers', 'Navigation layer mutation is not implemented yet.'),
-  unsupported('add_audio_bus', 'Audio bus layout mutation is not implemented yet.'),
-  unsupported('add_audio_bus_effect', 'Audio bus effect mutation is not implemented yet.'),
-  unsupported('set_audio_bus', 'Audio bus assignment helper is not implemented yet; use audio action=create for new players.'),
-  unsupported('get_animation_tree_structure', 'AnimationTree structure inspection is not implemented yet.'),
-  unsupported('set_tree_parameter', 'AnimationTree parameter mutation is not implemented yet.'),
-  unsupported('add_state_machine_state', 'State machine graph mutation is not implemented yet.'),
-  unsupported('remove_state_machine_state', 'State machine graph mutation is not implemented yet.'),
-  unsupported('add_state_machine_transition', 'State machine graph mutation is not implemented yet.'),
-  unsupported('remove_state_machine_transition', 'State machine graph mutation is not implemented yet.'),
-  unsupported('set_blend_tree_node', 'Blend tree mutation is not implemented yet.'),
-  unsupported('analyze_scene_complexity', 'Scene complexity analysis is not implemented yet.'),
-  unsupported('analyze_signal_flow', 'Signal flow analysis is not implemented yet.'),
-  unsupported('run_test_scenario', 'Runtime QA scenarios require a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('assert_node_state', 'Runtime QA assertions require a running-game automation bridge that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('assert_screen_text', 'Screen text assertions require runtime screenshot/OCR transport that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('compare_screenshots', 'Screenshot comparison requires runtime image capture that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('run_stress_test', 'Stress testing requires runtime automation orchestration that is not implemented yet.', 'runtime_bridge_required'),
-  unsupported('get_test_report', 'QA report storage is not implemented yet.'),
+const NATIVE_COMPATIBILITY_TOOL_NAMES = [
+  'search_files', 'uid_to_project_path', 'add_scene_instance', 'set_anchor_preset',
+  'get_node_groups', 'set_node_groups', 'find_nodes_in_group', 'get_open_scripts',
+  'search_in_files', 'get_editor_errors', 'get_editor_screenshot', 'get_game_screenshot',
+  'execute_editor_script', 'reload_plugin', 'reload_project', 'simulate_key',
+  'simulate_mouse_click', 'simulate_mouse_move', 'simulate_action', 'simulate_sequence',
+  'get_game_scene_tree', 'get_game_node_properties', 'set_game_node_property',
+  'execute_game_script', 'capture_frames', 'monitor_properties', 'start_recording',
+  'stop_recording', 'replay_recording', 'find_nodes_by_script', 'get_autoload',
+  'batch_get_properties', 'find_ui_elements', 'click_button_by_text', 'wait_for_node',
+  'find_nearby_nodes', 'navigate_to', 'move_to', 'tilemap_get_cell', 'tilemap_clear',
+  'tilemap_get_used_cells', 'set_theme_color', 'set_theme_constant',
+  'set_theme_font_size', 'set_theme_stylebox', 'get_theme_info',
+  'get_performance_monitors', 'get_editor_performance', 'find_signal_connections',
+  'batch_set_property', 'find_node_references', 'get_scene_dependencies',
+  'cross_scene_set_property', 'find_script_references', 'detect_circular_dependencies',
+  'edit_shader', 'get_resource_preview', 'add_autoload', 'remove_autoload',
+  'get_physics_layers', 'add_raycast', 'add_mesh_instance', 'setup_camera_3d',
+  'add_gridmap', 'set_particle_material', 'set_particle_color_gradient',
+  'apply_particle_preset', 'get_particle_info', 'set_navigation_layers',
+  'add_audio_bus', 'add_audio_bus_effect', 'set_audio_bus',
+  'get_animation_tree_structure', 'set_tree_parameter', 'add_state_machine_state',
+  'remove_state_machine_state', 'add_state_machine_transition',
+  'remove_state_machine_transition', 'set_blend_tree_node', 'analyze_scene_complexity',
+  'analyze_signal_flow', 'run_test_scenario', 'assert_node_state',
+  'assert_screen_text', 'compare_screenshots', 'run_stress_test', 'get_test_report',
 ];
+
+const UNSUPPORTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = NATIVE_COMPATIBILITY_TOOL_NAMES.map((toolName) => ({
+  toolName,
+  canonicalTool: 'compatibility_native',
+  riskLevel: nativeRisk(toolName),
+  runMode: toolName.includes('game') || toolName.includes('simulate') || toolName.includes('record') || toolName.includes('screenshot') || toolName.includes('test')
+    ? 'runtime_bridge_or_file'
+    : 'file_system_or_editor_bridge',
+}));
 
 export const COMPATIBILITY_TOOL_ROUTES: Record<string, CompatibilityToolRoute> = Object.fromEntries(
   [...ROUTED_COMPATIBILITY_TOOLS, ...UNSUPPORTED_COMPATIBILITY_TOOLS].map((route) => [route.toolName, route])

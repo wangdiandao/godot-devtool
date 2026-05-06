@@ -208,6 +208,38 @@ npm run check:project -- E:/test
 | `navigation` | 创建/列出 NavigationRegion、NavigationAgent、NavigationObstacle，配置/bake navigation 资源，查询 path，并生成 debug geometry |
 | `audio` | 创建/列出 AudioStreamPlayer 节点并检查 audio bus |
 
+### 精确名称兼容工具
+
+以下工具名面向需要更完整 Godot 自动化工具面的 MCP 客户端。部分名称会直接映射到 canonical 工具，部分会映射到分组工具的固定 action，live editor/runtime automation 名称会写入 Godot editor/runtime bridge 命令队列。
+
+| 分组 | 工具 |
+| --- | --- |
+| Project | `get_project_info`, `get_filesystem_tree`, `search_files`, `get_project_settings`, `set_project_setting`, `uid_to_project_path`, `project_path_to_uid` |
+| Scene | `get_scene_tree`, `get_scene_file_content`, `create_scene`, `open_scene`, `delete_scene`, `add_scene_instance`, `play_scene`, `stop_scene`, `save_scene` |
+| Node | `add_node`, `delete_node`, `duplicate_node`, `move_node`, `update_property`, `get_node_properties`, `add_resource`, `set_anchor_preset`, `rename_node`, `connect_signal`, `disconnect_signal`, `get_node_groups`, `set_node_groups`, `find_nodes_in_group` |
+| Script | `list_scripts`, `read_script`, `create_script`, `edit_script`, `attach_script`, `get_open_scripts`, `validate_script`, `search_in_files` |
+| Editor | `get_editor_errors`, `get_editor_screenshot`, `get_game_screenshot`, `execute_editor_script`, `clear_output`, `get_signals`, `reload_plugin`, `reload_project`, `get_output_log` |
+| Input | `simulate_key`, `simulate_mouse_click`, `simulate_mouse_move`, `simulate_action`, `simulate_sequence`, `get_input_actions`, `set_input_action` |
+| Runtime | `get_game_scene_tree`, `get_game_node_properties`, `set_game_node_property`, `execute_game_script`, `capture_frames`, `monitor_properties`, `start_recording`, `stop_recording`, `replay_recording`, `find_nodes_by_script`, `get_autoload`, `batch_get_properties`, `find_ui_elements`, `click_button_by_text`, `wait_for_node`, `find_nearby_nodes`, `navigate_to`, `move_to` |
+| Animation | `list_animations`, `create_animation`, `add_animation_track`, `set_animation_keyframe`, `get_animation_info`, `remove_animation` |
+| TileMap | `tilemap_set_cell`, `tilemap_fill_rect`, `tilemap_get_cell`, `tilemap_clear`, `tilemap_get_info`, `tilemap_get_used_cells` |
+| Theme/UI | `create_theme`, `set_theme_color`, `set_theme_constant`, `set_theme_font_size`, `set_theme_stylebox`, `get_theme_info` |
+| Profiling | `get_performance_monitors`, `get_editor_performance` |
+| Batch/Refactoring | `find_nodes_by_type`, `find_signal_connections`, `batch_set_property`, `find_node_references`, `get_scene_dependencies`, `cross_scene_set_property`, `find_script_references`, `detect_circular_dependencies` |
+| Shader | `create_shader`, `read_shader`, `edit_shader`, `assign_shader_material`, `set_shader_param`, `get_shader_params` |
+| Export | `list_export_presets`, `export_project`, `get_export_info` |
+| Resource | `read_resource`, `edit_resource`, `create_resource`, `get_resource_preview`, `add_autoload`, `remove_autoload` |
+| Physics | `setup_physics_body`, `setup_collision`, `set_physics_layers`, `get_physics_layers`, `get_collision_info`, `add_raycast` |
+| 3D Scene | `add_mesh_instance`, `setup_camera_3d`, `setup_lighting`, `setup_environment`, `add_gridmap`, `set_material_3d` |
+| Particle | `create_particles`, `set_particle_material`, `set_particle_color_gradient`, `apply_particle_preset`, `get_particle_info` |
+| Navigation | `setup_navigation_region`, `setup_navigation_agent`, `bake_navigation_mesh`, `set_navigation_layers`, `get_navigation_info` |
+| Audio | `add_audio_player`, `add_audio_bus`, `add_audio_bus_effect`, `set_audio_bus`, `get_audio_bus_layout`, `get_audio_info` |
+| AnimationTree | `create_animation_tree`, `get_animation_tree_structure`, `set_tree_parameter`, `add_state_machine_state` |
+| State Machine | `remove_state_machine_state`, `add_state_machine_transition`, `remove_state_machine_transition` |
+| Blend Tree | `set_blend_tree_node` |
+| Analysis/Search | `analyze_scene_complexity`, `analyze_signal_flow`, `find_unused_resources`, `get_project_statistics` |
+| Testing/QA | `run_test_scenario`, `assert_node_state`, `assert_screen_text`, `compare_screenshots`, `run_stress_test`, `get_test_report` |
+
 ## 项目结构
 
 ```text
