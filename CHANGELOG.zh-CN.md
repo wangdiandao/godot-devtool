@@ -4,6 +4,14 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.3.1
+
+编辑器 dock 标题与双语状态显示版本。
+
+- 将内置 Godot 编辑器 dock 标签和状态面板标题改为 `GDT`。
+- 当引擎/编辑器 locale 为简体中文时，状态标签、状态值、重新连接按钮和 tooltip 显示中文；其它 locale 保持英文。
+- 将插件、package、Skill、README、路线图和验证 metadata 同步到 `2.3.1`。
+
 ## 2.3.0
 
 编辑器状态面板与全量工具表格版本。

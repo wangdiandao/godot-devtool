@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.3.0"
+const PLUGIN_VERSION := "2.3.1"
 
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()
@@ -16,6 +16,10 @@ var _bridge_url_label: Label
 var _last_command_label: Label
 var _last_receipt_label: Label
 var _last_error_label: Label
+var _reconnect_button: Button
+var _last_command := ""
+var _last_receipt_key := "none"
+var _last_error := ""
 
 func _enter_tree() -> void:
 	_load_config()
@@ -58,32 +62,29 @@ func _process(_delta: float) -> void:
 
 func _create_status_dock() -> void:
 	_dock = VBoxContainer.new()
-	_dock.name = "godot-devtool"
+	_dock.name = "GDT"
 	_dock.custom_minimum_size = Vector2(260, 0)
 
 	var title := Label.new()
-	title.text = "godot-devtool"
+	title.text = "GDT"
 	title.add_theme_font_size_override("font_size", 18)
 	_dock.add_child(title)
 
-	_server_status_label = _create_status_label("MCP Server", "Disconnected")
-	_bridge_url_label = _create_status_label("URL", _bridge_url)
-	_last_command_label = _create_status_label("Last Command", "None")
-	_last_receipt_label = _create_status_label("Last Receipt", "None")
-	_last_error_label = _create_status_label("Last Error", "None")
+	_server_status_label = _create_status_label()
+	_bridge_url_label = _create_status_label()
+	_last_command_label = _create_status_label()
+	_last_receipt_label = _create_status_label()
+	_last_error_label = _create_status_label()
 
-	var reconnect_button := Button.new()
-	reconnect_button.text = "Reconnect"
-	reconnect_button.tooltip_text = "Reconnect to the local godot-devtool MCP WebSocket server."
-	reconnect_button.pressed.connect(_force_reconnect)
-	_dock.add_child(reconnect_button)
+	_reconnect_button = Button.new()
+	_reconnect_button.pressed.connect(_force_reconnect)
+	_dock.add_child(_reconnect_button)
 
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, _dock)
 	_update_status_panel()
 
-func _create_status_label(label: String, value: String) -> Label:
+func _create_status_label() -> Label:
 	var status_label := Label.new()
-	status_label.text = "%s: %s" % [label, value]
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_dock.add_child(status_label)
 	return status_label
@@ -128,15 +129,18 @@ func _handle_packet(packet_text: String) -> void:
 	var payload_value = message.get("payload", {})
 	var payload: Dictionary = payload_value if typeof(payload_value) == TYPE_DICTIONARY else {}
 	var result: Dictionary = _router.dispatch_command(command_name, payload, self)
-	_last_command_label.text = "Last Command: %s" % command_name
-	_last_receipt_label.text = "Last Receipt: %s" % ("completed" if bool(result.get("ok", false)) else "failed")
-	_last_error_label.text = "Last Error: %s" % str(result.get("error", "None"))
+	var receipt_status := "completed" if bool(result.get("ok", false)) else "failed"
+	var error_text := str(result.get("error", ""))
+	_last_command = command_name
+	_last_receipt_key = "receipt_completed" if receipt_status == "completed" else "receipt_failed"
+	_last_error = error_text
+	_update_status_panel()
 	_send({
 		"type": "receipt",
 		"commandId": command_id,
 		"context": "editor",
-		"status": "completed" if bool(result.get("ok", false)) else "failed",
-		"error": str(result.get("error", "")),
+		"status": receipt_status,
+		"error": error_text,
 		"result": result.get("result", {})
 	})
 
@@ -149,12 +153,64 @@ func _update_status_panel() -> void:
 	if not _server_status_label:
 		return
 	var state := _socket.get_ready_state()
-	var status := "Disconnected"
+	var status_key := "status_disconnected"
 	if state == WebSocketPeer.STATE_CONNECTING:
-		status = "Connecting"
+		status_key = "status_connecting"
 	elif state == WebSocketPeer.STATE_OPEN:
-		status = "Connected"
+		status_key = "status_connected"
 	elif state == WebSocketPeer.STATE_CLOSING:
-		status = "Closing"
-	_server_status_label.text = "MCP Server: %s" % status
-	_bridge_url_label.text = "URL: %s" % _bridge_url
+		status_key = "status_closing"
+	_set_status_text(_server_status_label, "server_label", _ui_text(status_key))
+	_set_status_text(_bridge_url_label, "url_label", _bridge_url)
+	_set_status_text(_last_command_label, "last_command_label", _last_command if _last_command != "" else _ui_text("none"))
+	_set_status_text(_last_receipt_label, "last_receipt_label", _ui_text(_last_receipt_key))
+	_set_status_text(_last_error_label, "last_error_label", _last_error if _last_error != "" else _ui_text("none"))
+	if _reconnect_button:
+		_reconnect_button.text = _ui_text("reconnect")
+		_reconnect_button.tooltip_text = _ui_text("reconnect_tooltip")
+
+func _set_status_text(label: Label, label_key: String, value: String) -> void:
+	label.text = "%s: %s" % [_ui_text(label_key), value]
+
+func _ui_text(key: String) -> String:
+	var zh := _uses_simplified_chinese()
+	match key:
+		"server_label":
+			return "MCP 服务" if zh else "MCP Server"
+		"url_label":
+			return "URL"
+		"last_command_label":
+			return "最近命令" if zh else "Last Command"
+		"last_receipt_label":
+			return "最近回执" if zh else "Last Receipt"
+		"last_error_label":
+			return "最近错误" if zh else "Last Error"
+		"status_disconnected":
+			return "未连接" if zh else "Disconnected"
+		"status_connecting":
+			return "连接中" if zh else "Connecting"
+		"status_connected":
+			return "已连接" if zh else "Connected"
+		"status_closing":
+			return "正在关闭" if zh else "Closing"
+		"receipt_completed":
+			return "已完成" if zh else "completed"
+		"receipt_failed":
+			return "失败" if zh else "failed"
+		"reconnect":
+			return "重新连接" if zh else "Reconnect"
+		"reconnect_tooltip":
+			return "重新连接到本地 godot-devtool MCP WebSocket 服务。" if zh else "Reconnect to the local godot-devtool MCP WebSocket server."
+		"none":
+			return "无" if zh else "None"
+	return key
+
+func _uses_simplified_chinese() -> bool:
+	var locale := TranslationServer.get_locale()
+	var editor_settings: EditorSettings = get_editor_interface().get_editor_settings()
+	if editor_settings and editor_settings.has_setting("interface/editor/editor_language"):
+		var editor_locale := str(editor_settings.get_setting("interface/editor/editor_language"))
+		if editor_locale != "":
+			locale = editor_locale
+	var normalized_locale := locale.replace("-", "_").to_lower()
+	return normalized_locale.begins_with("zh_cn") or normalized_locale.begins_with("zh_hans") or normalized_locale.begins_with("zh_sg")

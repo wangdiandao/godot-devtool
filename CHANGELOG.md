@@ -4,6 +4,14 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.3.1
+
+Editor dock title and bilingual status display release.
+
+- Renamed the bundled Godot editor dock tab and status heading to `GDT`.
+- Localized the editor dock status labels, status values, reconnect button, and tooltip for Simplified Chinese engine/editor locales while keeping English for all other locales.
+- Updated plugin, package, Skill, README, roadmap, and verification metadata to `2.3.1`.
+
 ## Version 2.3.0
 
 Editor status dock and all-tools README release.

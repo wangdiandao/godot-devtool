@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 English | [中文](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.3 keeps the stdio/headless MCP server plus optional localhost WebSocket bridge architecture, and expands the README into a practical install and capability guide.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.3.1 keeps the stdio/headless MCP server plus optional localhost WebSocket bridge architecture, and adds a compact `GDT` editor dock with bilingual status display.
 
 ## Architecture
 
@@ -38,12 +38,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.3.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.3.0/godot-devtool-build-2.3.0.zip)
+   [godot-devtool-build-2.3.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.3.1/godot-devtool-build-2.3.1.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.3.0.zip E:\godot-devtool -Force
+   Expand-Archive .\godot-devtool-build-2.3.1.zip E:\godot-devtool -Force
    ```
 
 3. Confirm the server entry exists:
