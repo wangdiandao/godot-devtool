@@ -41,9 +41,12 @@ import {
 } from '../godot/editorSession.js';
 import {
   enqueueEditorCommand,
+  enqueueRuntimeCommand,
   installEditorBridge,
   readEditorBridgeStatus,
+  readRuntimeBridgeStatus,
   waitForEditorCommandReceipt,
+  waitForRuntimeCommandReceipt,
 } from '../godot/editorBridge.js';
 import {
   deleteProjectPath,
@@ -110,12 +113,15 @@ interface OperationParams {
 
 const BRIDGE_COMPATIBILITY_TOOLS = new Set([
   'get_open_scripts',
-  'get_editor_errors',
   'get_editor_screenshot',
-  'get_game_screenshot',
   'execute_editor_script',
   'reload_plugin',
   'reload_project',
+  'get_editor_performance',
+]);
+
+const RUNTIME_COMPATIBILITY_TOOLS = new Set([
+  'get_game_screenshot',
   'simulate_key',
   'simulate_mouse_click',
   'simulate_mouse_move',
@@ -130,11 +136,13 @@ const BRIDGE_COMPATIBILITY_TOOLS = new Set([
   'start_recording',
   'stop_recording',
   'replay_recording',
+  'find_ui_elements',
   'click_button_by_text',
+  'wait_for_node',
+  'find_nearby_nodes',
   'navigate_to',
   'move_to',
   'get_performance_monitors',
-  'get_editor_performance',
 ]);
 
 /**
@@ -311,7 +319,7 @@ export class GodotServer {
     this.server = new Server(
       {
         name: 'godot-devtool',
-        version: '1.7.1',
+        version: '1.8.0',
       },
       {
         capabilities: {
@@ -474,11 +482,17 @@ export class GodotServer {
     if (projectPathError) return projectPathError;
 
     try {
+      if (RUNTIME_COMPATIBILITY_TOOLS.has(toolName)) {
+        return this.createJsonResponse(await this.queueRuntimeCompatibilityCommand(toolName, args));
+      }
+
       if (BRIDGE_COMPATIBILITY_TOOLS.has(toolName)) {
         return this.createJsonResponse(await this.queueBridgeCompatibilityCommand(toolName, args));
       }
 
       switch (toolName) {
+        case 'get_editor_errors':
+          return this.createJsonResponse(this.getEditorDiagnostics(args));
         case 'search_files':
           return this.createJsonResponse(this.searchProjectFiles(args));
         case 'search_in_files':
@@ -586,7 +600,6 @@ export class GodotServer {
           return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'set_blend_tree_node' });
         case 'analyze_scene_complexity':
           return this.createJsonResponse(this.analyzeSceneComplexity(args));
-        case 'get_performance_monitors':
         case 'get_editor_performance':
           return this.createJsonResponse(this.getPerformanceSnapshot(toolName, args));
         case 'batch_get_properties':
@@ -788,6 +801,23 @@ export class GodotServer {
 
   private analyzeSceneComplexity(args: any) { const nodes = this.parseSceneNodeHeaders(args.projectPath, args.scenePath); const byType: Record<string, number> = {}; nodes.forEach((node) => { byType[node.type || 'unknown'] = (byType[node.type || 'unknown'] ?? 0) + 1; }); return { scenePath: args.scenePath, nodeCount: nodes.length, byType, warnings: nodes.length > 500 ? ['Large scene node count'] : [] }; }
   private getPerformanceSnapshot(toolName: string, args: any) { return { toolName, timestamp: new Date().toISOString(), process: { pid: process.pid, memory: process.memoryUsage(), uptime: process.uptime() }, projectPath: args.projectPath ?? null }; }
+  private getEditorDiagnostics(args: any) {
+    const run = this.activeProcess ?? this.lastRun;
+    const output = [...(run?.output ?? []), ...(run?.errors ?? [])].join('\n');
+    const diagnostics = this.extractGodotDiagnostics(output);
+    const errorLines = (run?.errors ?? [])
+      .filter((line) => /error|warning|script error|parse error/i.test(line))
+      .slice(-(args.limit ?? 100));
+    return {
+      source: run ? 'godot_process_output' : 'godot_process_output_unavailable',
+      active: this.activeProcess !== null,
+      startedAt: run?.startedAt ?? null,
+      exitedAt: run?.exitedAt ?? null,
+      exitCode: run?.exitCode ?? null,
+      diagnostics,
+      errorLines,
+    };
+  }
   private getSceneNodePropertiesFromText(args: any, nodePath: string) {
     const content = this.readProjectTextSync(args.projectPath, args.scenePath);
     const node = this.findSceneNodeHeader({ ...args, nodePath }, content);
@@ -881,6 +911,31 @@ export class GodotServer {
       commandId: command.commandId,
       commandPath: command.commandPath,
       bridge: 'godot-devtool editor/runtime command queue',
+      queued: false,
+      status: receipt.status,
+      ok: receipt.status === 'completed',
+      error: receipt.error ?? '',
+      result: receipt.result ?? null,
+      receipt,
+    };
+  }
+  private async queueRuntimeCompatibilityCommand(toolName: string, args: any) {
+    const status = await readRuntimeBridgeStatus(args.projectPath);
+    if (!status.installed) {
+      throw new Error('Runtime bridge is not installed. Run install_editor_bridge with overwrite=true, then start the Godot project so the DevtoolRuntime autoload can process commands.');
+    }
+    if (status.stale) {
+      throw new Error(`Runtime bridge is not active. State path ${status.statePath} is ${status.ageMs === null ? 'missing' : `${status.ageMs}ms old`}; start or focus the running Godot project and retry.`);
+    }
+
+    const timeoutMs = Number(args.timeoutMs ?? 10000);
+    const command = await enqueueRuntimeCommand(args.projectPath, { type: toolName, payload: args, timeoutMs });
+    const receipt = await waitForRuntimeCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+    return {
+      toolName,
+      commandId: command.commandId,
+      commandPath: command.commandPath,
+      bridge: 'godot-devtool runtime command queue',
       queued: false,
       status: receipt.status,
       ok: receipt.status === 'completed',
@@ -1796,9 +1851,9 @@ export class GodotServer {
 
     const result: any = {
       name: 'godot-devtool',
-      version: '1.4.0',
+      version: '1.8.0',
       serverMode: 'mcp_stdio',
-      executionModes: ['file_system_or_node', 'headless_godot', 'process_control', 'editor_bridge_optional'],
+      executionModes: ['file_system_or_node', 'headless_godot', 'process_control', 'editor_bridge_optional', 'runtime_bridge'],
       godotPathConfigured: Boolean(this.godotPath || process.env.GODOT_PATH),
       strictPathValidation: this.strictPathValidation,
       toolCount: tools.length,

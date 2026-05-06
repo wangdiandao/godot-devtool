@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | 中文
 
-本文档只记录未来开发计划。已完成版本见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。
+本文只记录未来开发计划。已完成版本见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。
 
 ## 未来计划
 

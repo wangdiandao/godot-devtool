@@ -1,8 +1,17 @@
-# godot-devtool Changelog
+﻿# godot-devtool Changelog
 
 English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
+
+## Version 1.8.0
+
+Runtime bridge completion release.
+
+- Added a game-runtime autoload bridge installed by `install_editor_bridge` for runtime command processing.
+- Routed running-game inspection, input simulation, screenshots, frame capture, property monitoring, input recording/replay, UI actions, navigation helpers, and runtime expression execution through runtime command receipts.
+- Replaced weak runtime/editor placeholder responses with real runtime bridge dispatch or precise environment errors when the bridge is not active.
+- Updated README feature listings to route-to-description tables and synchronized release metadata for `1.8.0`.
 
 ## Version 1.7.1
 

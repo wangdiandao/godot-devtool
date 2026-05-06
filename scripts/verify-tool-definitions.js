@@ -197,6 +197,7 @@ if (missingCompatibilityTools17.length > 0) {
 
 const routeSource = readFileSync(join(repoRoot, 'src/tools/compatibilityTools.ts'), 'utf8');
 const serverSource = readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8');
+const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');
 const weakImplementationPatterns = [
   'unsupportedReason',
   "status: 'implemented'",
@@ -205,9 +206,14 @@ const weakImplementationPatterns = [
   'qaArtifact',
   'editAudioBusLayout',
   'editAnimationTreeMetadata',
+  'Runtime script execution requires an active game-side bridge',
+  'Low-level key/mouse injection requires a running game viewport',
+  'empty structured error list',
+  'actual click injection requires',
+  '"clicked": false',
 ];
 for (const pattern of weakImplementationPatterns) {
-  if (routeSource.includes(pattern) || serverSource.includes(pattern)) {
+  if (routeSource.includes(pattern) || serverSource.includes(pattern) || editorBridgeSource.includes(pattern)) {
     console.error(`Weak or placeholder implementation marker remains: ${pattern}`);
     process.exit(1);
   }

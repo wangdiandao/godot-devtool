@@ -1,6 +1,6 @@
 {
   "name": "godot-devtool",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "MCP plugin package for AI-assisted Godot Engine development workflows.",
   "keywords": [
     "godot",

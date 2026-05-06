@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -67,8 +67,16 @@ try {
   const install = await editorBridge.installEditorBridge(projectPath, { overwrite: true });
   assert.ok(install.changedFiles.includes('addons/godot_devtool_bridge/plugin.cfg'));
   assert.ok(existsSync(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_bridge.gd')));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool_bridge/godot_devtool_runtime.gd'));
+  assert.ok(existsSync(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_runtime.gd')));
   assert.equal(install.bridge.mode, 'file');
   assert.ok(install.bridge.instanceId);
+  assert.equal(install.runtime.enabled, true);
+  assert.equal(install.runtime.commandsDir, '.godot-devtool/runtime-commands');
+  assert.equal(install.runtime.receiptsDir, '.godot-devtool/runtime-receipts');
+  assert.equal(install.runtime.statePath, '.godot-devtool/runtime-state.json');
+  const installedProjectFile = await readFile(join(projectPath, 'project.godot'), 'utf8');
+  assert.match(installedProjectFile, /DevtoolRuntime="\*res:\/\/addons\/godot_devtool_bridge\/godot_devtool_runtime.gd"/);
 
   const command = await editorBridge.enqueueEditorCommand(projectPath, {
     type: 'select_node',
@@ -101,6 +109,8 @@ try {
   const bridgeStatus = await editorBridge.readEditorBridgeStatus(projectPath);
   assert.equal(bridgeStatus.installed, true);
   assert.equal(bridgeStatus.bridge.mode, 'file');
+  assert.equal(bridgeStatus.runtime.installed, true);
+  assert.equal(bridgeStatus.runtime.statePath, '.godot-devtool/runtime-state.json');
   assert.equal(bridgeStatus.pendingCommands, 3);
   assert.equal(bridgeStatus.pendingCommandDetails.length, 3);
   assert.ok(bridgeStatus.instanceId);
@@ -111,6 +121,12 @@ try {
   assert.match(bridgeScript, /inspector_get_properties/);
   assert.match(bridgeScript, /inspector_set_properties/);
   assert.match(bridgeScript, /expiresAt/);
+  const runtimeScript = await readFile(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_runtime.gd'), 'utf8');
+  assert.match(runtimeScript, /class_name GodotDevtoolRuntime/);
+  assert.match(runtimeScript, /func _process_runtime_command/);
+  assert.match(runtimeScript, /get_game_scene_tree/);
+  assert.match(runtimeScript, /simulate_key/);
+  assert.match(runtimeScript, /execute_game_script/);
 
   const graph = await dependencies.buildResourceDependencyGraph(projectPath);
   assert.ok(graph.nodes.some((node) => node.path === 'res://scripts/player.gd'));
@@ -262,7 +278,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '1.7.1');
+  assert.equal(releaseVersion, '1.8.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -390,7 +406,7 @@ try {
   assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readme, /Latest release package/);
   assert.match(readme, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
-  assert.match(readmeZh, /最新发行包/);
+  assert.match(readmeZh, /最新发布包/);
   assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readme, /## All Tools/);
   assert.match(readme, /generate_ci_snippet/);
@@ -421,14 +437,12 @@ try {
   assert.ok(existsSync(join(process.cwd(), 'scripts/publish-github-release.js')));
   assert.ok(existsSync(join(process.cwd(), 'build/skills/godot-devtool/SKILL.md')));
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
-
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
   for (const version of [releaseVersion, '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
-
   assert.match(roadmap, /\[中文\]\(ROADMAP\.zh-CN\.md\)/);
   assert.match(roadmapZh, /\[English\]\(ROADMAP\.md\)/);
   assert.doesNotMatch(roadmap, /### 1\.4\.0/);
