@@ -1,8 +1,10 @@
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { createToolHandlers } from '../build/server/handlers/index.js';
 import { COMPATIBILITY_TOOL_ROUTES } from '../build/tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../build/tools/toolDefinitions.js';
+
+const repoRoot = process.cwd();
 
 const requiredFiles = [
   'src/tools/definitions/core.ts',
@@ -193,10 +195,22 @@ if (missingCompatibilityTools17.length > 0) {
   process.exit(1);
 }
 
-const unsupportedCompatibilityTools17 = requiredCompatibilityTools17.filter((toolName) => COMPATIBILITY_TOOL_ROUTES[toolName]?.unsupportedReason);
-if (unsupportedCompatibilityTools17.length > 0) {
-  console.error(`Unsupported 1.7.0 compatibility tools: ${unsupportedCompatibilityTools17.join(', ')}`);
-  process.exit(1);
+const routeSource = readFileSync(join(repoRoot, 'src/tools/compatibilityTools.ts'), 'utf8');
+const serverSource = readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8');
+const weakImplementationPatterns = [
+  'unsupportedReason',
+  "status: 'implemented'",
+  'properties: null',
+  'fileBackedQaResult',
+  'qaArtifact',
+  'editAudioBusLayout',
+  'editAnimationTreeMetadata',
+];
+for (const pattern of weakImplementationPatterns) {
+  if (routeSource.includes(pattern) || serverSource.includes(pattern)) {
+    console.error(`Weak or placeholder implementation marker remains: ${pattern}`);
+    process.exit(1);
+  }
 }
 
 for (const [aliasName, targetName] of Object.entries(GODOT_TOOL_ALIASES)) {

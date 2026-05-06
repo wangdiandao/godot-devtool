@@ -2,7 +2,7 @@
 name: godot-devtool
 description: "Teach MCP clients and connected AI assistants how to use the godot-devtool MCP server for Godot projects: inspect first, prefer structured tools, edit safely, validate changes, and prepare exports."
 metadata:
-  version: "1.7.0"
+  version: "1.7.1"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill as the operating guide for any MCP client or connected AI assistant using the `godot-devtool` MCP server with Godot 4 projects.
 
-Compatibility: `godot-devtool` 1.7.0.
+Compatibility: `godot-devtool` 1.7.1.
 
 ## Client Setup
 

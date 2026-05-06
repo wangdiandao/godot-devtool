@@ -3,7 +3,6 @@ export type CompatibilityToolRoute = {
   canonicalTool?: string;
   fixedArgs?: Record<string, unknown>;
   fieldMap?: Record<string, string>;
-  unsupportedReason?: string;
   runMode?: string;
   riskLevel?: string;
 };

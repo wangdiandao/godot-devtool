@@ -162,6 +162,72 @@ func ui_make_stylebox_flat(data):
 			box.set_content_margin_all(float(data.content_margin_all))
 	return box
 
+func ui_load_theme(params):
+	if not params.has("theme_path"):
+		printerr("theme_path is required")
+		quit(1)
+	var full_theme_path = normalize_resource_path(params.theme_path)
+	var theme = load(full_theme_path) if ResourceLoader.exists(full_theme_path) else Theme.new()
+	if not theme or not (theme is Theme):
+		printerr("Failed to load Theme: " + str(params.theme_path))
+		quit(1)
+	return {"theme": theme, "path": full_theme_path}
+
+func ui_theme_key(params, fallback_name):
+	var key = str(params.key) if params.has("key") and str(params.key) != "" else str(params.name) if params.has("name") and str(params.name) != "" else fallback_name
+	var parsed = ui_theme_type_and_name(key)
+	if params.has("type_name") and str(params.type_name) != "":
+		parsed.type = str(params.type_name)
+	return parsed
+
+func ui_edit_theme(params, action):
+	var data = ui_load_theme(params)
+	var theme = data.theme
+	var parsed = ui_theme_key(params, "default")
+	match action:
+		"set_theme_color":
+			theme.set_color(parsed.name, parsed.type, variant_from_json(params.color if params.has("color") else params.value))
+		"set_theme_constant":
+			theme.set_constant(parsed.name, parsed.type, int(params.constant if params.has("constant") else params.value))
+		"set_theme_font_size":
+			theme.set_font_size(parsed.name, parsed.type, int(params.font_size if params.has("font_size") else params.value))
+		"set_theme_stylebox":
+			theme.set_stylebox(parsed.name, parsed.type, ui_make_stylebox_flat(params.stylebox if params.has("stylebox") else params.value))
+		_:
+			printerr("Unsupported theme edit action: " + action)
+			quit(1)
+	var saved_path = save_resource_checked(theme, data.path)
+	return {
+		"action": action,
+		"themePath": saved_path,
+		"type": parsed.type,
+		"name": parsed.name
+	}
+
+func ui_get_theme_info(params):
+	var data = ui_load_theme(params)
+	var theme = data.theme
+	var info = {
+		"themePath": data.path,
+		"types": theme.get_type_list(),
+		"colors": {},
+		"constants": {},
+		"fontSizes": {},
+		"styleboxes": {}
+	}
+	for type_name in theme.get_type_list():
+		var colors = []
+		for item_name in theme.get_color_list(type_name):
+			colors.append({"name": item_name, "value": serialize_variant(theme.get_color(item_name, type_name))})
+		info.colors[type_name] = colors
+		var constants = []
+		for item_name in theme.get_constant_list(type_name):
+			constants.append({"name": item_name, "value": theme.get_constant(item_name, type_name)})
+		info.constants[type_name] = constants
+		info.fontSizes[type_name] = theme.get_font_size_list(type_name)
+		info.styleboxes[type_name] = theme.get_stylebox_list(type_name)
+	return info
+
 func ui_create_theme(params):
 	if not params.has("theme_path"):
 		printerr("theme_path is required")
@@ -327,6 +393,14 @@ func ui_tool(params):
 
 	if action == "create_theme":
 		print(JSON.stringify(ui_create_theme(params)))
+		return
+
+	if action == "set_theme_color" or action == "set_theme_constant" or action == "set_theme_font_size" or action == "set_theme_stylebox":
+		print(JSON.stringify(ui_edit_theme(params, action)))
+		return
+
+	if action == "get_theme_info":
+		print(JSON.stringify(ui_get_theme_info(params)))
 		return
 
 	if action == "apply_theme":

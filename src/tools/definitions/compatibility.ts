@@ -45,9 +45,7 @@ const COMPATIBILITY_SCHEMA_PROPERTIES: Record<string, unknown> = {
 
 export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.values(COMPATIBILITY_TOOL_ROUTES).map((route) => ({
   name: route.toolName,
-  description: route.unsupportedReason
-    ? `Compatibility entry for ${route.toolName}. This exact-name tool is exposed for discovery and returns a structured unsupported result: ${route.unsupportedReason}`
-    : `Compatibility wrapper for ${route.canonicalTool}. Routes exact-name client calls through the existing godot-devtool implementation.`,
+  description: `Executable compatibility wrapper for ${route.canonicalTool}. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt.`,
   inputSchema: {
     type: 'object',
     properties: COMPATIBILITY_SCHEMA_PROPERTIES,
@@ -56,6 +54,6 @@ export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.valu
   compatibility: {
     since: '1.7.0',
     canonicalTool: route.canonicalTool,
-    supported: !route.unsupportedReason,
+    supported: true,
   },
 }));

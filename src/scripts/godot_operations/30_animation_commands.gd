@@ -304,6 +304,95 @@ func animation_tree_set_transition_parameters(scene_root, params):
 		"parameters": params.transition_parameters
 	}
 
+func animation_tree_add_state(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	if not (tree.tree_root is AnimationNodeStateMachine):
+		tree.tree_root = AnimationNodeStateMachine.new()
+	var machine = tree.tree_root
+	var state_name = str(params.state_name) if params.has("state_name") and str(params.state_name) != "" else str(params.name) if params.has("name") and str(params.name) != "" else "State"
+	if not state_machine_has_node(machine, state_name):
+		var state_node = AnimationNodeAnimation.new()
+		if params.has("animation_name"):
+			state_node.animation = str(params.animation_name)
+		var position = vector2_from_json(params.position) if params.has("position") else Vector2.ZERO
+		machine.add_node(state_name, state_node, position)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "stateName": state_name, "states": machine.get_node_list()}
+
+func animation_tree_remove_state(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	if not (tree.tree_root is AnimationNodeStateMachine):
+		printerr("AnimationTree tree_root is not an AnimationNodeStateMachine")
+		quit(1)
+	var machine = tree.tree_root
+	var state_name = str(params.state_name) if params.has("state_name") and str(params.state_name) != "" else str(params.name)
+	if not state_machine_has_node(machine, state_name):
+		printerr("State not found: " + state_name)
+		quit(1)
+	machine.remove_node(state_name)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "removedState": state_name, "states": machine.get_node_list()}
+
+func animation_tree_add_transition(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	if not (tree.tree_root is AnimationNodeStateMachine):
+		tree.tree_root = AnimationNodeStateMachine.new()
+	var machine = tree.tree_root
+	var from_state = str(params.from_state) if params.has("from_state") else ""
+	var to_state = str(params.to_state) if params.has("to_state") else ""
+	if from_state == "" or to_state == "":
+		printerr("from_state and to_state are required")
+		quit(1)
+	var transition = AnimationNodeStateMachineTransition.new()
+	if params.has("properties") and params.properties is Dictionary:
+		apply_properties_to_object(transition, params.properties)
+	if params.has("transition_parameters") and params.transition_parameters is Dictionary:
+		apply_properties_to_object(transition, params.transition_parameters)
+	machine.add_transition(from_state, to_state, transition)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "from": from_state, "to": to_state, "transitionCount": machine.get_transition_count()}
+
+func animation_tree_remove_transition(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	if not (tree.tree_root is AnimationNodeStateMachine):
+		printerr("AnimationTree tree_root is not an AnimationNodeStateMachine")
+		quit(1)
+	var machine = tree.tree_root
+	var transition_index = animation_tree_transition_index(machine, params)
+	if transition_index < 0:
+		printerr("Transition not found")
+		quit(1)
+	var from_state = str(machine.get_transition_from(transition_index))
+	var to_state = str(machine.get_transition_to(transition_index))
+	machine.remove_transition(transition_index)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "removed": {"from": from_state, "to": to_state}, "transitionCount": machine.get_transition_count()}
+
+func animation_tree_set_parameter(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	var parameter_path = str(params.parameter_path) if params.has("parameter_path") and str(params.parameter_path) != "" else str(params.name) if params.has("name") else ""
+	if parameter_path == "":
+		printerr("parameter_path is required")
+		quit(1)
+	var value = variant_from_json(params.parameter_value if params.has("parameter_value") else params.value)
+	tree.set(parameter_path, value)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "parameterPath": parameter_path, "value": serialize_variant(tree.get(parameter_path))}
+
+func animation_tree_set_blend_tree_node(scene_root, params):
+	var tree = animation_tree_find_node(scene_root, params)
+	if not (tree.tree_root is AnimationNodeBlendTree):
+		tree.tree_root = AnimationNodeBlendTree.new()
+	var blend_tree = tree.tree_root
+	var blend_node_name = str(params.blend_node_name) if params.has("blend_node_name") and str(params.blend_node_name) != "" else str(params.name) if params.has("name") and str(params.name) != "" else "BlendNode"
+	var blend_node_type = str(params.blend_node_type) if params.has("blend_node_type") and str(params.blend_node_type) != "" else "AnimationNodeAnimation"
+	var blend_node = instantiate_class(blend_node_type)
+	if not blend_node or not (blend_node is AnimationNode):
+		printerr("Failed to create AnimationNode: " + blend_node_type)
+		quit(1)
+	if params.has("properties") and params.properties is Dictionary:
+		apply_properties_to_object(blend_node, params.properties)
+	if blend_tree.has_node(blend_node_name):
+		blend_tree.remove_node(blend_node_name)
+	var position = vector2_from_json(params.position) if params.has("position") else Vector2.ZERO
+	blend_tree.add_node(blend_node_name, blend_node, position)
+	return {"treePath": find_tool_path_by_reference(scene_root, tree, "root"), "blendNodeName": blend_node_name, "blendNodeType": blend_node_type, "nodes": blend_tree.get_node_list()}
+
 func animation_state_machine(params):
 	var scene_data = load_scene_instance(params.scene_path)
 	var full_scene_path = scene_data.path
@@ -323,6 +412,42 @@ func animation_state_machine(params):
 		var transition_result = animation_tree_set_transition_parameters(scene_root, params)
 		pack_and_save_scene(scene_root, full_scene_path)
 		print(JSON.stringify(transition_result))
+		return
+
+	if action == "add_state":
+		var add_state_result = animation_tree_add_state(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(add_state_result))
+		return
+
+	if action == "remove_state":
+		var remove_state_result = animation_tree_remove_state(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(remove_state_result))
+		return
+
+	if action == "add_transition":
+		var add_transition_result = animation_tree_add_transition(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(add_transition_result))
+		return
+
+	if action == "remove_transition":
+		var remove_transition_result = animation_tree_remove_transition(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(remove_transition_result))
+		return
+
+	if action == "set_tree_parameter":
+		var parameter_result = animation_tree_set_parameter(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(parameter_result))
+		return
+
+	if action == "set_blend_tree_node":
+		var blend_result = animation_tree_set_blend_tree_node(scene_root, params)
+		pack_and_save_scene(scene_root, full_scene_path)
+		print(JSON.stringify(blend_result))
 		return
 
 	if action != "create":

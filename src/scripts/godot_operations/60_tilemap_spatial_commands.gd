@@ -111,6 +111,65 @@ func tilemap_tool(params):
 			"alternativeTile": alternative_tile
 		}))
 		return
+	if action == "get_cell":
+		if not params.has("node_path") or not params.has("cell"):
+			printerr("node_path and cell are required")
+			quit(1)
+		var get_tile_node = find_node_by_tool_path(scene_root, params.node_path)
+		if not get_tile_node or not (get_tile_node is TileMap or get_tile_node.get_class() == "TileMapLayer"):
+			printerr("Failed to find TileMapLayer or TileMap node: " + params.node_path)
+			quit(1)
+		var get_coords = vector2i_from_json(params.cell)
+		var source_id = get_tile_source_id(get_tile_node, get_coords)
+		var atlas_coords = get_tile_atlas_coords(get_tile_node, get_coords)
+		var alternative_tile = get_tile_alternative_tile(get_tile_node, get_coords)
+		print(JSON.stringify({
+			"action": action,
+			"scenePath": params.scene_path,
+			"nodePath": params.node_path,
+			"cell": {"type": "Vector2i", "value": [get_coords.x, get_coords.y]},
+			"sourceId": source_id,
+			"atlasCoords": {"type": "Vector2i", "value": [atlas_coords.x, atlas_coords.y]},
+			"alternativeTile": alternative_tile
+		}))
+		return
+
+	if action == "get_used_cells":
+		if not params.has("node_path"):
+			printerr("node_path is required")
+			quit(1)
+		var used_tile_node = find_node_by_tool_path(scene_root, params.node_path)
+		if not used_tile_node or not (used_tile_node is TileMap or used_tile_node.get_class() == "TileMapLayer"):
+			printerr("Failed to find TileMapLayer or TileMap node: " + params.node_path)
+			quit(1)
+		var used_cells = []
+		for used_cell in get_tile_used_cells(used_tile_node):
+			used_cells.append({"type": "Vector2i", "value": [used_cell.x, used_cell.y]})
+		print(JSON.stringify({
+			"action": action,
+			"scenePath": params.scene_path,
+			"nodePath": params.node_path,
+			"usedCells": used_cells
+		}))
+		return
+
+	if action == "clear":
+		if not params.has("node_path"):
+			printerr("node_path is required")
+			quit(1)
+		var clear_tile_node = find_node_by_tool_path(scene_root, params.node_path)
+		if not clear_tile_node or not (clear_tile_node is TileMap or clear_tile_node.get_class() == "TileMapLayer"):
+			printerr("Failed to find TileMapLayer or TileMap node: " + params.node_path)
+			quit(1)
+		clear_tile_cells(clear_tile_node)
+		pack_and_save_scene(scene_root, scene_data.path)
+		print(JSON.stringify({
+			"action": action,
+			"scenePath": params.scene_path,
+			"nodePath": params.node_path,
+			"cleared": true
+		}))
+		return
 
 	if action == "batch_set_cells":
 		if not params.has("node_path") or not params.has("cells") or not (params.cells is Array):
@@ -319,6 +378,7 @@ func physics_mask_from_names(layer_names, dimension):
 func physics_apply_shape_dimensions(shape, params):
 	if not shape:
 		return
+
 	if params.has("dimensions"):
 		var dimensions = params.dimensions
 		if shape is RectangleShape2D:
@@ -820,6 +880,41 @@ func navigation_tool(params):
 		"nodeName": str(node.name)
 	}))
 
+func audio_find_bus_index(params):
+	var bus_name = str(params.bus) if params.has("bus") and str(params.bus) != "" else str(params.bus_name) if params.has("bus_name") and str(params.bus_name) != "" else str(params.name) if params.has("name") and str(params.name) != "" else "Master"
+	var bus_index = AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		printerr("Audio bus not found: " + bus_name)
+		quit(1)
+	return bus_index
+
+func audio_bus_summary():
+	var buses = []
+	for bus_index in range(AudioServer.get_bus_count()):
+		var effects = []
+		for effect_index in range(AudioServer.get_bus_effect_count(bus_index)):
+			var effect = AudioServer.get_bus_effect(bus_index, effect_index)
+			effects.append({"index": effect_index, "type": effect.get_class() if effect else "", "enabled": AudioServer.is_bus_effect_enabled(bus_index, effect_index)})
+		buses.append({
+			"index": bus_index,
+			"name": AudioServer.get_bus_name(bus_index),
+			"volumeDb": AudioServer.get_bus_volume_db(bus_index),
+			"muted": AudioServer.is_bus_mute(bus_index),
+			"solo": AudioServer.is_bus_solo(bus_index),
+			"bypassEffects": AudioServer.is_bus_bypassing_effects(bus_index),
+			"effects": effects
+		})
+	return buses
+
+func audio_save_bus_layout(params):
+	var layout_path = normalize_resource_path(str(params.layout_path) if params.has("layout_path") and str(params.layout_path) != "" else "default_bus_layout.tres")
+	if AudioServer.has_method("generate_bus_layout"):
+		var layout = AudioServer.call("generate_bus_layout")
+		if layout:
+			ResourceSaver.save(layout, layout_path)
+			ProjectSettings.set_setting("audio/buses/default_bus_layout", layout_path)
+			ProjectSettings.save()
+
 func audio_tool(params):
 	var scene_data = load_scene_instance(params.scene_path)
 	var scene_root = scene_data.root
@@ -845,6 +940,47 @@ func audio_tool(params):
 				"effects": AudioServer.get_bus_effect_count(bus_index)
 			})
 		print(JSON.stringify({"audioBuses": buses}))
+		return
+
+	if action == "add_bus":
+		var bus_name = str(params.bus_name) if params.has("bus_name") and str(params.bus_name) != "" else str(params.name) if params.has("name") and str(params.name) != "" else "Bus"
+		var bus_index = AudioServer.get_bus_count()
+		AudioServer.add_bus(bus_index)
+		AudioServer.set_bus_name(bus_index, bus_name)
+		if params.has("volume_db"):
+			AudioServer.set_bus_volume_db(bus_index, float(params.volume_db))
+		audio_save_bus_layout(params)
+		print(JSON.stringify({"action": action, "busName": bus_name, "busIndex": bus_index, "audioBuses": audio_bus_summary()}))
+		return
+
+	if action == "add_bus_effect":
+		var target_bus = audio_find_bus_index(params)
+		var effect_type = str(params.effect_type) if params.has("effect_type") and str(params.effect_type) != "" else str(params.effect) if params.has("effect") and str(params.effect) != "" else "AudioEffectReverb"
+		var effect = instantiate_class(effect_type)
+		if not effect or not (effect is AudioEffect):
+			printerr("Failed to create AudioEffect: " + effect_type)
+			quit(1)
+		if params.has("properties"):
+			apply_properties_to_object(effect, params.properties)
+		AudioServer.add_bus_effect(target_bus, effect, int(params.effect_index) if params.has("effect_index") else AudioServer.get_bus_effect_count(target_bus))
+		audio_save_bus_layout(params)
+		print(JSON.stringify({"action": action, "busIndex": target_bus, "effectType": effect.get_class(), "audioBuses": audio_bus_summary()}))
+		return
+
+	if action == "set_bus":
+		var set_bus_index = audio_find_bus_index(params)
+		if params.has("bus_name") or params.has("name"):
+			AudioServer.set_bus_name(set_bus_index, str(params.bus_name) if params.has("bus_name") else str(params.name))
+		if params.has("volume_db"):
+			AudioServer.set_bus_volume_db(set_bus_index, float(params.volume_db))
+		if params.has("mute"):
+			AudioServer.set_bus_mute(set_bus_index, bool(params.mute))
+		if params.has("solo"):
+			AudioServer.set_bus_solo(set_bus_index, bool(params.solo))
+		if params.has("bypass_effects"):
+			AudioServer.set_bus_bypass_effects(set_bus_index, bool(params.bypass_effects))
+		audio_save_bus_layout(params)
+		print(JSON.stringify({"action": action, "busIndex": set_bus_index, "audioBuses": audio_bus_summary()}))
 		return
 
 	if action != "create":

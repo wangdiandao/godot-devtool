@@ -43,6 +43,7 @@ import {
   enqueueEditorCommand,
   installEditorBridge,
   readEditorBridgeStatus,
+  waitForEditorCommandReceipt,
 } from '../godot/editorBridge.js';
 import {
   deleteProjectPath,
@@ -132,6 +133,8 @@ const BRIDGE_COMPATIBILITY_TOOLS = new Set([
   'click_button_by_text',
   'navigate_to',
   'move_to',
+  'get_performance_monitors',
+  'get_editor_performance',
 ]);
 
 /**
@@ -202,6 +205,11 @@ export class GodotServer {
     'shape_resource_path': 'shapeResourcePath',
     'stream_path': 'streamPath',
     'bus': 'bus',
+    'bus_name': 'busName',
+    'effect_type': 'effectType',
+    'effect_index': 'effectIndex',
+    'bypass_effects': 'bypassEffects',
+    'layout_path': 'layoutPath',
     'volume_db': 'volumeDb',
     'autoplay': 'autoplay',
     'agent_radius': 'agentRadius',
@@ -225,6 +233,11 @@ export class GodotServer {
     'tree_path': 'treePath',
     'from_state': 'fromState',
     'to_state': 'toState',
+    'state_name': 'stateName',
+    'blend_node_name': 'blendNodeName',
+    'blend_node_type': 'blendNodeType',
+    'parameter_path': 'parameterPath',
+    'parameter_value': 'parameterValue',
     'transition_index': 'transitionIndex',
     'transition_parameters': 'transitionParameters',
     'signal_name': 'signalName',
@@ -298,7 +311,7 @@ export class GodotServer {
     this.server = new Server(
       {
         name: 'godot-devtool',
-        version: '1.7.0',
+        version: '1.7.1',
       },
       {
         capabilities: {
@@ -380,22 +393,6 @@ export class GodotServer {
       return this.createErrorResponse(`Unknown compatibility tool: ${toolName}`);
     }
 
-    if (route.unsupportedReason) {
-      return this.createJsonResponse({
-        toolName,
-        supported: false,
-        status: 'unsupported',
-        since: '1.7.0',
-        runMode: route.runMode ?? 'compatibility_unsupported',
-        riskLevel: route.riskLevel ?? 'read',
-        reason: route.unsupportedReason,
-        alternatives: [
-          'Call get_capabilities with includeAliases=true to discover supported canonical tools.',
-          'Use the named canonical tool when the response points to an available replacement.',
-        ],
-      });
-    }
-
     const routedArgs = this.buildCompatibilityArgs(route, args || {});
     switch (route.canonicalTool) {
       case 'signal':
@@ -474,8 +471,7 @@ export class GodotServer {
   private async handleNativeCompatibilityTool(toolName: string, args: any) {
     args = this.normalizeParameters(args || {});
     const projectPathError = this.validateProjectArgs(args);
-    const projectlessTools = new Set(['get_editor_performance']);
-    if (projectPathError && !projectlessTools.has(toolName)) return projectPathError;
+    if (projectPathError) return projectPathError;
 
     try {
       if (BRIDGE_COMPATIBILITY_TOOLS.has(toolName)) {
@@ -516,17 +512,21 @@ export class GodotServer {
         case 'find_nearby_nodes':
           return this.createJsonResponse(this.findNearbyNodes(args));
         case 'tilemap_get_cell':
+          return this.handleP11SceneOperation('tilemap', { ...args, action: 'get_cell' });
         case 'tilemap_get_used_cells':
-          return this.createJsonResponse(this.inspectTileMapData(toolName, args));
+          return this.handleP11SceneOperation('tilemap', { ...args, action: 'get_used_cells' });
         case 'tilemap_clear':
-          return this.createJsonResponse(await this.clearTileMapData(args));
+          return this.handleP11SceneOperation('tilemap', { ...args, action: 'clear' });
         case 'set_theme_color':
+          return this.handleP9SceneOperation('ui', { ...args, action: 'set_theme_color' });
         case 'set_theme_constant':
+          return this.handleP9SceneOperation('ui', { ...args, action: 'set_theme_constant' });
         case 'set_theme_font_size':
+          return this.handleP9SceneOperation('ui', { ...args, action: 'set_theme_font_size' });
         case 'set_theme_stylebox':
-          return this.createJsonResponse(await this.editThemeResource(toolName, args));
+          return this.handleP9SceneOperation('ui', { ...args, action: 'set_theme_stylebox' });
         case 'get_theme_info':
-          return this.createJsonResponse(this.readThemeInfo(args));
+          return this.handleP9SceneOperation('ui', { ...args, action: 'get_theme_info' });
         case 'find_signal_connections':
         case 'analyze_signal_flow':
           return this.createJsonResponse(this.findSignalConnections(args));
@@ -565,34 +565,50 @@ export class GodotServer {
         case 'set_navigation_layers':
           return this.handleP11SceneOperation('navigation', { ...args, action: 'configure_bake', properties: args.properties ?? {} });
         case 'add_audio_bus':
+          return this.handleP11SceneOperation('audio', { ...args, action: 'add_bus' });
         case 'add_audio_bus_effect':
+          return this.handleP11SceneOperation('audio', { ...args, action: 'add_bus_effect' });
         case 'set_audio_bus':
-          return this.createJsonResponse(await this.editAudioBusLayout(toolName, args));
+          return this.handleP11SceneOperation('audio', { ...args, action: 'set_bus' });
         case 'get_animation_tree_structure':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'list' });
         case 'set_tree_parameter':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'set_tree_parameter' });
         case 'add_state_machine_state':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'add_state' });
         case 'remove_state_machine_state':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'remove_state' });
         case 'add_state_machine_transition':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'add_transition' });
         case 'remove_state_machine_transition':
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'remove_transition' });
         case 'set_blend_tree_node':
-          return this.createJsonResponse(await this.editAnimationTreeMetadata(toolName, args));
+          return this.handleP9SceneOperation('animation_state_machine', { ...args, action: 'set_blend_tree_node' });
         case 'analyze_scene_complexity':
           return this.createJsonResponse(this.analyzeSceneComplexity(args));
         case 'get_performance_monitors':
         case 'get_editor_performance':
           return this.createJsonResponse(this.getPerformanceSnapshot(toolName, args));
         case 'batch_get_properties':
+          return this.createJsonResponse(await this.batchGetProperties(args));
         case 'wait_for_node':
+          return this.createJsonResponse(await this.waitForSceneNode(args));
         case 'assert_node_state':
-          return this.createJsonResponse(await this.fileBackedQaResult(toolName, args));
+          return this.createJsonResponse(await this.assertNodeState(args));
         case 'compare_screenshots':
+          return this.createJsonResponse(await this.compareScreenshotFiles(args));
         case 'assert_screen_text':
+          return this.createJsonResponse(await this.assertScreenText(args));
         case 'run_test_scenario':
+          return this.createJsonResponse(await this.runCompatibilityTestScenario(args));
         case 'run_stress_test':
+          return this.createJsonResponse(await this.runCompatibilityStressTest(args));
         case 'get_test_report':
-          return this.createJsonResponse(await this.qaArtifact(toolName, args));
+          return this.createJsonResponse(await this.readQaReport(args));
         default:
-          return this.createJsonResponse({ toolName, ok: true, status: 'implemented', args });
+          return this.createErrorResponse(`No executable compatibility implementation is registered for ${toolName}`, [
+            'Check COMPATIBILITY_TOOL_ROUTES and handleNativeCompatibilityTool before documenting this method as supported.',
+          ]);
       }
     } catch (error: any) {
       return this.createErrorResponse(`Failed to run ${toolName}: ${error.message ?? String(error)}`);
@@ -770,21 +786,114 @@ export class GodotServer {
   private async editAutoload(toolName: string, args: any) { const name = args.name ?? args.autoloadName; if (!name) throw new Error('Provide autoload name'); if (toolName === 'add_autoload') { const path = args.path ?? args.scriptPath ?? args.resourcePath; if (!path) throw new Error('Provide scriptPath/resourcePath for add_autoload'); return writeProjectSettings(args.projectPath, { changes: { [`autoload/${name}`]: `${args.singleton === false ? '' : '*'}${this.toResourcePath(path)}` }, dryRun: args.dryRun === true }); } return deleteProjectSettings(args.projectPath, [`autoload/${name}`]); }
   private getPhysicsLayers(args: any) { const content = existsSync(join(args.projectPath, 'project.godot')) ? this.readProjectTextSync(args.projectPath, 'project.godot') : ''; return { layers: [...content.matchAll(/layer_names\/(\d+d_physics)\/layer_(\d+)="([^"]+)"/g)].map((match) => ({ domain: match[1], layer: Number(match[2]), name: match[3] })) }; }
 
-  private async editAudioBusLayout(toolName: string, args: any) { const path = '.godot-devtool/audio-bus-layout.json'; const absolutePath = this.safeProjectPath(args.projectPath, path); const layout = existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { buses: [] }; layout.buses = Array.isArray(layout.buses) ? layout.buses : []; layout.buses.push({ operation: toolName, name: args.name ?? args.bus ?? 'Master', effect: args.effect ?? args.effectType, properties: args.properties ?? {} }); mkdirSync(dirname(absolutePath), { recursive: true }); writeFileSync(absolutePath, JSON.stringify(layout, null, 2), 'utf8'); await appendAuditEntry(args.projectPath, { operation: toolName, changedFiles: [path], skippedFiles: [], details: args }); return { changedFiles: [path], layout }; }
-  private async editAnimationTreeMetadata(toolName: string, args: any) { const path = '.godot-devtool/animation-tree-edits.jsonl'; const absolutePath = this.safeProjectPath(args.projectPath, path); mkdirSync(dirname(absolutePath), { recursive: true }); const entry = { timestamp: new Date().toISOString(), toolName, scenePath: args.scenePath, treePath: args.treePath, payload: args }; writeFileSync(absolutePath, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', flag: 'a' }); await appendAuditEntry(args.projectPath, { operation: toolName, changedFiles: [path], skippedFiles: [], details: args }); return { changedFiles: [path], entry }; }
   private analyzeSceneComplexity(args: any) { const nodes = this.parseSceneNodeHeaders(args.projectPath, args.scenePath); const byType: Record<string, number> = {}; nodes.forEach((node) => { byType[node.type || 'unknown'] = (byType[node.type || 'unknown'] ?? 0) + 1; }); return { scenePath: args.scenePath, nodeCount: nodes.length, byType, warnings: nodes.length > 500 ? ['Large scene node count'] : [] }; }
   private getPerformanceSnapshot(toolName: string, args: any) { return { toolName, timestamp: new Date().toISOString(), process: { pid: process.pid, memory: process.memoryUsage(), uptime: process.uptime() }, projectPath: args.projectPath ?? null }; }
-  private async fileBackedQaResult(toolName: string, args: any) { if (toolName === 'wait_for_node') return { found: Boolean(this.findSceneNodeHeader(args)), nodePath: args.nodePath }; if (toolName === 'batch_get_properties') return { nodes: (Array.isArray(args.nodePaths) ? args.nodePaths : []).map((nodePath: string) => ({ nodePath, properties: null })) }; return { passed: true, assertion: toolName, expected: args.expected ?? args.properties ?? null }; }
-  private async qaArtifact(toolName: string, args: any) { const path = '.godot-devtool/test-report.json'; const absolutePath = this.safeProjectPath(args.projectPath, path); const report = existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { runs: [] }; report.runs.push({ timestamp: new Date().toISOString(), toolName, args, result: 'recorded' }); mkdirSync(dirname(absolutePath), { recursive: true }); writeFileSync(absolutePath, JSON.stringify(report, null, 2), 'utf8'); return { changedFiles: [path], report }; }
-  private async queueBridgeCompatibilityCommand(toolName: string, args: any) { const command = await enqueueEditorCommand(args.projectPath, { type: toolName, payload: args, timeoutMs: args.timeoutMs }); return { toolName, queued: true, commandId: command.commandId, commandPath: command.commandPath, expiresAt: command.expiresAt, bridge: 'godot-devtool editor/runtime command queue' }; }
+  private getSceneNodePropertiesFromText(args: any, nodePath: string) {
+    const content = this.readProjectTextSync(args.projectPath, args.scenePath);
+    const node = this.findSceneNodeHeader({ ...args, nodePath }, content);
+    if (!node) throw new Error(`Node not found: ${nodePath}`);
+    const properties: Record<string, unknown> = { name: node.name, type: node.type, parent: node.parent, path: this.nodePathFromHeader(node) };
+    const nextNodeIndex = content.indexOf('\n[node', node.end);
+    const sectionEnd = nextNodeIndex >= 0 ? nextNodeIndex : content.length;
+    const body = content.slice(node.end, sectionEnd);
+    for (const line of body.split(/\r?\n/)) {
+      const match = line.match(/^\s*([A-Za-z0-9_\/:.]+)\s*=\s*(.+)$/);
+      if (match) properties[match[1]] = match[2].trim();
+    }
+    return properties;
+  }
+  private async batchGetProperties(args: any) {
+    const nodePaths = Array.isArray(args.nodePaths) ? args.nodePaths.map(String) : this.parseSceneNodeHeaders(args.projectPath, args.scenePath).map((node) => this.nodePathFromHeader(node));
+    return {
+      scenePath: args.scenePath,
+      nodes: nodePaths.map((nodePath: string) => ({ nodePath, properties: this.getSceneNodePropertiesFromText(args, nodePath) })),
+    };
+  }
+  private async waitForSceneNode(args: any) {
+    const timeoutMs = Number(args.timeoutMs ?? 5000);
+    const started = Date.now();
+    while (Date.now() - started <= timeoutMs) {
+      const found = Boolean(this.findSceneNodeHeader(args));
+      if (found) return { found: true, nodePath: args.nodePath, waitedMs: Date.now() - started };
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return { found: false, nodePath: args.nodePath, waitedMs: Date.now() - started, error: `Node did not appear within ${timeoutMs}ms` };
+  }
+  private async assertNodeState(args: any) {
+    const nodePath = args.nodePath ?? args.path;
+    if (!nodePath) throw new Error('nodePath is required');
+    const expected = args.expected ?? args.properties ?? {};
+    const actual = this.getSceneNodePropertiesFromText(args, nodePath);
+    const failures = Object.entries(expected).filter(([key, value]) => String(actual[key]) !== String(value)).map(([key, value]) => ({ property: key, expected: value, actual: actual[key] ?? null }));
+    return { passed: failures.length === 0, nodePath, expected, actual, failures };
+  }
+  private async compareScreenshotFiles(args: any) {
+    const baselinePath = args.baselinePath ?? args.expectedPath ?? args.leftPath;
+    const actualPath = args.actualPath ?? args.screenshotPath ?? args.rightPath;
+    if (!baselinePath || !actualPath) throw new Error('baselinePath and actualPath are required');
+    const baseline = readFileSync(this.safeProjectPath(args.projectPath, baselinePath));
+    const actual = readFileSync(this.safeProjectPath(args.projectPath, actualPath));
+    const equal = baseline.equals(actual);
+    return { passed: equal, baselinePath, actualPath, baselineBytes: baseline.length, actualBytes: actual.length, byteDelta: Math.abs(baseline.length - actual.length) };
+  }
+  private async assertScreenText(args: any) {
+    const expected = String(args.text ?? args.expectedText ?? '');
+    if (!expected) throw new Error('text or expectedText is required');
+    const extractedText = String(args.extractedText ?? args.screenText ?? '');
+    if (!extractedText) {
+      return { passed: false, expectedText: expected, actualText: '', error: 'No extractedText/screenText was provided. godot-devtool does not fake OCR results; pass text captured from the game UI or use find_ui_elements/click_button_by_text through the runtime bridge.' };
+    }
+    return { passed: extractedText.includes(expected), expectedText: expected, actualText: extractedText };
+  }
+  private async writeQaReport(args: any, entry: any) {
+    const path = '.godot-devtool/test-report.json';
+    const absolutePath = this.safeProjectPath(args.projectPath, path);
+    const report = existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { runs: [] };
+    report.runs.push({ timestamp: new Date().toISOString(), ...entry });
+    mkdirSync(dirname(absolutePath), { recursive: true });
+    writeFileSync(absolutePath, JSON.stringify(report, null, 2), 'utf8');
+    return { changedFiles: [path], report };
+  }
+  private async runCompatibilityTestScenario(args: any) {
+    const result = await runProjectChecks(args.projectPath);
+    return this.writeQaReport(args, { toolName: 'run_test_scenario', scenario: args.scenario ?? args.name ?? 'project_checks', result });
+  }
+  private async runCompatibilityStressTest(args: any) {
+    const iterations = Math.max(1, Math.min(50, Number(args.iterations ?? 3)));
+    const runs = [];
+    for (let index = 0; index < iterations; index += 1) {
+      runs.push(await runProjectChecks(args.projectPath));
+    }
+    const passed = runs.every((run: any) => run.ok !== false);
+    return this.writeQaReport(args, { toolName: 'run_stress_test', iterations, passed, runs });
+  }
+  private async readQaReport(args: any) {
+    const path = '.godot-devtool/test-report.json';
+    const absolutePath = this.safeProjectPath(args.projectPath, path);
+    return existsSync(absolutePath) ? JSON.parse(readFileSync(absolutePath, 'utf8')) : { runs: [] };
+  }
+  private async queueBridgeCompatibilityCommand(toolName: string, args: any) {
+    const timeoutMs = Number(args.timeoutMs ?? 10000);
+    const command = await enqueueEditorCommand(args.projectPath, { type: toolName, payload: args, timeoutMs });
+    const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+    return {
+      toolName,
+      commandId: command.commandId,
+      commandPath: command.commandPath,
+      bridge: 'godot-devtool editor/runtime command queue',
+      queued: false,
+      status: receipt.status,
+      ok: receipt.status === 'completed',
+      error: receipt.error ?? '',
+      result: receipt.result ?? null,
+      receipt,
+    };
+  }
   private escapeRegExp(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   private getToolRiskLevel(toolName: string): string {
     const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
     if (compatibilityRoute) {
-      if (compatibilityRoute.unsupportedReason) {
-        return compatibilityRoute.riskLevel ?? 'read';
-      }
       if (compatibilityRoute.canonicalTool === 'compatibility_native') {
         return compatibilityRoute.riskLevel ?? 'read';
       }
@@ -842,9 +951,6 @@ export class GodotServer {
   private getToolRunMode(toolName: string): string {
     const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
     if (compatibilityRoute) {
-      if (compatibilityRoute.unsupportedReason) {
-        return compatibilityRoute.runMode ?? 'compatibility_unsupported';
-      }
       if (compatibilityRoute.canonicalTool === 'compatibility_native') {
         return compatibilityRoute.runMode ?? 'file_system_or_editor_bridge';
       }
@@ -3642,8 +3748,13 @@ export class GodotServer {
         'animationPlayerPath',
         'states',
         'transitions',
+        'stateName',
         'fromState',
         'toState',
+        'blendNodeName',
+        'blendNodeType',
+        'parameterPath',
+        'parameterValue',
         'transitionIndex',
         'transitionParameters',
         'signalName',
@@ -3654,6 +3765,14 @@ export class GodotServer {
         'text',
         'layoutPreset',
         'themePath',
+        'key',
+        'name',
+        'value',
+        'color',
+        'constant',
+        'fontSize',
+        'stylebox',
+        'typeName',
         'templateName',
         'colors',
         'constants',
@@ -3866,7 +3985,15 @@ export class GodotServer {
         'debugNodeName',
         'streamPath',
         'bus',
+        'busName',
+        'effect',
+        'effectType',
+        'effectIndex',
+        'layoutPath',
         'volumeDb',
+        'mute',
+        'solo',
+        'bypassEffects',
         'autoplay',
         'properties',
       ]) {

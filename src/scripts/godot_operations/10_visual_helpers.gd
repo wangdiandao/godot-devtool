@@ -257,6 +257,32 @@ func set_tile_cell(tile_node, coords, source_id, atlas_coords, alternative_tile)
 	else:
 		tile_node.call("set_cell", 0, coords, source_id, atlas_coords, alternative_tile)
 
+func get_tile_source_id(tile_node, coords):
+	if tile_node.get_class() == "TileMapLayer":
+		return tile_node.call("get_cell_source_id", coords)
+	return tile_node.call("get_cell_source_id", 0, coords)
+
+func get_tile_atlas_coords(tile_node, coords):
+	if tile_node.get_class() == "TileMapLayer":
+		return tile_node.call("get_cell_atlas_coords", coords)
+	return tile_node.call("get_cell_atlas_coords", 0, coords)
+
+func get_tile_alternative_tile(tile_node, coords):
+	if tile_node.get_class() == "TileMapLayer":
+		return tile_node.call("get_cell_alternative_tile", coords)
+	return tile_node.call("get_cell_alternative_tile", 0, coords)
+
+func get_tile_used_cells(tile_node):
+	if tile_node.get_class() == "TileMapLayer":
+		return tile_node.call("get_used_cells")
+	return tile_node.call("get_used_cells", 0)
+
+func clear_tile_cells(tile_node):
+	if tile_node.get_class() == "TileMapLayer":
+		tile_node.call("clear")
+	else:
+		tile_node.call("clear_layer", 0)
+
 func tilemap_vector2i_param(params, key, default_value):
 	if not params.has(key):
 		return default_value

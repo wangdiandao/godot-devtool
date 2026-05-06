@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.7.1
+
+Factually executable 1.7 compatibility completion release.
+
+- Replaced weak 1.7 compatibility fallbacks with executable local, headless Godot, or bridge-backed handlers.
+- Editor/runtime bridge commands now wait for completion receipts and return real results, timeouts, or environment errors instead of queue-only success.
+- Expanded TileMap, Theme/UI, Audio, AnimationTree, State Machine, Blend Tree, Testing/QA, and profiling implementations.
+- Updated README capability lists to the one-method-one-description style and synchronized release metadata for `1.7.1`.
+
 ## Version 1.7.0
 
 Expanded tool compatibility surface release.

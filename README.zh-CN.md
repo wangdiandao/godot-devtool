@@ -1,26 +1,26 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.7.1-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
-[English](README.md) | 中文
+[English](README.md) | 涓枃
 
-`godot-devtool` 是面向 Godot Engine 工作流的 MCP server。它让支持 MCP 的 AI 助手可以通过受控工具接口检查、编辑、运行、调试、验证和打包 Godot 项目。
+`godot-devtool` 鏄潰鍚?Godot Engine 宸ヤ綔娴佺殑 MCP server銆傚畠璁╂敮鎸?MCP 鐨?AI 鍔╂墜鍙互閫氳繃鍙楁帶宸ュ叿鎺ュ彛妫€鏌ャ€佺紪杈戙€佽繍琛屻€佽皟璇曘€侀獙璇佸拰鎵撳寘 Godot 椤圭洰銆?
 
-本项目最初受到 [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) 启发，随后以 `godot-devtool` 重新打包并扩展。
+鏈」鐩渶鍒濆彈鍒?[Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) 鍚彂锛岄殢鍚庝互 `godot-devtool` 閲嶆柊鎵撳寘骞舵墿灞曘€?
 
-## 快速开始
+## 蹇€熷紑濮?
 
-### 1. 下载预构建包
+### 1. 涓嬭浇棰勬瀯寤哄寘
 
 最新发行包：
 
-[godot-devtool-build-1.7.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.7.0/godot-devtool-build-1.7.0.zip)
+[godot-devtool-build-1.7.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.7.1/godot-devtool-build-1.7.1.zip)
 
-解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
+瑙ｅ帇 zip锛岀劧鍚庤 MCP 瀹㈡埛绔寚鍚戣В鍘嬪悗鐨?`build/index.js`銆?
 
 ```json
 {
@@ -36,239 +36,323 @@
 }
 ```
 
-如果 Godot 已经在系统 `PATH` 中，可以省略 `GODOT_PATH`。
+濡傛灉 Godot 宸茬粡鍦ㄧ郴缁?`PATH` 涓紝鍙互鐪佺暐 `GODOT_PATH`銆?
 
-### 2. 从源码构建
+### 2. 浠庢簮鐮佹瀯寤?
 
 ```bash
 npm install
 npm run build
 ```
 
-MCP server 入口：
+MCP server 鍏ュ彛锛?
 
 ```text
 build/index.js
 ```
 
-### 3. 验证安装
+### 3. 楠岃瘉瀹夎
 
 ```text
 get_godot_version
 get_capabilities
 ```
 
-本地项目检查：
+鏈湴椤圭洰妫€鏌ワ細
 
 ```bash
 npm run check:project -- E:/test
 ```
 
-### 4. 给 MCP 客户端提供操作指引
+### 4. 缁?MCP 瀹㈡埛绔彁渚涙搷浣滄寚寮?
 
-本仓库只包含一个 Skill 文件，用来告诉 MCP 客户端和接入的 AI 助手如何安全使用这个服务端：
+鏈粨搴撳彧鍖呭惈涓€涓?Skill 鏂囦欢锛岀敤鏉ュ憡璇?MCP 瀹㈡埛绔拰鎺ュ叆鐨?AI 鍔╂墜濡備綍瀹夊叏浣跨敤杩欎釜鏈嶅姟绔細
 
 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
 
-该 Skill 会指导客户端先检查项目状态，优先使用结构化 MCP 工具而不是直接改文件，对高风险操作使用 preview/dry-run，并在结束前运行验证。
+璇?Skill 浼氭寚瀵煎鎴风鍏堟鏌ラ」鐩姸鎬侊紝浼樺厛浣跨敤缁撴瀯鍖?MCP 宸ュ叿鑰屼笉鏄洿鎺ユ敼鏂囦欢锛屽楂橀闄╂搷浣滀娇鐢?preview/dry-run锛屽苟鍦ㄧ粨鏉熷墠杩愯楠岃瘉銆?
 
-## 环境要求
+## 鐜瑕佹眰
 
-- Godot Engine 4.x。
-- Node.js >= 18.0.0。
-- 从源码构建时需要 npm。
-- 支持 MCP 的客户端，例如 Claude Desktop、MCP Inspector、Cline、Cursor、VS Code Copilot 或其他 MCP client。
+- Godot Engine 4.x銆?
+- Node.js >= 18.0.0銆?
+- 浠庢簮鐮佹瀯寤烘椂闇€瑕?npm銆?
+- 鏀寔 MCP 鐨勫鎴风锛屼緥濡?Claude Desktop銆丮CP Inspector銆丆line銆丆ursor銆乂S Code Copilot 鎴栧叾浠?MCP client銆?
 
-## 常见工作流
+## 甯歌宸ヤ綔娴?
 
-1. 调用 `get_godot_version` 确认 Godot 可用。
-2. 调用 `list_projects`，或直接传入已知项目路径。
-3. 调用 `get_project_info`、`get_resource_index`、`get_script_index` 理解项目。
-4. 使用场景、节点、脚本、资源、动画、视觉、TileMap、物理、导航和音频工具编辑项目。
-5. 需要 live editor selection、undo/redo 或 Inspector 属性命令时，用 `install_editor_bridge` 安装 editor bridge。
-6. 发布前运行 `run_project`、`get_debug_output`、`check_gdscript_syntax`、`run_project_checks`、导出检查和生成的 CI 片段。
+1. 璋冪敤 `get_godot_version` 纭 Godot 鍙敤銆?
+2. 璋冪敤 `list_projects`锛屾垨鐩存帴浼犲叆宸茬煡椤圭洰璺緞銆?
+3. 璋冪敤 `get_project_info`銆乣get_resource_index`銆乣get_script_index` 鐞嗚В椤圭洰銆?
+4. 浣跨敤鍦烘櫙銆佽妭鐐广€佽剼鏈€佽祫婧愩€佸姩鐢汇€佽瑙夈€乀ileMap銆佺墿鐞嗐€佸鑸拰闊抽宸ュ叿缂栬緫椤圭洰銆?
+5. 闇€瑕?live editor selection銆乽ndo/redo 鎴?Inspector 灞炴€у懡浠ゆ椂锛岀敤 `install_editor_bridge` 瀹夎 editor bridge銆?
+6. 鍙戝竷鍓嶈繍琛?`run_project`銆乣get_debug_output`銆乣check_gdscript_syntax`銆乣run_project_checks`銆佸鍑烘鏌ュ拰鐢熸垚鐨?CI 鐗囨銆?
+
+## 鍏ㄩ儴宸ュ叿
+
+### 鏍稿績鍜岄」鐩伐鍏?
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `get_capabilities` | 鍙戠幇宸ュ叿 schema銆乤lias銆乺un mode 鍜?risk level |
+| `get_godot_version` | 妫€娴嬫湰鏈?Godot 鐗堟湰 |
+| `list_projects` | 鍦ㄧ洰褰曚腑鏌ユ壘 Godot 椤圭洰 |
+| `get_project_info` | 椤圭洰鍏冧俊鎭€佷富鍦烘櫙銆乤utoload銆乮nput action銆乺endering 鍜岃祫婧愮粺璁?|
+| `project_get_settings` | 璇诲彇 `project.godot` 璁剧疆 |
+| `project_set_setting` | 鏇存柊 `project.godot` 璁剧疆锛屾敮鎸?dry-run 鍜?audit logging |
+| `project_input_action` | 鍒楀嚭銆佸垱寤恒€佹洿鏂版垨鍒犻櫎 InputMap action |
+| `get_safety_policy` | 璇诲彇 `.godot-devtool/safety.json` 鍜岄粯璁ゅ畨鍏ㄧ姸鎬?|
+| `set_safety_policy` | 閰嶇疆鍐欏叆 allowlist 鍜?blocked path 瑙勫垯 |
+| `preview_write_safety` | 棰勮 policy decision 鍜?diff summary metadata |
+| `get_audit_replay` | 灏?audit entries 姹囨€讳负 replay steps 鍜?risk highlights |
+| `get_rollback_suggestions` | 閽堝 changed files 鎴?audit entries 杩斿洖 rollback 寤鸿 |
+| `get_resource_index` | 鍒嗙被鍒楀嚭 scene銆乻cript銆乼exture銆乤udio銆乵odel銆乺esource銆乻hader 鍜屽叾浠栨枃浠?|
+| `resource_dependency_graph` | 鏋勫缓 `res://` 渚濊禆鍥惧苟妫€娴嬪绔嬭祫婧?|
+| `get_script_index` | GDScript 鏂囦欢绱㈠紩锛屽寘鍚?class銆乥ase class銆乪xport 鍜?function |
+
+### 鍦烘櫙鍜岃妭鐐瑰伐鍏?
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `create_scene` | 鍒涘缓 scene 鏂囦欢 |
+| `scene_open` | 鍦?MCP session 涓墦寮€ scene |
+| `scene_get_current` | 杩斿洖 MCP 褰撳墠璺熻釜鐨?scene |
+| `get_scene_tree` | 璇诲彇 scene node tree |
+| `save_scene` | 淇濆瓨 scene 鎴栧彟瀛樹负鍙樹綋 |
+| `add_node` | 娣诲姞鑺傜偣骞跺彲璁剧疆灞炴€?|
+| `delete_node` | 鍒犻櫎闈?root 鑺傜偣 |
+| `rename_node` | 閲嶅懡鍚嶈妭鐐?|
+| `node_get` | 璇诲彇鑺傜偣淇℃伅 |
+| `node_get_property` / `get_node_properties` | 璇诲彇鎸囧畾鑺傜偣灞炴€?|
+| `node_set_property` / `update_node_properties` | 鏇存柊鑺傜偣灞炴€?|
+| `node_move` | 閫氳繃 position 绉诲姩鑺傜偣 |
+| `node_duplicate` | 澶嶅埗鑺傜偣 |
+| `node_find` | 鎸?name銆乼ype 鎴?path substring 鏌ユ壘鑺傜偣 |
+| `load_sprite` | 缁?sprite 绫昏妭鐐瑰垎閰?texture |
+
+### 鑴氭湰銆佹枃浠跺拰璧勬簮宸ュ叿
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `script_create` | 鍒涘缓 GDScript 鏂囦欢 |
+| `script_write` | 鍐欏叆瀹屾暣 GDScript 鍐呭 |
+| `script_attach` | 灏?GDScript resource 鎸傚埌 scene 鑺傜偣 |
+| `read_script_file` | 璇诲彇 GDScript 鏂囦欢 |
+| `analyze_script_references` | 鍒嗘瀽 script class銆乫unction銆乪xport銆乶ode path 鍜?resource 寮曠敤 |
+| `check_gdscript_syntax` | 杩愯 Godot 鑴氭湰璇硶璇婃柇 |
+| `filesystem_list` | 鍒楀嚭椤圭洰鍐呮枃浠跺拰鐩綍 |
+| `filesystem_read` | 璇诲彇椤圭洰鍐呮枃鏈枃浠?|
+| `filesystem_write` | 鍐欏叆椤圭洰鍐呮枃鏈枃浠?|
+| `filesystem_delete` | 甯︾‘璁ゅ垹闄ら」鐩唴鏂囦欢鎴栫洰褰?|
+| `filesystem_preview_delete` | 棰勮鍒犻櫎褰卞搷 |
+| `resource_load` | 璇诲彇鏂囨湰鍨?Godot resource |
+| `resource_create` | 鍒涘缓缁撴瀯鍖?`.tres` 鎴?`.res` resource |
+| `resource_save` | 淇濆瓨鏂囨湰鍨?resource 鍐呭 |
+
+### Editor Bridge 宸ュ叿
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `launch_editor` | 鍚姩鎸囧畾椤圭洰鐨?Godot editor |
+| `install_editor_bridge` | 瀹夎 editor bridge plugin |
+| `editor_bridge_status` | 璇诲彇瀹夎銆乮nstance銆乸ending command銆乪xpired command 鍜?receipt 淇℃伅 |
+| `editor_get_selection` | 璇诲彇褰撳墠 editor selection 鍜?edited scene |
+| `editor_select_node` | 鍦?live editor 涓€変腑鑺傜偣 |
+| `editor_undo_redo` | 鍏ラ槦 editor undo 鎴?redo |
+| `editor_inspector_get_properties` | 浠庨€変腑鎴栨寚瀹氳妭鐐硅鍙?Inspector 灞炴€?|
+| `editor_inspector_set_properties` | 閫氳繃 editor bridge 鍐欏叆 Inspector 灞炴€?|
+
+### 杩愯銆佽皟璇曘€佸鍑哄拰宸ヤ綔娴佸伐鍏?
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `run_project` | 杩愯 Godot 椤圭洰骞舵崟鑾疯緭鍑?|
+| `stop_project` | 鍋滄姝ｅ湪杩愯鐨?Godot 椤圭洰 |
+| `get_debug_output` | 璇诲彇缂撳瓨 stdout/stderr 鍜?error |
+| `clear_debug_output` | 娓呯┖ debug output buffer |
+| `run_project_checks` | 甯︽満鍣ㄥ彲璇?code銆乧ause 鍜屼慨澶嶅缓璁殑绋冲畾椤圭洰妫€鏌?|
+| `get_audit_log` | 璇诲彇椤圭洰 audit log |
+| `create_workflow_test_scene` | 鐢熸垚宸ヤ綔娴侀獙璇?scene |
+| `create_gameplay_prototype` | 鐢熸垚 block-based survivors 鍘熷瀷 |
+| `get_export_presets` | 璇诲彇 export preset |
+| `check_export_presets` | 妫€鏌?export preset 闂 |
+| `export_matrix` | 姹囨€诲钩鍙版棌銆佺鍚?template 鐘舵€併€乵etadata銆乤rtifact銆侀棶棰樺拰 CI 寤鸿 |
+| `generate_ci_snippet` | 鐢熸垚 GitHub Actions 鎴?GitLab CI 鐗囨锛岀敤浜?headless 妫€鏌ャ€佸鍑洪妫€銆乺elease export 鍜?artifact 褰掓。 |
+| `update_export_preset` | 鏇存柊 export preset field 鎴?option |
+| `export_project` | 鎵ц鍙楁帶 Godot export |
+| `export_mesh_library` | 灏?3D scene 瀵煎嚭涓?MeshLibrary resource |
+| `get_uid` | 璇诲彇 Godot 4.4+ resource UID |
+| `update_project_uids` | 閲嶆柊淇濆瓨 resource 浠ユ洿鏂?UID 寮曠敤 |
+
+### 鍔ㄧ敾銆乁I銆佽瑙夊拰鏉愯川宸ュ叿
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `animation` | 鍒楀嚭銆佸垱寤恒€佹鏌ャ€佸垹闄ゅ拰缂栬緫 AnimationPlayer tracks/keyframes |
+| `animation_state_machine` | 鍒涘缓銆佹鏌ュ拰閰嶇疆 AnimationTree state machine transition |
+| `signal` | 鍒楀嚭銆佽繛鎺ユ垨鏂紑鑺傜偣 signal |
+| `group` | 鍒楀嚭銆佹坊鍔犳垨绉婚櫎鑺傜偣 group |
+| `ui` | 鍒涘缓 Control 鑺傜偣銆乁I tree 妯℃澘銆乀heme 璧勬簮銆乼heme 搴旂敤鍜岃嚜鍔?signal wiring |
+| `material` | 鍒涘缓銆佽鍙栥€佹洿鏂般€佸簲鐢ㄣ€佸垪鍑烘ā鏉垮苟浠庡彲澶嶇敤鏉愯川妯℃澘鍒涘缓 material |
+| `shader` | 鍒涘缓/璇诲彇 shader锛屾鏌?include 鍜?texture uniform锛屽苟閰嶇疆 ShaderMaterial 鍙傛暟 |
+| `lighting` | 鍒涘缓鍜屽垪鍑?Godot light/environment 鑺傜偣 |
+| `particle` | 鍒涘缓鍜屽垪鍑?particle emitter 鑺傜偣 |
+
+### TileMap銆佺墿鐞嗐€佸鑸拰闊抽宸ュ叿
+
+| Tool | 璇存槑 |
+| --- | --- |
+| `tilemap` | 鍒涘缓/鍒楀嚭 TileMap 鑺傜偣銆佸垱寤?TileSet銆佺紪杈?cell銆佹坊鍔?atlas source銆侀厤缃?metadata/collision/navigation/terrain銆侀殢鏈虹粯鍒跺拰搴旂敤妯℃澘 |
+| `geometry` | 鍒涘缓鍜屽垪鍑哄熀纭€ 2D geometry/debug drawing 鑺傜偣 |
+| `physics` | 鍒涘缓/鍒楀嚭 physics body锛岄厤缃懡鍚?collision layer/mask锛屽垱寤?Shape 璧勬簮鍜屾ā鏉匡紝妫€鏌?collision info锛屽苟鍒嗘瀽 scene physics 闂 |
+| `navigation` | 鍒涘缓/鍒楀嚭 NavigationRegion銆丯avigationAgent銆丯avigationObstacle锛岄厤缃?bake navigation 璧勬簮锛屾煡璇?path锛屽苟鐢熸垚 debug geometry |
+| `audio` | 鍒涘缓/鍒楀嚭 AudioStreamPlayer 鑺傜偣骞舵鏌?audio bus |
 
 ## 全部工具
 
-### 核心和项目工具
+## 全部支持的工具
 
-| Tool | 说明 |
-| --- | --- |
-| `get_capabilities` | 发现工具 schema、alias、run mode 和 risk level |
-| `get_godot_version` | 检测本机 Godot 版本 |
-| `list_projects` | 在目录中查找 Godot 项目 |
-| `get_project_info` | 项目元信息、主场景、autoload、input action、rendering 和资源统计 |
-| `project_get_settings` | 读取 `project.godot` 设置 |
-| `project_set_setting` | 更新 `project.godot` 设置，支持 dry-run 和 audit logging |
-| `project_input_action` | 列出、创建、更新或删除 InputMap action |
-| `get_safety_policy` | 读取 `.godot-devtool/safety.json` 和默认安全状态 |
-| `set_safety_policy` | 配置写入 allowlist 和 blocked path 规则 |
-| `preview_write_safety` | 预览 policy decision 和 diff summary metadata |
-| `get_audit_replay` | 将 audit entries 汇总为 replay steps 和 risk highlights |
-| `get_rollback_suggestions` | 针对 changed files 或 audit entries 返回 rollback 建议 |
-| `get_resource_index` | 分类列出 scene、script、texture、audio、model、resource、shader 和其他文件 |
-| `resource_dependency_graph` | 构建 `res://` 依赖图并检测孤立资源 |
-| `get_script_index` | GDScript 文件索引，包含 class、base class、export 和 function |
+下面每个方法都对应真实的本地实现或 Godot editor/runtime bridge。Bridge 类工具会等待完成回执，并返回真实结果、超时或环境错误。
 
-### 场景和节点工具
+### Project Tools (7)
 
-| Tool | 说明 |
-| --- | --- |
-| `create_scene` | 创建 scene 文件 |
-| `scene_open` | 在 MCP session 中打开 scene |
-| `scene_get_current` | 返回 MCP 当前跟踪的 scene |
-| `get_scene_tree` | 读取 scene node tree |
-| `save_scene` | 保存 scene 或另存为变体 |
-| `add_node` | 添加节点并可设置属性 |
-| `delete_node` | 删除非 root 节点 |
-| `rename_node` | 重命名节点 |
-| `node_get` | 读取节点信息 |
-| `node_get_property` / `get_node_properties` | 读取指定节点属性 |
-| `node_set_property` / `update_node_properties` | 更新节点属性 |
-| `node_move` | 通过 position 移动节点 |
-| `node_duplicate` | 复制节点 |
-| `node_find` | 按 name、type 或 path substring 查找节点 |
-| `load_sprite` | 给 sprite 类节点分配 texture |
+Tool Description
+`get_project_info` 项目元数据、版本、视口和 autoload
+`get_filesystem_tree` 带过滤的递归文件树
+`search_files` 模糊/glob 文件搜索
+`get_project_settings` 读取 project.godot 设置
+`set_project_setting` 通过编辑器 API 设置项目配置
+`uid_to_project_path` UID 转 res:// 路径
+`project_path_to_uid` res:// 路径转 UID
 
-### 脚本、文件和资源工具
+### Scene Tools (9)
 
-| Tool | 说明 |
-| --- | --- |
-| `script_create` | 创建 GDScript 文件 |
-| `script_write` | 写入完整 GDScript 内容 |
-| `script_attach` | 将 GDScript resource 挂到 scene 节点 |
-| `read_script_file` | 读取 GDScript 文件 |
-| `analyze_script_references` | 分析 script class、function、export、node path 和 resource 引用 |
-| `check_gdscript_syntax` | 运行 Godot 脚本语法诊断 |
-| `filesystem_list` | 列出项目内文件和目录 |
-| `filesystem_read` | 读取项目内文本文件 |
-| `filesystem_write` | 写入项目内文本文件 |
-| `filesystem_delete` | 带确认删除项目内文件或目录 |
-| `filesystem_preview_delete` | 预览删除影响 |
-| `resource_load` | 读取文本型 Godot resource |
-| `resource_create` | 创建结构化 `.tres` 或 `.res` resource |
-| `resource_save` | 保存文本型 resource 内容 |
+Tool Description
+`get_scene_tree` 带层级的实时场景树
+`get_scene_file_content` 原始 .tscn 文件内容
+`create_scene` 创建新场景文件
+`open_scene` 在编辑器中打开场景
+`delete_scene` 删除场景文件
+`add_scene_instance` 将场景实例化为子节点
+`play_scene` 运行主场景/当前场景/指定场景
+`stop_scene` 停止正在运行的场景
+`save_scene` 保存当前场景到磁盘
 
-### Editor Bridge 工具
+### Node Tools (14)
 
-| Tool | 说明 |
-| --- | --- |
-| `launch_editor` | 启动指定项目的 Godot editor |
-| `install_editor_bridge` | 安装 editor bridge plugin |
-| `editor_bridge_status` | 读取安装、instance、pending command、expired command 和 receipt 信息 |
-| `editor_get_selection` | 读取当前 editor selection 和 edited scene |
-| `editor_select_node` | 在 live editor 中选中节点 |
-| `editor_undo_redo` | 入队 editor undo 或 redo |
-| `editor_inspector_get_properties` | 从选中或指定节点读取 Inspector 属性 |
-| `editor_inspector_set_properties` | 通过 editor bridge 写入 Inspector 属性 |
+Tool Description
+`add_node` 按类型和属性添加节点
+`delete_node` 删除节点并支持 undo
+`duplicate_node` 复制节点及其子节点
+`move_node` 移动或重挂节点
+`update_property` 设置任意属性并自动解析类型
+`get_node_properties` 获取节点属性
+`add_resource` 给节点添加 Shape/Material 等资源
+`set_anchor_preset` 设置 Control 锚点预设
+`rename_node` 重命名场景节点
+`connect_signal` 连接节点信号
+`disconnect_signal` 断开信号连接
+`get_node_groups` 获取节点所属分组
+`set_node_groups` 设置节点分组
+`find_nodes_in_group` 查找指定分组中的全部节点
 
-### 运行、调试、导出和工作流工具
+### Script Tools (8)
 
-| Tool | 说明 |
-| --- | --- |
-| `run_project` | 运行 Godot 项目并捕获输出 |
-| `stop_project` | 停止正在运行的 Godot 项目 |
-| `get_debug_output` | 读取缓存 stdout/stderr 和 error |
-| `clear_debug_output` | 清空 debug output buffer |
-| `run_project_checks` | 带机器可读 code、cause 和修复建议的稳定项目检查 |
-| `get_audit_log` | 读取项目 audit log |
-| `create_workflow_test_scene` | 生成工作流验证 scene |
-| `create_gameplay_prototype` | 生成 block-based survivors 原型 |
-| `get_export_presets` | 读取 export preset |
-| `check_export_presets` | 检查 export preset 问题 |
-| `export_matrix` | 汇总平台族、签名/template 状态、metadata、artifact、问题和 CI 建议 |
-| `generate_ci_snippet` | 生成 GitHub Actions 或 GitLab CI 片段，用于 headless 检查、导出预检、release export 和 artifact 归档 |
-| `update_export_preset` | 更新 export preset field 或 option |
-| `export_project` | 执行受控 Godot export |
-| `export_mesh_library` | 将 3D scene 导出为 MeshLibrary resource |
-| `get_uid` | 读取 Godot 4.4+ resource UID |
-| `update_project_uids` | 重新保存 resource 以更新 UID 引用 |
+Tool Description
+`list_scripts` 列出脚本及 class 信息
+`read_script` 读取脚本内容
+`create_script` 按模板创建脚本
+`edit_script` 搜索替换或完整编辑脚本
+`attach_script` 将脚本挂到节点
+`get_open_scripts` 列出编辑器中打开的脚本
+`validate_script` 校验 GDScript 语法
+`search_in_files` 搜索项目文件内容
 
-### 动画、UI、视觉和材质工具
+### Editor Tools (9)
 
-| Tool | 说明 |
-| --- | --- |
-| `animation` | 列出、创建、检查、删除和编辑 AnimationPlayer tracks/keyframes |
-| `animation_state_machine` | 创建、检查和配置 AnimationTree state machine transition |
-| `signal` | 列出、连接或断开节点 signal |
-| `group` | 列出、添加或移除节点 group |
-| `ui` | 创建 Control 节点、UI tree 模板、Theme 资源、theme 应用和自动 signal wiring |
-| `material` | 创建、读取、更新、应用、列出模板并从可复用材质模板创建 material |
-| `shader` | 创建/读取 shader，检查 include 和 texture uniform，并配置 ShaderMaterial 参数 |
-| `lighting` | 创建和列出 Godot light/environment 节点 |
-| `particle` | 创建和列出 particle emitter 节点 |
+Tool Description
+`get_editor_errors` 获取编辑器错误和堆栈信息
+`get_editor_screenshot` 捕获编辑器视口
+`get_game_screenshot` 捕获运行中游戏或 bridge 视口
+`execute_editor_script` 通过 bridge 执行编辑器表达式
+`clear_output` 清空输出面板
+`get_signals` 获取节点信号及连接
+`reload_plugin` 重新加载或确认 MCP bridge 插件
+`reload_project` 重新扫描文件系统并加载脚本
+`get_output_log` 获取输出面板内容
 
-### TileMap、物理、导航和音频工具
+### Input Tools (7)
 
-| Tool | 说明 |
-| --- | --- |
-| `tilemap` | 创建/列出 TileMap 节点、创建 TileSet、编辑 cell、添加 atlas source、配置 metadata/collision/navigation/terrain、随机绘制和应用模板 |
-| `geometry` | 创建和列出基础 2D geometry/debug drawing 节点 |
-| `physics` | 创建/列出 physics body，配置命名 collision layer/mask，创建 Shape 资源和模板，检查 collision info，并分析 scene physics 问题 |
-| `navigation` | 创建/列出 NavigationRegion、NavigationAgent、NavigationObstacle，配置/bake navigation 资源，查询 path，并生成 debug geometry |
-| `audio` | 创建/列出 AudioStreamPlayer 节点并检查 audio bus |
+Tool Description
+`simulate_key` 模拟键盘按下/释放
+`simulate_mouse_click` 模拟鼠标点击
+`simulate_mouse_move` 模拟鼠标移动
+`simulate_action` 模拟 Godot Input Action
+`simulate_sequence` 按帧延迟执行输入序列
+`get_input_actions` 列出所有输入动作
+`set_input_action` 创建或修改输入动作
 
-### 精确名称兼容工具
+### Runtime Tools (19)
 
-以下工具名面向需要更完整 Godot 自动化工具面的 MCP 客户端。部分名称会直接映射到 canonical 工具，部分会映射到分组工具的固定 action，live editor/runtime automation 名称会写入 Godot editor/runtime bridge 命令队列。
+Tool Description
+`get_game_scene_tree` 获取运行中游戏或 bridge 上下文的场景树
+`get_game_node_properties` 获取运行时或 bridge 上下文节点属性
+`set_game_node_property` 设置运行时或 bridge 上下文节点属性
+`execute_game_script` 在 runtime IPC 可用时执行游戏上下文 GDScript
+`capture_frames` 多帧截图捕获
+`monitor_properties` 按时间记录属性值
+`start_recording` 开始输入录制
+`stop_recording` 停止输入录制
+`replay_recording` 回放输入录制
+`find_nodes_by_script` 按脚本查找节点
+`get_autoload` 获取 autoload 节点属性
+`batch_get_properties` 批量获取多个节点属性
+`find_ui_elements` 查找 UI 元素
+`click_button_by_text` 按文本点击按钮
+`wait_for_node` 等待节点出现
+`find_nearby_nodes` 查找附近节点
+`navigate_to` 导航到目标位置
+`move_to` 移动角色到目标位置
 
-| 分组 | 工具 |
-| --- | --- |
-| Project | `get_project_info`, `get_filesystem_tree`, `search_files`, `get_project_settings`, `set_project_setting`, `uid_to_project_path`, `project_path_to_uid` |
-| Scene | `get_scene_tree`, `get_scene_file_content`, `create_scene`, `open_scene`, `delete_scene`, `add_scene_instance`, `play_scene`, `stop_scene`, `save_scene` |
-| Node | `add_node`, `delete_node`, `duplicate_node`, `move_node`, `update_property`, `get_node_properties`, `add_resource`, `set_anchor_preset`, `rename_node`, `connect_signal`, `disconnect_signal`, `get_node_groups`, `set_node_groups`, `find_nodes_in_group` |
-| Script | `list_scripts`, `read_script`, `create_script`, `edit_script`, `attach_script`, `get_open_scripts`, `validate_script`, `search_in_files` |
-| Editor | `get_editor_errors`, `get_editor_screenshot`, `get_game_screenshot`, `execute_editor_script`, `clear_output`, `get_signals`, `reload_plugin`, `reload_project`, `get_output_log` |
-| Input | `simulate_key`, `simulate_mouse_click`, `simulate_mouse_move`, `simulate_action`, `simulate_sequence`, `get_input_actions`, `set_input_action` |
-| Runtime | `get_game_scene_tree`, `get_game_node_properties`, `set_game_node_property`, `execute_game_script`, `capture_frames`, `monitor_properties`, `start_recording`, `stop_recording`, `replay_recording`, `find_nodes_by_script`, `get_autoload`, `batch_get_properties`, `find_ui_elements`, `click_button_by_text`, `wait_for_node`, `find_nearby_nodes`, `navigate_to`, `move_to` |
-| Animation | `list_animations`, `create_animation`, `add_animation_track`, `set_animation_keyframe`, `get_animation_info`, `remove_animation` |
-| TileMap | `tilemap_set_cell`, `tilemap_fill_rect`, `tilemap_get_cell`, `tilemap_clear`, `tilemap_get_info`, `tilemap_get_used_cells` |
-| Theme/UI | `create_theme`, `set_theme_color`, `set_theme_constant`, `set_theme_font_size`, `set_theme_stylebox`, `get_theme_info` |
-| Profiling | `get_performance_monitors`, `get_editor_performance` |
-| Batch/Refactoring | `find_nodes_by_type`, `find_signal_connections`, `batch_set_property`, `find_node_references`, `get_scene_dependencies`, `cross_scene_set_property`, `find_script_references`, `detect_circular_dependencies` |
-| Shader | `create_shader`, `read_shader`, `edit_shader`, `assign_shader_material`, `set_shader_param`, `get_shader_params` |
-| Export | `list_export_presets`, `export_project`, `get_export_info` |
-| Resource | `read_resource`, `edit_resource`, `create_resource`, `get_resource_preview`, `add_autoload`, `remove_autoload` |
-| Physics | `setup_physics_body`, `setup_collision`, `set_physics_layers`, `get_physics_layers`, `get_collision_info`, `add_raycast` |
-| 3D Scene | `add_mesh_instance`, `setup_camera_3d`, `setup_lighting`, `setup_environment`, `add_gridmap`, `set_material_3d` |
-| Particle | `create_particles`, `set_particle_material`, `set_particle_color_gradient`, `apply_particle_preset`, `get_particle_info` |
-| Navigation | `setup_navigation_region`, `setup_navigation_agent`, `bake_navigation_mesh`, `set_navigation_layers`, `get_navigation_info` |
-| Audio | `add_audio_player`, `add_audio_bus`, `add_audio_bus_effect`, `set_audio_bus`, `get_audio_bus_layout`, `get_audio_info` |
-| AnimationTree | `create_animation_tree`, `get_animation_tree_structure`, `set_tree_parameter`, `add_state_machine_state` |
-| State Machine | `remove_state_machine_state`, `add_state_machine_transition`, `remove_state_machine_transition` |
-| Blend Tree | `set_blend_tree_node` |
-| Analysis/Search | `analyze_scene_complexity`, `analyze_signal_flow`, `find_unused_resources`, `get_project_statistics` |
-| Testing/QA | `run_test_scenario`, `assert_node_state`, `assert_screen_text`, `compare_screenshots`, `run_stress_test`, `get_test_report` |
+### Remaining Tool Groups
 
-## 项目结构
+Animation、TileMap、Theme/UI、Profiling、Batch/Refactoring、Shader、Export、Resource、Physics、3D Scene、Particle、Navigation、Audio、AnimationTree、State Machine、Blend Tree、Analysis/Search、Testing/QA 的支持方法与英文 README 完全一致，并按“一个方法一行描述”的样式维护。
+## 椤圭洰缁撴瀯
 
 ```text
 src/
-  index.ts                    # MCP stdio CLI 入口
-  server/GodotServer.ts        # MCP server 生命周期、注册和分发
-  tools/toolDefinitions.ts     # MCP tool schema 和兼容 alias
-  godot/                       # Godot 项目分析、路径、文件、资源、导出和工作流
-  scripts/godot_operations/    # 用于生成 headless Godot 操作桥的源码片段
+  index.ts                    # MCP stdio CLI 鍏ュ彛
+  server/GodotServer.ts        # MCP server 鐢熷懡鍛ㄦ湡銆佹敞鍐屽拰鍒嗗彂
+  tools/toolDefinitions.ts     # MCP tool schema 鍜屽吋瀹?alias
+  godot/                       # Godot 椤圭洰鍒嗘瀽銆佽矾寰勩€佹枃浠躲€佽祫婧愩€佸鍑哄拰宸ヤ綔娴?
+  scripts/godot_operations/    # 鐢ㄤ簬鐢熸垚 headless Godot 鎿嶄綔妗ョ殑婧愮爜鐗囨
 skills/
-  godot-devtool/SKILL.md       # 面向此 MCP server 的 AI 助手工作流指引
+  godot-devtool/SKILL.md       # 闈㈠悜姝?MCP server 鐨?AI 鍔╂墜宸ヤ綔娴佹寚寮?
 scripts/
-  build.js                     # TypeScript 构建后生成 build/scripts/godot_operations.gd
-  check-project.js             # 项目健康检查入口
-  publish-github-release.js    # 构建、上传，并在 GitHub 上传成功后删除本地发布包
-  verify-roadmap-completion.js # 已发布能力本地回归验证
+  build.js                     # TypeScript 鏋勫缓鍚庣敓鎴?build/scripts/godot_operations.gd
+  check-project.js             # 椤圭洰鍋ュ悍妫€鏌ュ叆鍙?
+  publish-github-release.js    # 鏋勫缓銆佷笂浼狅紝骞跺湪 GitHub 涓婁紶鎴愬姛鍚庡垹闄ゆ湰鍦板彂甯冨寘
+  verify-roadmap-completion.js # 宸插彂甯冭兘鍔涙湰鍦板洖褰掗獙璇?
 ```
 
-## 更新日志和路线图
+## 鏇存柊鏃ュ織鍜岃矾绾垮浘
 
-- 已完成变更：[CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)
-- 未来计划：[ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)
+- 宸插畬鎴愬彉鏇达細[CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)
+- 鏈潵璁″垝锛歔ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)
+
+## Godot 涓枃绀惧尯缇?
+
+鎵爜鍔犲叆 Godot 涓枃绀惧尯缇も憼锛堢兢鍙凤細1078844534锛夈€?
+
+![Godot 涓枃绀惧尯缇や簩缁寸爜](docs/assets/godot-chinese-community-qq-qrcode.jpg)
+
+## 璁稿彲璇?
+
+MIT銆傝 [LICENSE](LICENSE)銆?
+
 
 ## Godot 中文社区群
 
-扫码加入 Godot 中文社区群①（群号：1078844534）。
+群号：1078844534
 
-![Godot 中文社区群二维码](docs/assets/godot-chinese-community-qq-qrcode.jpg)
 
-## 许可证
-
-MIT。见 [LICENSE](LICENSE)。
