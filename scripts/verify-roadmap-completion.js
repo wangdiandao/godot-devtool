@@ -248,7 +248,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.2.0');
+  assert.equal(releaseVersion, '2.3.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -379,6 +379,19 @@ try {
   assert.match(readmeZh, /从 Release Zip 安装/);
   assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readme, /## What It Can Do/);
+  assert.match(readme, /## All \d+ Tools/);
+  assert.match(readme, /### Project Tools \(\d+\)/);
+  assert.match(readme, /\| Tool \| Description \|/);
+  assert.match(readme, /\| `get_project_info` \|/);
+  assert.match(readme, /\| `plugin_status` \|/);
+  assert.match(readmeZh, /## 全部 \d+ 个工具/);
+  assert.match(readmeZh, /### 项目工具 \(\d+\)/);
+  assert.match(readmeZh, /\| 工具 \| 描述 \|/);
+  assert.match(readmeZh, /\| `get_project_info` \|/);
+  assert.match(readmeZh, /\| `plugin_status` \|/);
+  assert.doesNotMatch(readmeZh, /### Project Tools/);
+  assert.doesNotMatch(readmeZh, /Executable compatibility wrapper/);
+  assert.doesNotMatch(readmeZh, /Compatibility alias for/);
   assert.match(readme, /generate_ci_snippet/);
   assert.match(readmeZh, /generate_ci_snippet/);
   assert.match(readme, /plugin_install/);
@@ -391,8 +404,8 @@ try {
   assert.match(readmeZh, /godot-mcp-pro/);
   assert.match(readme, /Expand-Archive/);
   assert.match(readmeZh, /Expand-Archive/);
-  assert.match(readme, /analysis\/qa/);
-  assert.match(readmeZh, /analysis\/qa/);
+  assert.match(readme, /assert_node_state/);
+  assert.match(readmeZh, /assert_node_state/);
   assert.match(readme, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /## 能做什么/);

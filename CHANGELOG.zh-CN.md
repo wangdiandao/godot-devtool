@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.3.0
+
+编辑器状态面板与全量工具表格版本。
+
+- 新增 `godot-devtool` Godot 编辑器 dock，用于显示 MCP WebSocket 连接状态、URL、最近命令、最近回执、最近错误，并提供手动重连按钮。
+- 将内置 Godot 插件 metadata 和 package metadata 同步到 `2.3.0`。
+- 将 README 和中文 README 的能力展示改为 `All 249 Tools` / `全部 249 个工具` 的分组工具描述表格。
+- 增加编辑器状态 dock 和全量工具 README 表格格式的验证覆盖。
+
 ## 2.2.0
 
 README 安装和能力指南版本。

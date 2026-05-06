@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 [English](README.md) | 中文
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.2 版本继续采用 stdio/headless MCP server + 可选 localhost WebSocket bridge 架构，并把 README 扩展为更实用的安装和功能指南。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.3 版本继续采用 stdio/headless MCP server + 可选 localhost WebSocket bridge 架构，并把 README 扩展为更实用的安装和功能指南。
 
 ## 架构
 
@@ -38,12 +38,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.2.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.2.0/godot-devtool-build-2.2.0.zip)
+   [godot-devtool-build-2.3.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.3.0/godot-devtool-build-2.3.0.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.2.0.zip E:\godot-devtool -Force
+   Expand-Archive .\godot-devtool-build-2.3.0.zip E:\godot-devtool -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
@@ -182,36 +182,296 @@ Do not edit unrelated files.
 
 功能展示仅在呈现方式上参考公开的 [godot-mcp-pro README](https://github.com/youichi-uda/godot-mcp-pro/tree/master)：按表格展示功能分类，并让每个分类与说明一一对应。
 
-| 分组 | 传输 | 主要功能 |
-| --- | --- | --- |
-| `core` | `native` / `process_control` | Godot 版本检测、启动/停止项目、调试输出、能力发现 |
-| `project` | `native` | 项目元数据、项目设置、InputMap、autoload、资源/脚本索引、导出预设、CI 片段、安全策略、项目检查 |
-| `filesystem` | `native` | 项目内文件列表、读取、写入、删除预览、路径校验 |
-| `resource` | `native` | 读取/创建/保存 `.tres` 资源、依赖图、资源预览 |
-| `script` | `native` / `headless_godot` | 创建/读取/写入/挂载脚本、脚本索引、GDScript 语法检查 |
-| `scene` | `headless_godot` | 打开/创建/保存场景、场景树检查、节点增删改查、节点属性 |
-| `node` | `headless_godot` | 节点查找、属性检查、属性更新、加载 Sprite、导出 MeshLibrary |
-| `visual` | `headless_godot` | Shader、Material、Lighting、Particle、3D Mesh、Camera、Environment |
-| `editor` | `editor_ws` | 实时编辑器选择、选择节点、Inspector 读写、UndoRedo、插件重载 |
-| `runtime` | `runtime_ws` | 运行中游戏场景树、节点属性、属性写入、输入模拟、截图、帧捕获 |
-| `animation` | `headless_godot` | AnimationPlayer 创建、动画列表、轨道、关键帧、删除动画 |
-| `tilemap` | `headless_godot` | 设置/填充/查询/清空 TileMap 单元格、读取 used cells 和 tile 数据 |
-| `ui/theme` | `headless_godot` | Theme 资源、颜色、常量、字体大小、StyleBoxFlat、UI 元素发现 |
-| `physics` | `headless_godot` | 物理体、碰撞形状、layer/mask 设置、碰撞信息、RayCast 节点 |
-| `navigation` | `headless_godot` / `runtime_ws` | NavigationRegion/NavigationAgent 设置、bake 配置、路径辅助 |
-| `audio` | `headless_godot` | Audio player、音频总线布局、bus/effect 设置、音频节点信息 |
-| `analysis/qa` | `native` / `runtime_ws` | 场景复杂度、信号流、未使用资源、项目统计、断言、截图对比、压力报告 |
-| `compatibility` | mixed | 旧工具名和 alias 映射到可执行 canonical 路由 |
+## 全部 249 个工具
 
-常用工具包括：
+### 项目工具 (23)
+| 工具 | 描述 |
+|------|-------------|
+| `add_autoload` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `export_project` | 导出项目。 |
+| `get_autoload` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_input_actions` | 可执行兼容封装，转接到 `project_input_action` 路由并返回完成回执。 |
+| `get_project_info` | 获取项目元数据、版本、视口和 autoload 信息。 |
+| `get_project_settings` | 兼容别名，等同于 `project_get_settings`。 |
+| `get_project_statistics` | 可执行兼容封装，转接到 `get_project_info` 路由并返回完成回执。 |
+| `list_projects` | 列出项目。 |
+| `play_scene` | 兼容别名，等同于 `run_project`。 |
+| `project_get_info` | 兼容别名，等同于 `get_project_info`。 |
+| `project_get_settings` | 读取 project.godot 设置。 |
+| `project_input_action` | 列出或更新项目 InputMap 操作。 |
+| `project_set_setting` | 更新 project.godot 设置，并提供 dry-run 预览和审计记录。 |
+| `reload_project` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `remove_autoload` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `run_project` | 运行项目。 |
+| `run_project_checks` | 运行稳定的项目检查，用于 CI、评审和发布流程。 |
+| `set_input_action` | 可执行兼容封装，转接到 `project_input_action` 路由并返回完成回执。 |
+| `set_project_setting` | 兼容别名，等同于 `project_set_setting`。 |
+| `stop_project` | 停止项目。 |
+| `stop_scene` | 兼容别名，等同于 `stop_project`。 |
+| `uid_to_project_path` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `update_project_uids` | 更新项目UID。 |
 
-- 项目：`get_project_info`、`project_get_settings`、`project_set_setting`、`project_input_action`、`run_project_checks`。
-- 文件/资源：`filesystem_list`、`filesystem_read`、`filesystem_write`、`filesystem_preview_delete`、`resource_dependency_graph`、`resource_create`。
-- 脚本：`get_script_index`、`read_script_file`、`script_create`、`script_write`、`script_attach`、`check_gdscript_syntax`。
-- 场景/节点：`create_scene`、`scene_open`、`get_scene_tree`、`add_node`、`delete_node`、`rename_node`、`node_find`、`node_get`、`node_move`。
-- 实时编辑器：`plugin_install`、`plugin_status`、`plugin_reload`、`editor_get_selection`、`editor_select_node`、`editor_inspector_get_properties`、`editor_inspector_set_properties`。
-- 运行时：`get_game_scene_tree`、`get_game_node_properties`、`set_game_node_property`、`simulate_action`、`simulate_key`、`simulate_mouse_click`、`get_game_screenshot`、`assert_node_state`。
-- 导出/安全：`get_export_presets`、`check_export_presets`、`export_matrix`、`generate_ci_snippet`、`get_safety_policy`、`set_safety_policy`、`get_audit_replay`、`get_rollback_suggestions`。
+### 场景工具 (55)
+| 工具 | 描述 |
+|------|-------------|
+| `add_animation_track` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `add_audio_bus` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_audio_bus_effect` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_audio_player` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
+| `add_scene_instance` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `analyze_scene_complexity` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `analyze_signal_flow` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `animation` | 动画动画。 |
+| `animation_state_machine` | 动画动画状态机。 |
+| `audio` | 音频音频。 |
+| `bake_navigation_mesh` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
+| `connect_signal` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
+| `create_animation` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `create_animation_tree` | 可执行兼容封装，转接到 `animation_state_machine` 路由并返回完成回执。 |
+| `create_scene` | 创建新的 Godot 场景文件。 |
+| `cross_scene_set_property` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `disconnect_signal` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
+| `find_signal_connections` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_animation_info` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `get_animation_tree_structure` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_audio_bus_layout` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
+| `get_audio_info` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
+| `get_collision_info` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
+| `get_navigation_info` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
+| `get_physics_layers` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_scene_dependencies` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_scene_tree` | 获取场景树结构。 |
+| `get_signals` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
+| `list_animations` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `navigation` | 导航导航。 |
+| `open_scene` | 兼容别名，等同于 `scene_open`。 |
+| `physics` | 物理物理。 |
+| `remove_animation` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `save_scene` | 保存场景到磁盘。 |
+| `scene_create` | 兼容别名，等同于 `create_scene`。 |
+| `scene_get_current` | 场景场景获取当前。 |
+| `scene_get_tree` | 兼容别名，等同于 `get_scene_tree`。 |
+| `scene_open` | 场景场景打开。 |
+| `scene_save` | 兼容别名，等同于 `save_scene`。 |
+| `set_animation_keyframe` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `set_audio_bus` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_navigation_layers` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_physics_layers` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
+| `setup_collision` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
+| `setup_navigation_agent` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
+| `setup_navigation_region` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
+| `setup_physics_body` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
+| `signal` | 信号信号。 |
+| `tilemap` | TileMapTileMap。 |
+| `tilemap_clear` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `tilemap_fill_rect` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+| `tilemap_get_cell` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `tilemap_get_info` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+| `tilemap_get_used_cells` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `tilemap_set_cell` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+
+### 节点工具 (26)
+| 工具 | 描述 |
+|------|-------------|
+| `add_node` | 添加节点。 |
+| `delete_node` | 删除节点。 |
+| `duplicate_node` | 兼容别名，等同于 `node_duplicate`。 |
+| `find_nearby_nodes` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `find_node_references` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `find_nodes_by_type` | 可执行兼容封装，转接到 `node_find` 路由并返回完成回执。 |
+| `find_nodes_in_group` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_node_groups` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_node_properties` | 获取节点属性。 |
+| `group` | 分组分组。 |
+| `move_node` | 兼容别名，等同于 `node_move`。 |
+| `node_add` | 兼容别名，等同于 `add_node`。 |
+| `node_delete` | 兼容别名，等同于 `delete_node`。 |
+| `node_duplicate` | 节点节点复制。 |
+| `node_find` | 节点节点查找。 |
+| `node_get` | 节点节点获取。 |
+| `node_get_property` | 节点节点获取属性。 |
+| `node_move` | 节点节点移动。 |
+| `node_rename` | 兼容别名，等同于 `rename_node`。 |
+| `node_set_property` | 节点节点设置属性。 |
+| `rename_node` | 重命名节点。 |
+| `set_blend_tree_node` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_node_groups` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `update_node_properties` | 更新节点属性。 |
+| `update_property` | 兼容别名，等同于 `node_set_property`。 |
+| `wait_for_node` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+
+### 脚本工具 (15)
+| 工具 | 描述 |
+|------|-------------|
+| `analyze_script_references` | 分析脚本引用。 |
+| `attach_script` | 兼容别名，等同于 `script_attach`。 |
+| `check_gdscript_syntax` | 执行checkgdscript语法。 |
+| `create_script` | 兼容别名，等同于 `script_create`。 |
+| `edit_script` | 可执行兼容封装，转接到 `script_write` 路由并返回完成回执。 |
+| `execute_editor_script` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `find_nodes_by_script` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `find_script_references` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_open_scripts` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_script_index` | 列出 GDScript 文件及类、基类、导出变量和函数信息。 |
+| `list_scripts` | 兼容别名，等同于 `get_script_index`。 |
+| `script_attach` | 脚本脚本挂载。 |
+| `script_create` | 脚本脚本创建。 |
+| `script_write` | 脚本脚本write。 |
+| `validate_script` | 兼容别名，等同于 `check_gdscript_syntax`。 |
+
+### 编辑器工具 (11)
+| 工具 | 描述 |
+|------|-------------|
+| `editor_bridge_status` | 兼容别名，等同于 `plugin_status`。 |
+| `editor_get_selection` | 编辑器编辑器获取selection。 |
+| `editor_inspector_get_properties` | 编辑器编辑器inspector获取属性。 |
+| `editor_inspector_set_properties` | 编辑器编辑器inspector设置属性。 |
+| `editor_select_node` | 编辑器编辑器select节点。 |
+| `editor_undo_redo` | 编辑器编辑器undoredo。 |
+| `install_editor_bridge` | 兼容别名，等同于 `plugin_install`。 |
+| `plugin_install` | 把 godot-devtool WebSocket 编辑器/运行时插件安装到 Godot 项目。 |
+| `plugin_reload` | 通过 WebSocket bridge 重载 godot-devtool 编辑器插件。 |
+| `plugin_status` | 读取插件安装状态、WebSocket 配置和连接状态。 |
+| `reload_plugin` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+
+### 文件系统工具 (13)
+| 工具 | 描述 |
+|------|-------------|
+| `delete_scene` | 可执行兼容封装，转接到 `filesystem_delete` 路由并返回完成回执。 |
+| `filesystem_delete` | 文件系统文件系统删除。 |
+| `filesystem_list` | 列出项目内文件和目录。 |
+| `filesystem_preview_delete` | 文件系统文件系统预览删除。 |
+| `filesystem_read` | 读取项目内 UTF-8 文本文件。 |
+| `filesystem_write` | 写入项目内 UTF-8 文本文件。 |
+| `get_filesystem_tree` | 可执行兼容封装，转接到 `filesystem_list` 路由并返回完成回执。 |
+| `get_scene_file_content` | 可执行兼容封装，转接到 `filesystem_read` 路由并返回完成回执。 |
+| `read_script` | 兼容别名，等同于 `read_script_file`。 |
+| `read_script_file` | 读取脚本文件。 |
+| `script_read` | 兼容别名，等同于 `read_script_file`。 |
+| `search_files` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `search_in_files` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+
+### 资源工具 (20)
+| 工具 | 描述 |
+|------|-------------|
+| `add_resource` | 可执行兼容封装，转接到 `resource_create` 路由并返回完成回执。 |
+| `check_export_presets` | 执行check导出预设。 |
+| `create_resource` | 兼容别名，等同于 `resource_create`。 |
+| `edit_resource` | 可执行兼容封装，转接到 `resource_save` 路由并返回完成回执。 |
+| `export_matrix` | 导出matrix。 |
+| `export_mesh_library` | 导出网格library。 |
+| `find_unused_resources` | 可执行兼容封装，转接到 `resource_dependency_graph` 路由并返回完成回执。 |
+| `get_export_info` | 可执行兼容封装，转接到 `export_matrix` 路由并返回完成回执。 |
+| `get_export_presets` | 获取导出预设。 |
+| `get_resource_index` | 获取资源index。 |
+| `get_resource_preview` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_uid` | 获取UID。 |
+| `list_export_presets` | 兼容别名，等同于 `get_export_presets`。 |
+| `project_path_to_uid` | 兼容别名，等同于 `get_uid`。 |
+| `read_resource` | 兼容别名，等同于 `resource_load`。 |
+| `resource_create` | 资源资源创建。 |
+| `resource_dependency_graph` | 构建资源依赖图并识别孤立资源。 |
+| `resource_load` | 资源资源load。 |
+| `resource_save` | 资源资源保存。 |
+| `update_export_preset` | 更新导出预设。 |
+
+### 视觉工具 (26)
+| 工具 | 描述 |
+|------|-------------|
+| `apply_particle_preset` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `assign_shader_material` | 可执行兼容封装，转接到 `material` 路由并返回完成回执。 |
+| `create_particles` | 可执行兼容封装，转接到 `particle` 路由并返回完成回执。 |
+| `create_shader` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `create_theme` | 可执行兼容封装，转接到 `ui` 路由并返回完成回执。 |
+| `edit_shader` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `find_ui_elements` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_particle_info` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_shader_params` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `get_theme_info` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `lighting` | 灯光灯光。 |
+| `material` | 材质材质。 |
+| `particle` | 粒子粒子。 |
+| `read_shader` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `set_material_3d` | 可执行兼容封装，转接到 `material` 路由并返回完成回执。 |
+| `set_particle_color_gradient` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_particle_material` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_shader_param` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `set_theme_color` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_theme_constant` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_theme_font_size` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_theme_stylebox` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `setup_environment` | 可执行兼容封装，转接到 `lighting` 路由并返回完成回执。 |
+| `setup_lighting` | 可执行兼容封装，转接到 `lighting` 路由并返回完成回执。 |
+| `shader` | 着色器着色器。 |
+| `ui` | UIUI。 |
+
+### 运行时工具 (20)
+| 工具 | 描述 |
+|------|-------------|
+| `assert_node_state` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `assert_screen_text` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `compare_screenshots` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `create_workflow_test_scene` | 创建workflowtest场景。 |
+| `execute_game_script` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_editor_screenshot` | 截取 Godot 编辑器画面。 |
+| `get_game_node_properties` | 读取运行中游戏节点属性。 |
+| `get_game_scene_tree` | 获取运行中游戏的场景树。 |
+| `get_game_screenshot` | 截取运行中游戏画面。 |
+| `get_test_report` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `replay_recording` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `run_test_scenario` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_game_node_property` | 写入运行中游戏节点属性。 |
+| `simulate_action` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `simulate_key` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `simulate_mouse_click` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `simulate_mouse_move` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `simulate_sequence` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `start_recording` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `stop_recording` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+
+### 核心工具 (40)
+| 工具 | 描述 |
+|------|-------------|
+| `add_gridmap` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_mesh_instance` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_raycast` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_state_machine_state` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `add_state_machine_transition` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `batch_get_properties` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `batch_set_property` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `capture_frames` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `clear_debug_output` | 清理调试输出。 |
+| `clear_output` | 兼容别名，等同于 `clear_debug_output`。 |
+| `click_button_by_text` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `create_gameplay_prototype` | 创建gameplayprototype。 |
+| `debug_get_logs` | 兼容别名，等同于 `get_debug_output`。 |
+| `detect_circular_dependencies` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `generate_ci_snippet` | 生成 GitHub Actions 或 GitLab CI 片段。 |
+| `geometry` | 执行geometry。 |
+| `get_audit_log` | 获取审计日志。 |
+| `get_audit_replay` | 获取审计回放。 |
+| `get_capabilities` | 列出 MCP 工具能力、路由分组、传输方式和风险等级。 |
+| `get_debug_output` | 获取调试输出。 |
+| `get_editor_errors` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_editor_performance` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_godot_version` | 获取 Godot 可执行文件版本。 |
+| `get_output_log` | 兼容别名，等同于 `get_debug_output`。 |
+| `get_performance_monitors` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `get_rollback_suggestions` | 获取回滚suggestions。 |
+| `get_safety_policy` | 获取安全策略。 |
+| `launch_editor` | 执行launch编辑器。 |
+| `load_sprite` | 执行loadsprite。 |
+| `monitor_properties` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `move_to` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `navigate_to` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `preview_write_safety` | 预览write安全。 |
+| `remove_state_machine_state` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `remove_state_machine_transition` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `run_stress_test` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_anchor_preset` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `set_safety_policy` | 设置安全策略。 |
+| `set_tree_parameter` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
+| `setup_camera_3d` | 可执行兼容封装，转接到 `compatibility_native` 路由并返回完成回执。 |
 
 ## 应该用哪个路由
 

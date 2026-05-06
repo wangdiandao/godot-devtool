@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.3.0
+
+Editor status dock and all-tools README release.
+
+- Added a Godot editor dock for `godot-devtool` that shows MCP WebSocket connection state, URL, last command, last receipt, last error, and a manual reconnect button.
+- Updated the bundled Godot plugin metadata and package metadata to `2.3.0`.
+- Reworked README and Chinese README capability display into `All 249 Tools` grouped tool-description tables.
+- Added verification coverage for the editor status dock and the all-tools README table format.
+
 ## Version 2.2.0
 
 README installation and capability guide release.

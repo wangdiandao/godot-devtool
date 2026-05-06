@@ -46,6 +46,10 @@ try {
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
+  assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
+  assert.match(pluginSource, /MCP Server/, 'plugin.gd status dock must label MCP server state');
+  assert.match(pluginSource, /Reconnect/, 'plugin.gd status dock must expose a reconnect action');
+  assert.match(pluginSource, /Last Command/, 'plugin.gd status dock must show the most recent command');
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
   assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
