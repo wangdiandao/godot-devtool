@@ -38,6 +38,16 @@ try {
   );
 
   console.log('Successfully generated godot_operations.gd from source fragments');
+
+  const sourceSkillDir = path.join(__dirname, '..', 'skills', 'godot-devtool');
+  const buildSkillDir = path.join(__dirname, '..', 'build', 'skills', 'godot-devtool');
+  fs.removeSync(buildSkillDir);
+  fs.ensureDirSync(buildSkillDir);
+  fs.copyFileSync(
+    path.join(sourceSkillDir, 'SKILL.md'),
+    path.join(buildSkillDir, 'SKILL.md')
+  );
+  console.log('Successfully copied godot-devtool skill into build output');
 } catch (error) {
   console.error('Error copying scripts:', error);
   process.exit(1);

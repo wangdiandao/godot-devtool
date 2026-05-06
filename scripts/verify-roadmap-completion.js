@@ -304,6 +304,8 @@ try {
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
+  assert.ok(existsSync(join(process.cwd(), 'build/skills/godot-devtool/SKILL.md')));
+  assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
