@@ -1,8 +1,18 @@
-# godot-devtool 更新日志
+﻿# godot-devtool 更新日志
 
 [English](CHANGELOG.md) | 中文
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
+
+## 2.1.0
+
+服务端与验证结构清理版本。
+
+- 将 `src/server/GodotServer.ts` 从数千行实现文件削减为紧凑的服务端状态和生命周期入口。
+- 将 legacy native/headless/editor/runtime 工具实现移动到 `src/server/GodotServer.methods.ts`，保持公开 MCP 行为不变。
+- 将 v2 capability 检查合并进 `verify-tool-definitions.js`。
+- 将插件路由和 runtime bridge 安装检查合并为 `verify-godot-plugin.js`。
+- 删除过时的独立 `verify-v2-*` 脚本，并用 `verify:plugin`、`verify:all` 收敛 npm 验证入口。
 
 ## 2.0.0
 

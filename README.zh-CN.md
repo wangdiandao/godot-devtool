@@ -1,14 +1,14 @@
-# godot-devtool
+﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 [English](README.md) | 中文
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.0 版本明确采用 stdio/headless MCP server + 可选 localhost WebSocket Godot 编辑器插件桥接架构。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.1 版本明确采用 stdio/headless MCP server + 可选 localhost WebSocket Godot 编辑器插件桥接架构，并收敛了服务端入口和验证脚本结构。
 
 ## 架构
 
@@ -33,7 +33,7 @@ MCP client
 
 从 GitHub Releases 下载 v2 包：
 
-[godot-devtool-build-2.0.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.0.0/godot-devtool-build-2.0.0.zip)
+[godot-devtool-build-2.1.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.1.0/godot-devtool-build-2.1.0.zip)
 
 MCP 客户端配置：
 
@@ -121,9 +121,8 @@ autoload/DevtoolRuntime = *res://addons/godot_devtool/runtime_bridge.gd
 npm.cmd run build
 npm.cmd run verify:tools
 npm.cmd run verify:gdscripts
-npm.cmd run verify:v2:capabilities
-npm.cmd run verify:v2:plugin
-npm.cmd run verify:v2:runtime
+npm.cmd run verify:plugin
+npm.cmd run verify:all
 ```
 
 依赖 Godot 的检查需要 `GODOT_PATH`：

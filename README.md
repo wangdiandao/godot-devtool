@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 English | [中文](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.0 is designed as a stdio/headless MCP server with an optional localhost WebSocket bridge to a bundled Godot editor plugin.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.1 is designed as a stdio/headless MCP server with an optional localhost WebSocket bridge to a bundled Godot editor plugin, with a slimmer server entry point and consolidated verification scripts.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ MCP client
 
 Download the v2 package from GitHub Releases:
 
-[godot-devtool-build-2.0.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.0.0/godot-devtool-build-2.0.0.zip)
+[godot-devtool-build-2.1.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.1.0/godot-devtool-build-2.1.0.zip)
 
 Configure your MCP client:
 
@@ -121,9 +121,8 @@ Static and package checks:
 npm.cmd run build
 npm.cmd run verify:tools
 npm.cmd run verify:gdscripts
-npm.cmd run verify:v2:capabilities
-npm.cmd run verify:v2:plugin
-npm.cmd run verify:v2:runtime
+npm.cmd run verify:plugin
+npm.cmd run verify:all
 ```
 
 Godot-backed checks require `GODOT_PATH`:

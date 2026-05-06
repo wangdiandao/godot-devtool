@@ -35,6 +35,48 @@ if (duplicateNames.length > 0) {
   process.exit(1);
 }
 
+const toolsByName = new Map(GODOT_TOOL_DEFINITIONS.map((tool) => [tool.name, tool]));
+for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload']) {
+  if (!toolsByName.has(requiredName)) {
+    console.error(`Missing v2 plugin tool: ${requiredName}`);
+    process.exit(1);
+  }
+}
+
+for (const tool of GODOT_TOOL_DEFINITIONS) {
+  const missingMetadata = ['routeGroup', 'transport', 'riskLevel'].filter((key) => !tool[key]);
+  if (missingMetadata.length > 0) {
+    console.error(`Tool ${tool.name} is missing v2 metadata: ${missingMetadata.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (typeof tool.requiresEditor !== 'boolean' || typeof tool.requiresRuntime !== 'boolean') {
+    console.error(`Tool ${tool.name} must declare requiresEditor/requiresRuntime booleans`);
+    process.exit(1);
+  }
+}
+
+const invalidBridgeModes = GODOT_TOOL_DEFINITIONS.filter((tool) =>
+  String(tool.transport).includes('file_queue') ||
+  String(tool.description).toLowerCase().includes('file-based live editor bridge')
+);
+if (invalidBridgeModes.length > 0) {
+  console.error(`v2 must not advertise file-queue bridge routes: ${invalidBridgeModes.map((tool) => tool.name).join(', ')}`);
+  process.exit(1);
+}
+
+const pluginInstall = toolsByName.get('plugin_install');
+if (pluginInstall.transport !== 'native' || pluginInstall.routeGroup !== 'editor') {
+  console.error('plugin_install must be a native editor route');
+  process.exit(1);
+}
+
+const editorStatus = toolsByName.get('editor_bridge_status');
+if (!editorStatus || (editorStatus.canonicalName ?? 'plugin_status') !== 'plugin_status') {
+  console.error('editor_bridge_status compatibility tool must resolve to plugin_status');
+  process.exit(1);
+}
+
 const requiredCompatibilityTools17 = [
   'get_project_settings',
   'set_project_setting',
@@ -196,7 +238,10 @@ if (missingCompatibilityTools17.length > 0) {
 }
 
 const routeSource = readFileSync(join(repoRoot, 'src/tools/compatibilityTools.ts'), 'utf8');
-const serverSource = readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8');
+const serverSource = [
+  readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8'),
+  readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8'),
+].join('\n');
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');
 const weakImplementationPatterns = [
   'unsupportedReason',

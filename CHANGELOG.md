@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.1.0
+
+Server and verification structure cleanup release.
+
+- Reduced `src/server/GodotServer.ts` from a multi-thousand-line implementation file to a compact server state and lifecycle entry point.
+- Moved legacy native/headless/editor/runtime tool implementations into `src/server/GodotServer.methods.ts` while keeping public MCP behavior unchanged.
+- Merged v2 capability checks into `verify-tool-definitions.js`.
+- Merged plugin router and runtime bridge installation checks into `verify-godot-plugin.js`.
+- Removed obsolete standalone `verify-v2-*` scripts and replaced the npm surface with `verify:plugin` and `verify:all`.
+
 ## Version 2.0.0
 
 WebSocket plugin architecture release.

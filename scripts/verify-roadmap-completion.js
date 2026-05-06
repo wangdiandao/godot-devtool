@@ -248,7 +248,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.0.0');
+  assert.equal(releaseVersion, '2.1.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -400,15 +400,22 @@ try {
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
+  assert.equal(packageJson.scripts['verify:tools'], 'npm run build && node scripts/verify-tool-definitions.js');
+  assert.equal(packageJson.scripts['verify:plugin'], 'npm run build && node scripts/verify-godot-plugin.js');
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
+  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:plugin && npm run verify:roadmap');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
+  assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-plugin.js')));
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
+  assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-capabilities.js')), false);
+  assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-plugin-router.js')), false);
+  assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-runtime-bridge.js')), false);
   assert.ok(existsSync(join(process.cwd(), 'scripts/publish-github-release.js')));
   assert.ok(existsSync(join(process.cwd(), 'build/skills/godot-devtool/SKILL.md')));
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of [releaseVersion, '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '2.0.0', '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
