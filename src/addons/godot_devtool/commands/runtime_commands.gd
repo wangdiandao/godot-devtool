@@ -123,9 +123,9 @@ func _simulate_sequence(payload: Dictionary) -> Dictionary:
 func _screenshot(payload: Dictionary) -> Dictionary:
 	var output_path := str(payload.get("outputPath", ".godot-devtool/game-screenshot.png"))
 	var resource_path := output_path if output_path.begins_with("res://") else "res://" + output_path
-	var image := Engine.get_main_loop().root.get_texture().get_image()
+	var image: Image = Engine.get_main_loop().root.get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(resource_path.get_base_dir()))
-	var err := image.save_png(resource_path)
+	var err: int = image.save_png(resource_path)
 	return _ok({"outputPath": resource_path, "errorCode": err, "width": image.get_width(), "height": image.get_height()}) if err == OK else _err("Failed to save screenshot: " + str(err))
 
 func _find_ui_elements() -> Dictionary:

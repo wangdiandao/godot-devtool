@@ -10,8 +10,6 @@
 
 `godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.2 版本继续采用 stdio/headless MCP server + 可选 localhost WebSocket bridge 架构，并把 README 扩展为更实用的安装和功能指南。
 
-架构和 README 组织方式参考了 [godot-mcp-pro](https://github.com/youichi-uda/godot-mcp-pro/tree/master) 公开仓库的表达：AI client 通过 stdio 连接 Node MCP server，再通过 WebSocket 连接 Godot 编辑器插件，并按 project、scene、node、script、editor、input、runtime、animation、tilemap、UI/theme、physics、navigation、audio、QA 等功能分组说明。本项目使用自己的实现和包结构。
-
 ## 架构
 
 ```text
@@ -181,6 +179,8 @@ Do not edit unrelated files.
 ## 能做什么
 
 请把 `get_capabilities` 当作真实能力来源。每个工具都会返回 `routeGroup`、`transport`、`riskLevel`、`requiresEditor`、`requiresRuntime` 和 `canonicalName`。
+
+功能展示仅在呈现方式上参考公开的 [godot-mcp-pro README](https://github.com/youichi-uda/godot-mcp-pro/tree/master)：按表格展示功能分类，并让每个分类与说明一一对应。
 
 | 分组 | 传输 | 主要功能 |
 | --- | --- | --- |

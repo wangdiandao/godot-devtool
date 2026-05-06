@@ -58,15 +58,17 @@ func _try_connect() -> void:
 	_socket.connect_to_url(_bridge_url)
 
 func _handle_packet(packet_text: String) -> void:
-	var message = JSON.parse_string(packet_text)
-	if typeof(message) != TYPE_DICTIONARY:
+	var parsed = JSON.parse_string(packet_text)
+	if typeof(parsed) != TYPE_DICTIONARY:
 		return
+	var message: Dictionary = parsed
 	if str(message.get("type", "")) != "command":
 		return
 	var command_id := str(message.get("commandId", ""))
 	var command_name := str(message.get("command", message.get("route", "")))
-	var payload := message.get("payload", {})
-	var result := _router.dispatch_command(command_name, payload, self)
+	var payload_value = message.get("payload", {})
+	var payload: Dictionary = payload_value if typeof(payload_value) == TYPE_DICTIONARY else {}
+	var result: Dictionary = _router.dispatch_command(command_name, payload, self)
 	_send({
 		"type": "receipt",
 		"commandId": command_id,

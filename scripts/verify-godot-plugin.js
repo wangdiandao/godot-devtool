@@ -50,6 +50,7 @@ try {
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
   assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
   assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
+  assertNoUntypedInferenceHazards(sourceRoot);
 
   await writeFile(
     join(projectPath, 'project.godot'),
@@ -91,4 +92,28 @@ try {
 } finally {
   await getWsBridge().stop();
   await rm(projectPath, { recursive: true, force: true });
+}
+
+function assertNoUntypedInferenceHazards(root) {
+  const files = [
+    join(root, 'plugin.gd'),
+    join(root, 'runtime_bridge.gd'),
+    join(root, 'commands', 'runtime_commands.gd'),
+  ];
+  const hazards = [
+    /\bvar\s+\w+\s*:=\s*\w+\.get\("payload"/,
+    /\bvar\s+\w+\s*:=\s*.*\.get_image\(\)/,
+    /\bvar\s+\w+\s*:=\s*.*\.save_png\(/,
+  ];
+
+  for (const filePath of files) {
+    const source = readFileSync(filePath, 'utf8');
+    for (const hazard of hazards) {
+      assert.doesNotMatch(
+        source,
+        hazard,
+        `${filePath} contains a Godot 4 unsafe inferred Variant assignment: ${hazard}`
+      );
+    }
+  }
 }
