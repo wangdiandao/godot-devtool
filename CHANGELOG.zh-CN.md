@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 1.5.0
+
+导出、CI 和发布自动化版本。
+
+- 扩展 export preset 检查，增加 export template 指引、平台签名详情、icon 和 metadata 检查，以及已配置 artifact 验证。
+- 增加 `generate_ci_snippet`，生成 GitHub Actions 和 GitLab CI 的 headless 检查、导出预检、release export 和 artifact 归档片段。
+- 改进 `run_project_checks`，为检查结果增加机器可读 code、原因和修复建议。
+- 增加 `release:github` 发布自动化，GitHub Release 上传成功后会删除本地 release zip。
+- 更新 `1.5.0` 发布文档和构建包下载链接。
+
 ## 1.4.0
 
 物理、导航和调试分析版本。

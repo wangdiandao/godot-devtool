@@ -143,6 +143,38 @@ export const PROJECT_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     },
   },
   {
+    name: 'generate_ci_snippet',
+    description: 'Generate GitHub Actions or GitLab CI snippets for Godot headless checks, export preflight, release export, and artifact archiving',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        provider: {
+          type: 'string',
+          enum: ['github_actions', 'gitlab_ci', 'all'],
+          description: 'CI provider snippet to return. Defaults to all.',
+        },
+        includeExport: {
+          type: 'boolean',
+          description: 'Include a Godot --export-release step. Defaults to true.',
+        },
+        includeArtifactUpload: {
+          type: 'boolean',
+          description: 'Include CI artifact upload/archive configuration. Defaults to true.',
+        },
+        presetName: {
+          type: 'string',
+          description: 'Optional export preset name to embed in the snippet.',
+        },
+        outputPath: {
+          type: 'string',
+          description: 'Optional export output path to embed in the snippet.',
+        },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
     name: 'update_export_preset',
     description: 'Update fields or options for a configured Godot export preset',
     inputSchema: {

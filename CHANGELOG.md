@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.5.0
+
+Export, CI, and release automation release.
+
+- Expanded export preset inspection with export template guidance, platform signing details, icon and metadata checks, and configured artifact validation.
+- Added `generate_ci_snippet` for GitHub Actions and GitLab CI headless checks, export preflight, release export, and artifact archiving snippets.
+- Improved `run_project_checks` with machine-readable check codes, root causes, and fix suggestions.
+- Added `release:github` publishing automation that deletes the local release zip after a successful GitHub Release upload.
+- Updated release documentation and package download links for `1.5.0`.
+
 ## Version 1.4.0
 
 Physics, navigation, and debug analysis release.

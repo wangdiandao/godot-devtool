@@ -6,14 +6,6 @@ This document tracks future development plans only. Completed releases are track
 
 ## Future Versions
 
-### 1.5.0 Export, CI, And Release Automation
-
-- Add export template checks and optional setup guidance.
-- Add platform signing detail checks.
-- Add icon, metadata, and artifact validation.
-- Generate CI snippets for headless checks, script syntax checks, export preflight, and artifact archiving.
-- Improve `run_project_checks` with machine-readable failure causes and fix suggestions.
-
 ### 1.6.0 Safety And Recovery
 
 - Add configurable write allowlists.

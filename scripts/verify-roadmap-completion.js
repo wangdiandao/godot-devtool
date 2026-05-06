@@ -195,6 +195,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
+  assert.equal(releaseVersion, '1.5.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -203,6 +204,7 @@ try {
   const uiTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'ui');
   const physicsTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'physics');
   const navigationTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'navigation');
+  const ciSnippetTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'generate_ci_snippet');
   assert.ok(shaderTool);
   assert.ok(materialTool);
   assert.ok(animationTool);
@@ -210,6 +212,7 @@ try {
   assert.ok(uiTool);
   assert.ok(physicsTool);
   assert.ok(navigationTool);
+  assert.ok(ciSnippetTool);
   for (const action of ['create', 'read', 'inspect', 'set_parameters']) {
     assert.ok(shaderTool.inputSchema.properties.action.enum.includes(action), `shader action missing: ${action}`);
   }
@@ -257,6 +260,27 @@ try {
   for (const field of ['agentRadius', 'cellSize', 'cellHeight', 'startPosition', 'endPosition', 'debugNodeName']) {
     assert.ok(navigationTool.inputSchema.properties[field], `navigation field missing: ${field}`);
   }
+  for (const field of ['provider', 'includeExport', 'includeArtifactUpload']) {
+    assert.ok(ciSnippetTool.inputSchema.properties[field], `generate_ci_snippet field missing: ${field}`);
+  }
+
+  const exportInspection = await exportConfig.inspectExportPresets(projectPath);
+  assert.ok(exportInspection.issues.some((issue) => issue.code === 'missing_export_template' && issue.suggestion));
+  assert.ok(exportInspection.issues.some((issue) => issue.code === 'missing_icon' && issue.cause));
+  assert.ok(exportInspection.metadata.projectName);
+
+  const exportMatrix = await exportConfig.buildExportMatrix(projectPath);
+  assert.ok(exportMatrix.targets[0].templateChecks.length > 0);
+  assert.ok(exportMatrix.targets[0].signingDetails.length > 0);
+  assert.ok(exportMatrix.targets[0].artifact);
+  assert.ok(exportMatrix.generatedCiSnippets.githubActions.includes('godot --headless'));
+
+  const workflowChecks = await import('../build/godot/workflowAutomation.js');
+  const checkResult = await workflowChecks.runProjectChecks(projectPath);
+  assert.ok(checkResult.checks.every((check) => check.code && check.cause && check.suggestion));
+  const exportCheck = checkResult.checks.find((check) => check.name === 'export_presets');
+  assert.ok(exportCheck);
+  assert.ok(exportCheck.details.issues.some((issue) => issue.code && issue.suggestion));
 
   assert.match(operationsScript, /func collect_shader_includes/);
   assert.match(operationsScript, /func collect_shader_texture_uniforms/);
@@ -286,6 +310,8 @@ try {
   assert.match(readmeZh, /最新发行包/);
   assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readme, /## All Tools/);
+  assert.match(readme, /generate_ci_snippet/);
+  assert.match(readmeZh, /generate_ci_snippet/);
   assert.match(readmeZh, /## 全部工具/);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
@@ -303,7 +329,9 @@ try {
   assert.match(skillRaw, /"mcpServers"/);
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
+  assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
+  assert.ok(existsSync(join(process.cwd(), 'scripts/publish-github-release.js')));
   assert.ok(existsSync(join(process.cwd(), 'build/skills/godot-devtool/SKILL.md')));
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
 
@@ -318,6 +346,8 @@ try {
   assert.match(roadmapZh, /\[English\]\(ROADMAP\.md\)/);
   assert.doesNotMatch(roadmap, /### 1\.4\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.4\.0/);
+  assert.doesNotMatch(roadmap, /### 1\.5\.0/);
+  assert.doesNotMatch(roadmapZh, /### 1\.5\.0/);
   assert.doesNotMatch(roadmap, /### 1\.3\.0/);
   assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);

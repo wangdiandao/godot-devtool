@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@ This project was initially inspired by [Coding-Solo/godot-mcp](https://github.co
 
 Latest release package:
 
-[godot-devtool-build-1.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.4.0/godot-devtool-build-1.4.0.zip)
+[godot-devtool-build-1.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.5.0/godot-devtool-build-1.5.0.zip)
 
 Extract the zip and point your MCP client at the extracted `build/index.js`.
 
@@ -86,7 +86,7 @@ The skill teaches clients to inspect project state first, prefer structured MCP 
 3. Call `get_project_info`, `get_resource_index`, and `get_script_index` to understand the project.
 4. Use scene, node, script, resource, animation, visual, TileMap, physics, navigation, and audio tools to edit the project.
 5. Install the editor bridge with `install_editor_bridge` when live editor selection, undo/redo, or Inspector property commands are needed.
-6. Run `run_project`, `get_debug_output`, `check_gdscript_syntax`, `run_project_checks`, and export checks before release.
+6. Run `run_project`, `get_debug_output`, `check_gdscript_syntax`, `run_project_checks`, export checks, and generated CI snippets before release.
 
 ## All Tools
 
@@ -165,13 +165,14 @@ The skill teaches clients to inspect project state first, prefer structured MCP 
 | `stop_project` | Stop the running Godot project |
 | `get_debug_output` | Read buffered stdout/stderr and errors |
 | `clear_debug_output` | Clear debug output buffers |
-| `run_project_checks` | Stable project checks for CI, review, and release workflows |
+| `run_project_checks` | Stable project checks with machine-readable codes, causes, and fix suggestions |
 | `get_audit_log` | Read project audit log entries |
 | `create_workflow_test_scene` | Generate a workflow validation scene |
 | `create_gameplay_prototype` | Generate a block-based survivors prototype |
 | `get_export_presets` | Read export presets |
 | `check_export_presets` | Inspect export preset issues |
-| `export_matrix` | Summarize platform family, signing/template status, issues, and CI suggestions |
+| `export_matrix` | Summarize platform family, signing/template status, metadata, artifacts, issues, and CI suggestions |
+| `generate_ci_snippet` | Generate GitHub Actions or GitLab CI snippets for headless checks, export preflight, release export, and artifact archiving |
 | `update_export_preset` | Update export preset fields or options |
 | `export_project` | Run a controlled Godot export |
 | `export_mesh_library` | Export a 3D scene as a MeshLibrary resource |
@@ -216,6 +217,7 @@ skills/
 scripts/
   build.js                     # Generates build/scripts/godot_operations.gd after TypeScript build
   check-project.js             # Project health check entry
+  publish-github-release.js    # Builds, uploads, and deletes local release packages after GitHub upload
   verify-roadmap-completion.js # Local regression verification for released capabilities
 ```
 

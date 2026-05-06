@@ -6,15 +6,7 @@
 
 ## 未来计划
 
-### 1.5.0 导出、CI 和发布自动化
-
-- 增加 export template 检查和可选安装指引。
-- 增加平台签名细节检查。
-- 增加 icon、metadata 和 artifact 验证。
-- 生成用于 headless check、script syntax check、export preflight 和 artifact archiving 的 CI 片段。
-- 改进 `run_project_checks`，提供机器可读的失败原因和修复建议。
-
-### 1.6.0 安全和恢复
+### 1.6.0 安全与恢复
 
 - 增加可配置写入 allowlist。
 - 增加高风险写操作的批量 diff 摘要。

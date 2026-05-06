@@ -17,7 +17,13 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { analyzeGodotProject, indexGodotProjectResources } from '../godot/projectAnalysis.js';
 import { analyzeGDScriptFile, indexGDScriptFiles, readGDScriptFile } from '../godot/scriptAnalysis.js';
-import { buildExportMatrix, ensureExportOutputDirectory, inspectExportPresets, updateExportPreset } from '../godot/exportConfig.js';
+import {
+  buildExportMatrix,
+  ensureExportOutputDirectory,
+  generateCiSnippets,
+  inspectExportPresets,
+  updateExportPreset,
+} from '../godot/exportConfig.js';
 import { isSafeProjectRelativePath } from '../godot/pathValidation.js';
 import { buildResourceDependencyGraph } from '../godot/resourceDependencies.js';
 import { deleteProjectSettings, readProjectSettings, writeProjectSettings } from '../godot/projectSettings.js';
@@ -197,6 +203,8 @@ export class GodotServer {
     'include_paths': 'includePaths',
     'texture_defaults': 'textureDefaults',
     'preset_name': 'presetName',
+    'include_export': 'includeExport',
+    'include_artifact_upload': 'includeArtifactUpload',
     'create_output_directory': 'createOutputDirectory',
     'output_offset': 'outputOffset',
     'error_offset': 'errorOffset',
@@ -1972,6 +1980,44 @@ export class GodotServer {
       return this.createErrorResponse(
         `Failed to build export matrix: ${error?.message || 'Unknown error'}`,
         ['Ensure export_presets.cfg is readable']
+      );
+    }
+  }
+
+  private async handleGenerateCiSnippet(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    const provider = args.provider ?? 'all';
+    if (!['github_actions', 'gitlab_ci', 'all'].includes(provider)) {
+      return this.createErrorResponse(
+        'Invalid CI provider',
+        ['Use github_actions, gitlab_ci, or all']
+      );
+    }
+
+    try {
+      const snippets = generateCiSnippets(args.projectPath, {
+        provider,
+        includeExport: args.includeExport !== false,
+        includeArtifactUpload: args.includeArtifactUpload !== false,
+        presetName: args.presetName,
+        outputPath: args.outputPath,
+      });
+
+      if (provider === 'github_actions') {
+        return this.createJsonResponse({ provider, snippet: snippets.githubActions, commands: snippets.commands });
+      }
+      if (provider === 'gitlab_ci') {
+        return this.createJsonResponse({ provider, snippet: snippets.gitlabCi, commands: snippets.commands });
+      }
+
+      return this.createJsonResponse(snippets);
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to generate CI snippet: ${error?.message || 'Unknown error'}`,
+        ['Provide a valid projectPath and optional presetName/outputPath']
       );
     }
   }

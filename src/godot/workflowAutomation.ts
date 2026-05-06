@@ -42,7 +42,10 @@ export interface ProjectCheckResult {
   checks: Array<{
     name: string;
     status: 'pass' | 'warning' | 'error';
+    code: string;
     message: string;
+    cause: string;
+    suggestion: string;
     details?: unknown;
   }>;
   summary: {
@@ -118,7 +121,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'project_file',
       status: 'error',
+      code: 'missing_project_file',
       message: 'Missing project.godot',
+      cause: 'The supplied directory does not contain a Godot project file.',
+      suggestion: 'Pass the root directory of a Godot project or create project.godot in this directory.',
     });
     return buildCheckResult(checks);
   }
@@ -126,7 +132,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
   checks.push({
     name: 'project_file',
     status: 'pass',
+    code: 'project_file_found',
     message: 'project.godot exists',
+    cause: 'The required Godot project file is present.',
+    suggestion: 'No action needed.',
   });
 
   try {
@@ -134,7 +143,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'project_info',
       status: 'pass',
+      code: 'project_info_parsed',
       message: 'Project metadata parsed',
+      cause: 'project.godot metadata could be read and normalized.',
+      suggestion: 'No action needed.',
       details: {
         name: projectInfo.name,
         mainScene: projectInfo.mainScene,
@@ -145,7 +157,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'project_info',
       status: 'error',
+      code: 'project_info_parse_failed',
       message: `Project metadata parsing failed: ${error?.message || 'Unknown error'}`,
+      cause: 'The project metadata reader could not parse project.godot.',
+      suggestion: 'Open project.godot in Godot or a text editor and fix malformed section/key syntax.',
     });
   }
 
@@ -154,7 +169,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'resource_index',
       status: 'pass',
+      code: 'resource_index_generated',
       message: 'Resource index generated',
+      cause: 'Project resources were scanned successfully.',
+      suggestion: 'No action needed.',
       details: {
         scenes: resourceIndex.scenes.length,
         scripts: resourceIndex.scripts.length,
@@ -165,7 +183,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'resource_index',
       status: 'error',
+      code: 'resource_index_failed',
       message: `Resource indexing failed: ${error?.message || 'Unknown error'}`,
+      cause: 'The resource scanner failed while walking or reading project files.',
+      suggestion: 'Check file permissions and fix malformed scene or resource files reported by the error.',
     });
   }
 
@@ -174,7 +195,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'script_index',
       status: 'pass',
+      code: 'script_index_generated',
       message: 'GDScript index generated',
+      cause: 'GDScript files were scanned successfully.',
+      suggestion: 'No action needed.',
       details: {
         scripts: scripts.length,
       },
@@ -183,7 +207,10 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'script_index',
       status: 'error',
+      code: 'script_index_failed',
       message: `GDScript indexing failed: ${error?.message || 'Unknown error'}`,
+      cause: 'The GDScript scanner failed while reading or parsing script files.',
+      suggestion: 'Check script file permissions and repair malformed GDScript declarations.',
     });
   }
 
@@ -193,16 +220,26 @@ export async function runProjectChecks(projectPath: string): Promise<ProjectChec
     checks.push({
       name: 'export_presets',
       status: errorCount > 0 ? 'warning' : exportInspection.issues.length > 0 ? 'warning' : 'pass',
+      code: exportInspection.issues.length > 0 ? 'export_presets_have_findings' : 'export_presets_ready',
       message: exportInspection.hasExportPresets
         ? `Export presets inspected with ${exportInspection.issues.length} issue(s)`
         : 'No export presets configured',
+      cause: exportInspection.issues.length > 0
+        ? 'Export preset inspection found release-preflight issues.'
+        : 'Export presets are present and passed local preflight checks.',
+      suggestion: exportInspection.issues.length > 0
+        ? 'Review details.issues and apply the per-issue suggestions before release export.'
+        : 'No action needed.',
       details: exportInspection,
     });
   } catch (error: any) {
     checks.push({
       name: 'export_presets',
       status: 'warning',
+      code: 'export_preset_inspection_skipped',
       message: `Export preset inspection skipped: ${error?.message || 'Unknown error'}`,
+      cause: 'The export preset reader failed before it could produce structured findings.',
+      suggestion: 'Ensure export_presets.cfg is readable and contains valid preset sections.',
     });
   }
 

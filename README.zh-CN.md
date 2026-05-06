@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 最新发行包：
 
-[godot-devtool-build-1.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.4.0/godot-devtool-build-1.4.0.zip)
+[godot-devtool-build-1.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.5.0/godot-devtool-build-1.5.0.zip)
 
 解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
 
@@ -86,7 +86,7 @@ npm run check:project -- E:/test
 3. 调用 `get_project_info`、`get_resource_index`、`get_script_index` 理解项目。
 4. 使用场景、节点、脚本、资源、动画、视觉、TileMap、物理、导航和音频工具编辑项目。
 5. 需要 live editor selection、undo/redo 或 Inspector 属性命令时，用 `install_editor_bridge` 安装 editor bridge。
-6. 发布前运行 `run_project`、`get_debug_output`、`check_gdscript_syntax`、`run_project_checks` 和导出检查。
+6. 发布前运行 `run_project`、`get_debug_output`、`check_gdscript_syntax`、`run_project_checks`、导出检查和生成的 CI 片段。
 
 ## 全部工具
 
@@ -165,13 +165,14 @@ npm run check:project -- E:/test
 | `stop_project` | 停止正在运行的 Godot 项目 |
 | `get_debug_output` | 读取缓存 stdout/stderr 和 error |
 | `clear_debug_output` | 清空 debug output buffer |
-| `run_project_checks` | 面向 CI、review 和 release 的稳定项目检查 |
+| `run_project_checks` | 带机器可读 code、cause 和修复建议的稳定项目检查 |
 | `get_audit_log` | 读取项目 audit log |
 | `create_workflow_test_scene` | 生成工作流验证 scene |
 | `create_gameplay_prototype` | 生成 block-based survivors 原型 |
 | `get_export_presets` | 读取 export preset |
 | `check_export_presets` | 检查 export preset 问题 |
-| `export_matrix` | 汇总平台族、签名/template 状态、问题和 CI 建议 |
+| `export_matrix` | 汇总平台族、签名/template 状态、metadata、artifact、问题和 CI 建议 |
+| `generate_ci_snippet` | 生成 GitHub Actions 或 GitLab CI 片段，用于 headless 检查、导出预检、release export 和 artifact 归档 |
 | `update_export_preset` | 更新 export preset field 或 option |
 | `export_project` | 执行受控 Godot export |
 | `export_mesh_library` | 将 3D scene 导出为 MeshLibrary resource |
@@ -216,6 +217,7 @@ skills/
 scripts/
   build.js                     # TypeScript 构建后生成 build/scripts/godot_operations.gd
   check-project.js             # 项目健康检查入口
+  publish-github-release.js    # 构建、上传，并在 GitHub 上传成功后删除本地发布包
   verify-roadmap-completion.js # 已发布能力本地回归验证
 ```
 

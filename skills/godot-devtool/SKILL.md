@@ -2,7 +2,7 @@
 name: godot-devtool
 description: "Teach MCP clients and connected AI assistants how to use the godot-devtool MCP server for Godot projects: inspect first, prefer structured tools, edit safely, validate changes, and prepare exports."
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill as the operating guide for any MCP client or connected AI assistant using the `godot-devtool` MCP server with Godot 4 projects.
 
-Compatibility: `godot-devtool` 1.4.0.
+Compatibility: `godot-devtool` 1.5.0.
 
 ## Client Setup
 
@@ -127,8 +127,8 @@ Call `get_capabilities` with schemas when an action has nested arguments or enum
 For code or project edits, run the strongest available checks:
 
 - `check_gdscript_syntax` for changed scripts
-- `run_project_checks` for project-level validation
-- `get_export_presets`, `check_export_presets`, or `export_matrix` for release/export work
+- `run_project_checks` for project-level validation with machine-readable failure codes, causes, and suggestions
+- `get_export_presets`, `check_export_presets`, `export_matrix`, or `generate_ci_snippet` for release/export work
 - `run_project`, then `get_debug_output`, when runtime behavior matters
 
 Summarize actual check results, including failures and warnings.

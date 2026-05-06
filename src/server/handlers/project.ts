@@ -12,6 +12,7 @@ export function createProjectToolHandlers(host: ToolHandlerHost): ToolHandlerMap
     get_export_presets: (args) => host.handleGetExportPresets(args),
     check_export_presets: (args) => host.handleCheckExportPresets(args),
     export_matrix: (args) => host.handleExportMatrix(args),
+    generate_ci_snippet: (args) => host.handleGenerateCiSnippet(args),
     update_export_preset: (args) => host.handleUpdateExportPreset(args),
     export_project: (args) => host.handleExportProject(args),
     create_gameplay_prototype: (args) => host.handleCreateGameplayPrototype(args),

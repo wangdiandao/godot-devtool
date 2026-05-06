@@ -1,6 +1,6 @@
 {
   "name": "godot-devtool",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "MCP plugin package for AI-assisted Godot Engine development workflows.",
   "keywords": [
     "godot",
@@ -33,6 +33,7 @@
     "verify:tools": "npm run build && node scripts/verify-tool-definitions.js",
     "verify:roadmap": "npm run build && node scripts/verify-roadmap-completion.js",
     "verify:runtime": "npm run build && node scripts/verify-godot-runtime.js",
+    "release:github": "npm run build && node scripts/publish-github-release.js",
     "prepare": "npm run build",
     "watch": "tsc --watch"
   },
