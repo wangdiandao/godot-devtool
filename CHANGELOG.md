@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.0.0
+
+WebSocket plugin architecture release.
+
+- Reframed the package as a stdio/headless MCP server with an optional localhost WebSocket editor/runtime bridge.
+- Added a bundled Godot editor plugin under `addons/godot_devtool` with a central `command_router.gd` and focused command modules.
+- Added `plugin_install`, `plugin_status`, and `plugin_reload` while keeping existing editor bridge names as compatibility entries.
+- Added v2 verification scripts for capability metadata, plugin router packaging, and runtime bridge installation.
+- Updated README, roadmap, package metadata, server metadata, and skill guidance for the 2.0 architecture.
+
 ## Version 1.8.0
 
 Runtime bridge completion release.

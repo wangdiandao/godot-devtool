@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 
 const projectSettings = await import('../build/godot/projectSettings.js');
 const editorBridge = await import('../build/godot/editorBridge.js');
+const { getWsBridge } = await import('../build/server/transports/wsBridge.js');
 const dependencies = await import('../build/godot/resourceDependencies.js');
 const filesystem = await import('../build/godot/filesystemTools.js');
 const exportConfig = await import('../build/godot/exportConfig.js');
@@ -65,68 +66,37 @@ try {
   assert.doesNotMatch(updatedProjectFile, /move_left=/);
 
   const install = await editorBridge.installEditorBridge(projectPath, { overwrite: true });
-  assert.ok(install.changedFiles.includes('addons/godot_devtool_bridge/plugin.cfg'));
-  assert.ok(existsSync(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_bridge.gd')));
-  assert.ok(install.changedFiles.includes('addons/godot_devtool_bridge/godot_devtool_runtime.gd'));
-  assert.ok(existsSync(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_runtime.gd')));
-  assert.equal(install.bridge.mode, 'file');
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.cfg'));
+  assert.ok(existsSync(join(projectPath, 'addons/godot_devtool/plugin.gd')));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/runtime_bridge.gd'));
+  assert.ok(existsSync(join(projectPath, 'addons/godot_devtool/runtime_bridge.gd')));
+  assert.equal(install.bridge.mode, 'websocket');
+  assert.equal(install.bridge.port, 8766);
   assert.ok(install.bridge.instanceId);
   assert.equal(install.runtime.enabled, true);
-  assert.equal(install.runtime.commandsDir, '.godot-devtool/runtime-commands');
-  assert.equal(install.runtime.receiptsDir, '.godot-devtool/runtime-receipts');
   assert.equal(install.runtime.statePath, '.godot-devtool/runtime-state.json');
   const installedProjectFile = await readFile(join(projectPath, 'project.godot'), 'utf8');
-  assert.match(installedProjectFile, /DevtoolRuntime="\*res:\/\/addons\/godot_devtool_bridge\/godot_devtool_runtime.gd"/);
-
-  const command = await editorBridge.enqueueEditorCommand(projectPath, {
-    type: 'select_node',
-    payload: { scenePath: 'res://scenes/main.tscn', nodePath: 'root/Main' },
-    timeoutMs: 2500,
-  });
-  assert.equal(command.type, 'select_node');
-  assert.ok(command.commandId);
-  assert.equal(command.timeoutMs, 2500);
-  assert.ok(command.createdAt);
-  assert.ok(command.expiresAt);
-
-  const commandFile = JSON.parse(await readFile(join(projectPath, command.commandPath), 'utf8'));
-  assert.equal(commandFile.commandId, command.commandId);
-  assert.equal(commandFile.timeoutMs, 2500);
-  assert.equal(commandFile.status, 'queued');
-
-  const inspectorRead = await editorBridge.enqueueEditorCommand(projectPath, {
-    type: 'inspector_get_properties',
-    payload: { scenePath: 'res://scenes/main.tscn', nodePath: 'root/Main', propertyNames: ['name', 'position'] },
-  });
-  assert.equal(inspectorRead.type, 'inspector_get_properties');
-
-  const inspectorWrite = await editorBridge.enqueueEditorCommand(projectPath, {
-    type: 'inspector_set_properties',
-    payload: { scenePath: 'res://scenes/main.tscn', nodePath: 'root/Main', properties: { visible: true } },
-  });
-  assert.equal(inspectorWrite.type, 'inspector_set_properties');
+  assert.match(installedProjectFile, /DevtoolRuntime="\*res:\/\/addons\/godot_devtool\/runtime_bridge.gd"/);
 
   const bridgeStatus = await editorBridge.readEditorBridgeStatus(projectPath);
   assert.equal(bridgeStatus.installed, true);
-  assert.equal(bridgeStatus.bridge.mode, 'file');
+  assert.equal(bridgeStatus.bridge.mode, 'websocket');
   assert.equal(bridgeStatus.runtime.installed, true);
+  assert.equal(bridgeStatus.runtime.transport, 'runtime_ws');
   assert.equal(bridgeStatus.runtime.statePath, '.godot-devtool/runtime-state.json');
-  assert.equal(bridgeStatus.pendingCommands, 3);
-  assert.equal(bridgeStatus.pendingCommandDetails.length, 3);
+  assert.equal(bridgeStatus.pendingCommands, 0);
+  assert.equal(bridgeStatus.pendingCommandDetails.length, 0);
   assert.ok(bridgeStatus.instanceId);
   assert.deepEqual(bridgeStatus.recentReceipts, []);
 
-  const bridgeScript = await readFile(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_bridge.gd'), 'utf8');
-  assert.match(bridgeScript, /func _write_receipt/);
-  assert.match(bridgeScript, /inspector_get_properties/);
-  assert.match(bridgeScript, /inspector_set_properties/);
-  assert.match(bridgeScript, /expiresAt/);
-  const runtimeScript = await readFile(join(projectPath, 'addons/godot_devtool_bridge/godot_devtool_runtime.gd'), 'utf8');
-  assert.match(runtimeScript, /class_name GodotDevtoolRuntime/);
-  assert.match(runtimeScript, /func _process_runtime_command/);
+  const bridgeScript = await readFile(join(projectPath, 'addons/godot_devtool/plugin.gd'), 'utf8');
+  assert.match(bridgeScript, /WebSocketPeer/);
+  assert.match(bridgeScript, /dispatch_command/);
+  const runtimeScript = await readFile(join(projectPath, 'addons/godot_devtool/runtime_bridge.gd'), 'utf8');
+  assert.match(runtimeScript, /class_name GodotDevtoolRuntimeBridge/);
   assert.match(runtimeScript, /get_game_scene_tree/);
-  assert.match(runtimeScript, /simulate_key/);
-  assert.match(runtimeScript, /execute_game_script/);
+  assert.match(runtimeScript, /simulate_action/);
+  assert.match(runtimeScript, /get_game_screenshot/);
 
   const graph = await dependencies.buildResourceDependencyGraph(projectPath);
   assert.ok(graph.nodes.some((node) => node.path === 'res://scripts/player.gd'));
@@ -278,7 +248,7 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '1.8.0');
+  assert.equal(releaseVersion, '2.0.0');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -404,22 +374,20 @@ try {
 
   assert.match(readme, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
-  assert.match(readme, /Latest release package/);
+  assert.match(readme, /Prebuilt Package/);
   assert.match(readme, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
-  assert.match(readmeZh, /最新发布包/);
+  assert.match(readmeZh, /预构建包/);
   assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
-  assert.match(readme, /## All Tools/);
+  assert.match(readme, /## Route Groups/);
   assert.match(readme, /generate_ci_snippet/);
   assert.match(readmeZh, /generate_ci_snippet/);
-  assert.match(readme, /get_safety_policy/);
-  assert.match(readmeZh, /get_safety_policy/);
-  assert.match(readmeZh, /Godot 中文社区群/);
-  assert.match(readmeZh, /docs\/assets\/godot-chinese-community-qq-qrcode\.jpg/);
-  assert.match(readmeZh, /## 全部工具/);
+  assert.match(readme, /plugin_install/);
+  assert.match(readmeZh, /plugin_install/);
+  assert.match(readme, /ws:\/\/127\.0\.0\.1:8766/);
+  assert.match(readmeZh, /ws:\/\/127\.0\.0\.1:8766/);
+  assert.match(readmeZh, /## 路由分组/);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
-  assert.match(readme, /skills\/\r?\n  godot-devtool\/SKILL\.md/);
-  assert.match(readmeZh, /skills\/\r?\n  godot-devtool\/SKILL\.md/);
 
   assert.match(skillRaw, /^name: godot-devtool$/m);
   assert.match(skillRaw, /mcp_server: "godot-devtool"/);
@@ -427,9 +395,10 @@ try {
   assert.match(skillRaw, new RegExp(`Compatibility: \`godot-devtool\` ${escapedReleaseVersion}\\.`));
   assert.match(skillRaw, /get_capabilities/);
   assert.match(skillRaw, /run_project_checks/);
-  assert.match(skillRaw, /When updating the `godot-devtool` package version/);
   assert.match(skillRaw, /MCP clients and connected AI assistants/);
   assert.match(skillRaw, /"mcpServers"/);
+  assert.match(skillRaw, /plugin_install/);
+  assert.match(skillRaw, /runtime_ws/);
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
@@ -439,7 +408,7 @@ try {
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of [releaseVersion, '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
@@ -473,5 +442,6 @@ try {
 
   console.log('roadmap completion verification passed');
 } finally {
+  await getWsBridge().stop();
   await rm(projectPath, { recursive: true, force: true });
 }

@@ -1,6 +1,6 @@
 {
   "name": "godot-devtool",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "description": "MCP plugin package for AI-assisted Godot Engine development workflows.",
   "keywords": [
     "godot",
@@ -33,6 +33,9 @@
     "verify:tools": "npm run build && node scripts/verify-tool-definitions.js",
     "verify:roadmap": "npm run build && node scripts/verify-roadmap-completion.js",
     "verify:runtime": "npm run build && node scripts/verify-godot-runtime.js",
+    "verify:v2:capabilities": "npm run build && node scripts/verify-v2-capabilities.js",
+    "verify:v2:plugin": "npm run build && node scripts/verify-v2-plugin-router.js",
+    "verify:v2:runtime": "npm run build && node scripts/verify-v2-runtime-bridge.js",
     "release:github": "npm run build && node scripts/publish-github-release.js",
     "prepare": "npm run build",
     "watch": "tsc --watch"

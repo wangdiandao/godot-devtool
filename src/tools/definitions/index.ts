@@ -9,6 +9,7 @@ import { SCENE_TOOL_DEFINITIONS } from './scene.js';
 import { VISUAL_TOOL_DEFINITIONS } from './visual.js';
 import { COMPATIBILITY_TOOL_DEFINITIONS } from './compatibility.js';
 import type { GodotToolDefinition } from './types.js';
+import { routeMetadataForTool } from '../../server/routeRegistry.js';
 
 export const GODOT_TOOL_DEFINITION_GROUPS: GodotToolDefinition[][] = [
   CORE_TOOL_DEFINITIONS,
@@ -23,4 +24,9 @@ export const GODOT_TOOL_DEFINITION_GROUPS: GodotToolDefinition[][] = [
   COMPATIBILITY_TOOL_DEFINITIONS,
 ];
 
-export const BASE_GODOT_TOOL_DEFINITIONS: GodotToolDefinition[] = GODOT_TOOL_DEFINITION_GROUPS.flat();
+export const BASE_GODOT_TOOL_DEFINITIONS: GodotToolDefinition[] = GODOT_TOOL_DEFINITION_GROUPS
+  .flat()
+  .map((tool) => ({
+    ...tool,
+    ...routeMetadataForTool(tool.name),
+  }));

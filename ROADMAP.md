@@ -2,13 +2,18 @@
 
 English | [中文](ROADMAP.zh-CN.md)
 
-This document tracks future development plans only. Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md).
+Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md). This file only tracks future work after `2.0.0`.
 
 ## Future Versions
 
 ### Validation Project
 
-- Use the completed `godot-devtool` toolset to develop `E:/test` into a block-based survivor-like game.
-- Keep art simple: player, enemies, bullets, pickups, and map elements should use blocks and basic geometry.
-- Validate project understanding, scene/resource editing, script assistance, runtime debugging, checks, export, and audit logging.
+- Use the v2 WebSocket plugin and MCP route groups to develop `E:/test` into a block-based survivor-like game.
+- Validate native project inspection, headless scene/resource editing, live editor commands, runtime input/screenshot routes, export checks, and audit logging.
 - Target a playable main scene with player movement, enemy spawning, automatic attacks, experience/leveling, simple UI, audio placeholders, and export configuration.
+
+### Route Hardening
+
+- Expand end-to-end Godot fixtures for every advertised `editor_ws` and `runtime_ws` route.
+- Add regression cases for UndoRedo mutations, runtime screenshots, runtime property writes, and QA assertions.
+- Keep `get_capabilities` as the source of truth for route support and remove any route that cannot be operated by native, headless, editor WebSocket, or runtime WebSocket execution.

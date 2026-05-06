@@ -75,6 +75,7 @@ import { getOperationsScriptPath } from '../godot/paths.js';
 import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
+import { getWsBridge } from './transports/wsBridge.js';
 
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
@@ -319,7 +320,7 @@ export class GodotServer {
     this.server = new Server(
       {
         name: 'godot-devtool',
-        version: '1.8.0',
+        version: '2.0.0',
       },
       {
         capabilities: {
@@ -1459,6 +1460,7 @@ export class GodotServer {
       this.activeProcess.process.kill();
       this.activeProcess = null;
     }
+    await getWsBridge().stop();
     await this.server.close();
   }
 
@@ -1840,8 +1842,13 @@ export class GodotServer {
       const entry: any = {
         name: tool.name,
         description: tool.description,
-        runMode: this.getToolRunMode(tool.name),
-        riskLevel: this.getToolRiskLevel(tool.name),
+        routeGroup: tool.routeGroup,
+        transport: tool.transport,
+        runMode: tool.transport,
+        riskLevel: tool.riskLevel,
+        requiresEditor: tool.requiresEditor,
+        requiresRuntime: tool.requiresRuntime,
+        canonicalName: tool.canonicalName,
       };
       if (includeSchemas) {
         entry.inputSchema = tool.inputSchema;
@@ -1851,9 +1858,10 @@ export class GodotServer {
 
     const result: any = {
       name: 'godot-devtool',
-      version: '1.8.0',
+      version: '2.0.0',
       serverMode: 'mcp_stdio',
-      executionModes: ['file_system_or_node', 'headless_godot', 'process_control', 'editor_bridge_optional', 'runtime_bridge'],
+      bridgeMode: 'websocket',
+      executionModes: ['native', 'headless_godot', 'process_control', 'editor_ws', 'runtime_ws'],
       godotPathConfigured: Boolean(this.godotPath || process.env.GODOT_PATH),
       strictPathValidation: this.strictPathValidation,
       toolCount: tools.length,
@@ -1865,8 +1873,8 @@ export class GodotServer {
       result.aliases = Object.entries(GODOT_TOOL_ALIASES).map(([aliasName, canonicalName]) => ({
         name: aliasName,
         canonicalName,
-        runMode: this.getToolRunMode(canonicalName),
-        riskLevel: this.getToolRiskLevel(canonicalName),
+        runMode: GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.transport ?? this.getToolRunMode(canonicalName),
+        riskLevel: GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.riskLevel ?? this.getToolRiskLevel(canonicalName),
         inputSchema: includeSchemas
           ? GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.inputSchema
           : undefined,
@@ -3153,6 +3161,32 @@ export class GodotServer {
       return this.createErrorResponse(
         `Failed to read editor bridge status: ${error?.message || 'Unknown error'}`,
         ['Install and enable the editor bridge plugin first']
+      );
+    }
+  }
+
+  private async handlePluginReload(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      const command = await enqueueEditorCommand(args.projectPath, {
+        type: 'plugin_reload',
+        payload: {},
+        timeoutMs: args.timeoutMs,
+      });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      return this.createJsonResponse({
+        ok: receipt.status === 'completed',
+        mode: 'godot_editor_websocket_bridge',
+        command,
+        receipt,
+      });
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to reload plugin: ${error?.message || 'Unknown error'}`,
+        ['Install and enable the godot-devtool plugin, then confirm the WebSocket bridge is connected']
       );
     }
   }
@@ -5091,6 +5125,10 @@ export class GodotServer {
       }
 
       console.error(`[SERVER] Using Godot at: ${this.godotPath}`);
+
+      const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
+      await getWsBridge().start(websocketPort);
+      console.error(`[SERVER] Godot WebSocket bridge listening on ws://127.0.0.1:${websocketPort}`);
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);

@@ -4,6 +4,9 @@ export function createEditorToolHandlers(host: ToolHandlerHost): ToolHandlerMap 
   return {
     scene_open: (args) => host.handleSceneOpen(args),
     scene_get_current: (args) => host.handleSceneGetCurrent(args),
+    plugin_install: (args) => host.handleInstallEditorBridge(args),
+    plugin_status: (args) => host.handleEditorBridgeStatus(args),
+    plugin_reload: (args) => host.handlePluginReload(args),
     install_editor_bridge: (args) => host.handleInstallEditorBridge(args),
     editor_bridge_status: (args) => host.handleEditorBridgeStatus(args),
     editor_get_selection: (args) => host.handleEditorGetSelection(args),

@@ -234,7 +234,7 @@ const handlerHost = new Proxy({}, {
 });
 const handlerNames = Object.keys(createToolHandlers(handlerHost));
 const missingHandlers = canonicalToolNames.filter((toolName) => !handlerNames.includes(toolName));
-const extraHandlers = handlerNames.filter((toolName) => !canonicalToolNames.includes(toolName));
+const extraHandlers = handlerNames.filter((toolName) => !toolNames.includes(toolName));
 
 if (missingHandlers.length > 0) {
   console.error(`Missing handlers for tools: ${missingHandlers.join(', ')}`);

@@ -2,6 +2,42 @@ import type { GodotToolDefinition } from './types.js';
 
 export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   {
+    name: 'plugin_install',
+    description: 'Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        overwrite: { type: 'boolean', description: 'Overwrite existing plugin files' },
+        websocketPort: { type: 'number', description: 'Local WebSocket bridge port. Defaults to 8766.' },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
+    name: 'plugin_status',
+    description: 'Read godot-devtool v2 plugin installation status and WebSocket bridge configuration',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
+    name: 'plugin_reload',
+    description: 'Reload the godot-devtool v2 editor plugin through the WebSocket bridge',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
     name: 'scene_open',
     description: 'Open a scene in the MCP session using headless/file-based scene access',
     inputSchema: {
@@ -35,13 +71,14 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'install_editor_bridge',
-    description: 'Install the godot-devtool file-based live editor bridge plugin into a Godot project',
+    canonicalName: 'plugin_install',
+    description: 'Compatibility alias for plugin_install. Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         overwrite: { type: 'boolean', description: 'Overwrite existing bridge plugin files' },
-        mode: { type: 'string', enum: ['file', 'http', 'websocket'], description: 'Bridge mode. Defaults to file.' },
+        mode: { type: 'string', enum: ['websocket'], description: 'Bridge mode. v2 only supports websocket.' },
         httpPort: { type: 'number', description: 'HTTP bridge port when mode is http. Defaults to 8765.' },
         websocketPort: { type: 'number', description: 'WebSocket bridge port when mode is websocket. Defaults to 8766.' },
       },
@@ -50,7 +87,8 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'editor_bridge_status',
-    description: 'Read live editor bridge installation, state, and pending command status',
+    canonicalName: 'plugin_status',
+    description: 'Compatibility alias for plugin_status. Read live editor bridge installation and WebSocket connection status',
     inputSchema: {
       type: 'object',
       properties: {

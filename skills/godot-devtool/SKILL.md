@@ -1,20 +1,20 @@
 ---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool MCP server for Godot projects: inspect first, prefer structured tools, edit safely, validate changes, and prepare exports."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.0 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
 metadata:
-  version: "1.8.0"
+  version: "2.0.0"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Use this skill as the operating guide for any MCP client or connected AI assistant using the `godot-devtool` MCP server with Godot 4 projects.
+Use this skill when an MCP client or connected AI assistant is working with a Godot 4 project through `godot-devtool`.
 
-Compatibility: `godot-devtool` 1.8.0.
+Compatibility: `godot-devtool` 2.0.0.
 
-## Client Setup
+## Setup
 
-Configure the MCP client to run the server entry point:
+Run the stdio MCP server:
 
 ```json
 {
@@ -23,137 +23,141 @@ Configure the MCP client to run the server entry point:
       "command": "node",
       "args": ["E:/godot-devtool/build/index.js"],
       "env": {
-        "GODOT_PATH": "D:/Program Files/Godot/Godot_v4.x.exe"
+        "GODOT_PATH": "D:/Program Files/Godot/Godot_v4.x.exe",
+        "GODOT_DEVTOOL_WS_PORT": "8766"
       }
     }
   }
 }
 ```
 
-If Godot is already available in `PATH`, `GODOT_PATH` can be omitted.
+`GODOT_PATH` is required for headless Godot validation unless Godot is already in `PATH`.
 
 ## Start Every Task
 
-1. Confirm the server and tool surface.
+1. Confirm the server and tools:
    - `get_godot_version`
-   - `get_capabilities` with schemas when unsure about arguments
-2. Establish project context before writing.
+   - `get_capabilities`
+2. Establish project state before edits:
    - `get_project_info`
    - `get_resource_index`
    - `get_script_index`
-   - `resource_dependency_graph` for dependency-sensitive changes
-3. If the user did not provide a path, use `list_projects` or ask for the Godot project path.
+   - `resource_dependency_graph` when dependencies matter
+3. If the project path is unknown, call `list_projects` or ask for the path.
 
-Do not edit blindly. Read the relevant scene, node, script, or resource state first.
+Do not edit blindly. Read the relevant scene, node, script, resource, or runtime state first.
+
+## Choose The Route
+
+`get_capabilities` reports `routeGroup`, `transport`, `riskLevel`, `requiresEditor`, and `requiresRuntime`.
+
+- `core`: Godot version, run/stop project, debug output, tool discovery.
+- `project`: `project.godot`, InputMap, autoloads, project metadata.
+- `filesystem`: project-local list/read/write/delete preview.
+- `resource`: resource index, dependency graph, export presets, CI snippets.
+- `script`: script index/read/write/attach/syntax checks.
+- `scene`: scene and node creation, node movement, animation, tilemap, physics, navigation, audio.
+- `visual`: shader, material, lighting, particle, UI/theme.
+- `editor`: live editor selection, Inspector, UndoRedo, plugin reload through WebSocket.
+- `runtime`: running-game scene tree, input simulation, screenshots, property reads/writes, QA through WebSocket.
+
+Transports named by capabilities include `native`, `headless_godot`, `process_control`, `editor_ws`, and `runtime_ws`.
+
+Prefer native or headless tools unless the task truly needs live editor or running-game state.
+
+## Plugin And Runtime Bridge
+
+Install the Godot plugin only when live editor or runtime state is needed:
+
+- `plugin_install` to install `addons/godot_devtool` and the runtime autoload.
+- `plugin_status` to confirm installation and WebSocket connection state.
+- `plugin_reload` to ask the live plugin to reload.
+
+Compatibility names remain available:
+
+- `install_editor_bridge` -> `plugin_install`
+- `editor_bridge_status` -> `plugin_status`
+- `reload_plugin` -> `plugin_reload`
+
+After `plugin_install`, enable the plugin in Godot:
+
+```text
+Project > Project Settings > Plugins > godot-devtool
+```
+
+For runtime routes, run the project so the `DevtoolRuntime` autoload can connect to the WebSocket bridge.
 
 ## Common Workflows
 
 ### Inspect A Project
 
-Use `get_project_info` for project metadata and main scene, `get_resource_index` for categorized assets, `get_script_index` for GDScript classes and functions, and `filesystem_list` / `filesystem_read` for direct project-local file inspection.
+Use `get_project_info`, `get_resource_index`, `get_script_index`, `filesystem_list`, `filesystem_read`, and `resource_dependency_graph`.
 
 ### Edit Scenes And Nodes
 
-Prefer scene and node tools over raw `.tscn` editing:
+Prefer structured scene/node tools over raw `.tscn` edits:
 
-- `create_scene`, `scene_open`, `scene_get_current`, `get_scene_tree`, `save_scene`
+- `create_scene`, `scene_open`, `get_scene_tree`, `save_scene`
 - `add_node`, `delete_node`, `rename_node`, `node_get`, `node_find`
-- `node_get_property` / `get_node_properties`
-- `node_set_property` / `update_node_properties`
-- `node_move`, `node_duplicate`, `load_sprite`
+- `node_get_property`, `node_set_property`, `node_move`, `node_duplicate`
 
-After changing a scene, call `save_scene` when the change should persist.
+Save scenes when changes should persist.
 
-### Write Scripts Safely
+### Write Scripts
 
-Read or index scripts before editing. Use:
+Read or index scripts before editing. Use `script_create`, `script_write`, `script_attach`, `read_script_file`, and `check_gdscript_syntax`.
 
-- `script_create` for new scripts
-- `script_write` for full content replacement
-- `script_attach` to attach scripts to scene nodes
-- `read_script_file` and `analyze_script_references` before changing existing code
-- `check_gdscript_syntax` after writing GDScript
+### Use The Live Editor
 
-For GDScript, avoid clever dynamic code when typed data is unclear. Use explicit types for values coming from arrays or dictionaries when inference may fail.
+Use editor WebSocket routes for live state:
 
-### Configure Project Settings
-
-Do not manually rewrite `project.godot` when a structured tool exists. Use:
-
-- `project_get_settings`
-- `project_set_setting`
-- `project_input_action`
-
-Use `dryRun` where available before committing broad settings changes.
-
-### Work With Files And Resources
-
-Stay inside the Godot project boundary:
-
-- `filesystem_list`, `filesystem_read`, `filesystem_write`
-- `filesystem_preview_delete` before `filesystem_delete`
-- `resource_load`, `resource_create`, `resource_save`
-
-Preview deletion impact before destructive operations.
-
-### Use Safety And Recovery Tools
-
-For broad or high-risk writes, inspect the project policy and preview the write impact:
-
-- `get_safety_policy` to read the configured `.godot-devtool/safety.json` allowlist.
-- `set_safety_policy` to enable write allowlists and blocked path rules.
-- `preview_write_safety` to review policy decisions and diff summaries before writing.
-- `get_audit_replay` to summarize recent audited operations.
-- `get_rollback_suggestions` to get honest rollback guidance for changed files.
-
-No configured policy keeps existing behavior compatible. When a policy is enabled, blocked writes should be resolved by narrowing the operation or updating the allowlist intentionally.
-
-### Use The Editor Bridge
-
-Install or use the editor bridge only when live editor state is needed:
-
-- `install_editor_bridge`
-- `editor_bridge_status`
 - `editor_get_selection`
 - `editor_select_node`
 - `editor_undo_redo`
 - `editor_inspector_get_properties`
 - `editor_inspector_set_properties`
 
-Prefer inspector/editor bridge tools for live selection, UndoRedo, and visible editor property changes.
+Editor mutations should use UndoRedo-backed routes.
 
-### Build Visual Content
+### Use Running Runtime State
 
-Use the grouped high-level tools instead of ad hoc scene file edits:
+Use runtime WebSocket routes only after the project is running:
 
-- `animation` and `animation_state_machine`
-- `signal` and `group`
-- `ui`
-- `material`, `shader`, `lighting`, `particle`
-- `tilemap`, `geometry`, `physics`, `navigation`, `audio`
+- `get_game_scene_tree`
+- `get_game_node_properties`
+- `set_game_node_property`
+- `simulate_action`, `simulate_key`, `simulate_mouse_click`, `simulate_sequence`
+- `get_game_screenshot`, `capture_frames`
+- `run_test_scenario`, `assert_node_state`, `assert_screen_text`
 
-Call `get_capabilities` with schemas when an action has nested arguments or enum values.
-
-### Validate Before Finishing
-
-For code or project edits, run the strongest available checks:
-
-- `check_gdscript_syntax` for changed scripts
-- `run_project_checks` for project-level validation with machine-readable failure codes, causes, and suggestions
-- `get_export_presets`, `check_export_presets`, `export_matrix`, or `generate_ci_snippet` for release/export work
-- `run_project`, then `get_debug_output`, when runtime behavior matters
-
-Summarize actual check results, including failures and warnings.
+If a runtime route reports no active runtime bridge, start or focus the Godot project and retry.
 
 ## Safety Rules
 
 - Read state before writing.
-- Prefer structured tools over raw file edits.
+- Prefer structured MCP tools over raw file edits.
 - Use dry-run, preview, or audit-capable tools for broad changes.
-- Do not delete files without `filesystem_preview_delete` unless the user explicitly asked for that exact path.
-- Do not assume runtime screenshot/input tools exist; use only tools reported by `get_capabilities`.
-- Keep user-authored project files intact unless the requested change requires modifying them.
+- Do not delete without `filesystem_preview_delete` unless the user explicitly named the exact path.
+- Do not claim runtime/editor behavior worked unless the corresponding WebSocket route returned a real receipt.
 
-## Version Sync
+## Validate Before Finishing
 
-When updating the `godot-devtool` package version, update this skill's `metadata.version` and Compatibility line together with `package.json`, `package-lock.json`, README download links, and changelogs. Run the repo verification scripts before publishing.
+Use the strongest relevant checks:
+
+- `check_gdscript_syntax` for changed scripts.
+- `run_project_checks` for project-level validation.
+- `get_export_presets`, `check_export_presets`, `export_matrix`, or `generate_ci_snippet` for export work.
+- `run_project` plus `get_debug_output` for runtime behavior.
+
+For this MCP package itself, use:
+
+```bash
+npm.cmd run build
+npm.cmd run verify:tools
+npm.cmd run verify:gdscripts
+npm.cmd run verify:v2:capabilities
+npm.cmd run verify:v2:plugin
+npm.cmd run verify:v2:runtime
+```
+
+Summarize actual check results, including failures and skipped Godot-dependent checks.

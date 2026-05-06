@@ -1,6 +1,7 @@
 import { existsSync } from 'fs';
-import { mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 import { normalizeProjectRelativePath } from './filesystemTools.js';
 import {
@@ -11,10 +12,13 @@ import {
 } from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 import { writeProjectSettings } from './projectSettings.js';
+import { getWsBridge } from '../server/transports/wsBridge.js';
 
-const PLUGIN_CFG_PATH = 'addons/godot_devtool_bridge/plugin.cfg';
-const PLUGIN_SCRIPT_PATH = 'addons/godot_devtool_bridge/godot_devtool_bridge.gd';
-const RUNTIME_SCRIPT_PATH = 'addons/godot_devtool_bridge/godot_devtool_runtime.gd';
+const ADDON_PATH = 'addons/godot_devtool';
+const PLUGIN_CFG_PATH = `${ADDON_PATH}/plugin.cfg`;
+const PLUGIN_SCRIPT_PATH = `${ADDON_PATH}/plugin.gd`;
+const ROUTER_SCRIPT_PATH = `${ADDON_PATH}/command_router.gd`;
+const RUNTIME_SCRIPT_PATH = `${ADDON_PATH}/runtime_bridge.gd`;
 const CONFIG_PATH = '.godot-devtool/bridge-config.json';
 const STATE_PATH = '.godot-devtool/editor-state.json';
 const COMMANDS_DIR = '.godot-devtool/editor-commands';
@@ -23,6 +27,8 @@ const RUNTIME_STATE_PATH = '.godot-devtool/runtime-state.json';
 const RUNTIME_COMMANDS_DIR = '.godot-devtool/runtime-commands';
 const RUNTIME_RECEIPTS_DIR = '.godot-devtool/runtime-receipts';
 const DEFAULT_COMMAND_TIMEOUT_MS = 10000;
+const DEFAULT_WEBSOCKET_PORT = 8766;
+const pendingBridgeReceipts = new Map<string, Promise<EditorBridgeReceipt>>();
 
 export type EditorBridgeMode = 'file' | 'http' | 'websocket';
 export type EditorBridgeCommandType =
@@ -37,16 +43,9 @@ export interface EditorBridgeConfig {
   mode: EditorBridgeMode;
   instanceId: string;
   projectPath: string;
-  commandsDir: string;
-  receiptsDir: string;
-  http: {
-    host: string;
-    port: number;
-  };
-  websocket: {
-    host: string;
-    port: number;
-  };
+  host: string;
+  port: number;
+  url: string;
 }
 
 export interface EditorBridgeInstallResult {
@@ -58,12 +57,14 @@ export interface EditorBridgeInstallResult {
     mode: EditorBridgeMode;
     instanceId: string;
     configPath: string;
-    commandsDir: string;
-    receiptsDir: string;
+    host: string;
+    port: number;
+    url: string;
   };
   plugin: {
     configPath: string;
     scriptPath: string;
+    routerPath: string;
     runtimeScriptPath: string;
     enableInGodot: string;
   };
@@ -120,6 +121,7 @@ export interface EditorBridgeStatus {
 
 export interface RuntimeBridgeStatus {
   installed: boolean;
+  transport: 'runtime_ws';
   statePath: string;
   lastState: Record<string, unknown> | null;
   stale: boolean;
@@ -135,11 +137,10 @@ export async function installEditorBridge(
   options: { overwrite?: boolean; mode?: EditorBridgeMode; httpPort?: number; websocketPort?: number } = {}
 ): Promise<EditorBridgeInstallResult> {
   const bridge = await createOrReadBridgeConfig(projectPath, options);
+  const addonFiles = await collectAddonFiles(getBundledAddonRoot(), ADDON_PATH);
   const files: Record<string, string> = {
     [CONFIG_PATH]: JSON.stringify(bridge, null, 2),
-    [PLUGIN_CFG_PATH]: editorBridgePluginCfg(),
-    [PLUGIN_SCRIPT_PATH]: editorBridgePluginScript(),
-    [RUNTIME_SCRIPT_PATH]: runtimeBridgeScript(),
+    ...addonFiles,
   };
   const changedFiles: string[] = [];
   const skippedFiles: string[] = [];
@@ -158,7 +159,19 @@ export async function installEditorBridge(
     paths: Object.keys(files),
   });
 
+  await writeFileIfAllowed(projectPath, CONFIG_PATH, files[CONFIG_PATH], options.overwrite === true, changedFiles, skippedFiles);
+  const addonTarget = join(projectPath, ADDON_PATH);
+  if (existsSync(addonTarget) && options.overwrite !== true) {
+    skippedFiles.push(ADDON_PATH);
+  } else {
+    await rm(addonTarget, { recursive: true, force: true });
+    await mkdir(dirname(addonTarget), { recursive: true });
+    await cp(getBundledAddonRoot(), addonTarget, { recursive: true });
+    changedFiles.push(...Object.keys(addonFiles));
+  }
+
   for (const [relativePath, content] of Object.entries(files)) {
+    if (relativePath === CONFIG_PATH || relativePath.startsWith(`${ADDON_PATH}/`)) continue;
     const absolutePath = join(projectPath, relativePath);
     if (existsSync(absolutePath) && options.overwrite !== true) {
       skippedFiles.push(relativePath);
@@ -170,10 +183,7 @@ export async function installEditorBridge(
     changedFiles.push(relativePath);
   }
 
-  await mkdir(join(projectPath, COMMANDS_DIR), { recursive: true });
-  await mkdir(join(projectPath, RECEIPTS_DIR), { recursive: true });
-  await mkdir(join(projectPath, RUNTIME_COMMANDS_DIR), { recursive: true });
-  await mkdir(join(projectPath, RUNTIME_RECEIPTS_DIR), { recursive: true });
+  await getWsBridge().start(bridge.port);
 
   const autoloadResult = await writeProjectSettings(projectPath, {
     changes: {
@@ -185,10 +195,10 @@ export async function installEditorBridge(
   }
 
   await appendAuditEntry(projectPath, {
-    operation: 'install_editor_bridge',
+    operation: 'plugin_install',
     changedFiles,
     skippedFiles,
-    details: { bridgeType: 'godot_editor_bridge', bridgeMode: bridge.mode, instanceId: bridge.instanceId },
+    details: { bridgeType: 'godot_devtool_websocket_plugin', bridgeMode: bridge.mode, instanceId: bridge.instanceId, port: bridge.port },
   });
 
   return {
@@ -200,56 +210,48 @@ export async function installEditorBridge(
       mode: bridge.mode,
       instanceId: bridge.instanceId,
       configPath: CONFIG_PATH,
-      commandsDir: COMMANDS_DIR,
-      receiptsDir: RECEIPTS_DIR,
+      host: bridge.host,
+      port: bridge.port,
+      url: bridge.url,
     },
     plugin: {
       configPath: PLUGIN_CFG_PATH,
       scriptPath: PLUGIN_SCRIPT_PATH,
+      routerPath: ROUTER_SCRIPT_PATH,
       runtimeScriptPath: RUNTIME_SCRIPT_PATH,
-      enableInGodot: 'Project Settings > Plugins > godot-devtool Editor Bridge',
+      enableInGodot: 'Project Settings > Plugins > godot-devtool',
     },
     runtime: {
       enabled: true,
       autoloadName: 'DevtoolRuntime',
       scriptPath: RUNTIME_SCRIPT_PATH,
       statePath: RUNTIME_STATE_PATH,
-      commandsDir: RUNTIME_COMMANDS_DIR,
-      receiptsDir: RUNTIME_RECEIPTS_DIR,
+      commandsDir: '',
+      receiptsDir: '',
     },
   };
 }
 
 export async function readEditorBridgeStatus(projectPath: string): Promise<EditorBridgeStatus> {
   const bridge = await readBridgeConfig(projectPath);
-  const stateAbsolutePath = join(projectPath, STATE_PATH);
-  let lastState: Record<string, unknown> | null = null;
-
-  if (existsSync(stateAbsolutePath)) {
-    lastState = JSON.parse(await readFile(stateAbsolutePath, 'utf8'));
-  }
-
-  let pendingCommandDetails: QueuedEditorBridgeCommand[] = [];
-  const commandsAbsoluteDir = join(projectPath, COMMANDS_DIR);
-  if (existsSync(commandsAbsoluteDir)) {
-    pendingCommandDetails = await readJsonFiles<QueuedEditorBridgeCommand>(projectPath, COMMANDS_DIR);
-  }
-  const nowMs = Date.now();
-  const expiredCommands = pendingCommandDetails.filter((command) => command.expiresAtMs <= nowMs);
-  const recentReceipts = await readJsonFiles<EditorBridgeReceipt>(projectPath, RECEIPTS_DIR, 20);
+  await getWsBridge().start(bridge.port);
+  const bridgeStatus = getWsBridge().status(projectPath);
   const runtime = await readRuntimeBridgeStatus(projectPath);
 
   return {
-    installed: existsSync(join(projectPath, PLUGIN_CFG_PATH)) && existsSync(join(projectPath, PLUGIN_SCRIPT_PATH)),
+    installed: existsSync(join(projectPath, PLUGIN_CFG_PATH)) && existsSync(join(projectPath, PLUGIN_SCRIPT_PATH)) && existsSync(join(projectPath, ROUTER_SCRIPT_PATH)),
     bridge,
     instanceId: bridge.instanceId,
     statePath: STATE_PATH,
-    lastState,
+    lastState: {
+      websocket: bridgeStatus,
+      connected: bridgeStatus.clients.some((client) => client.context === 'editor'),
+    },
     runtime,
-    pendingCommands: pendingCommandDetails.length,
-    pendingCommandDetails,
-    expiredCommands,
-    recentReceipts,
+    pendingCommands: bridgeStatus.pendingCommands,
+    pendingCommandDetails: [],
+    expiredCommands: [],
+    recentReceipts: [],
   };
 }
 
@@ -261,6 +263,7 @@ export async function enqueueEditorCommand(
   const timeoutMs = normalizeTimeout(command.timeoutMs);
   const createdAtMs = Date.now();
   const expiresAtMs = createdAtMs + timeoutMs;
+  const bridge = await readBridgeConfig(projectPath);
   const commandPayload: QueuedEditorBridgeCommand = {
     commandId,
     type: command.type,
@@ -271,29 +274,30 @@ export async function enqueueEditorCommand(
     expiresAt: new Date(expiresAtMs).toISOString(),
     expiresAtMs,
     status: 'queued',
-    commandPath: normalizeProjectRelativePath(`${COMMANDS_DIR}/${commandId}.json`),
+    commandPath: `ws://127.0.0.1:${bridge.port}/editor/${commandId}`,
   };
 
-  const absolutePath = join(projectPath, commandPayload.commandPath);
   const diffSummary = await buildDiffSummary(projectPath, {
     operation: `editor_${command.type}`,
     riskLevel: 'write',
     changes: [{
-      path: commandPayload.commandPath,
-      content: JSON.stringify(commandPayload, null, 2),
+      path: '.godot-devtool/websocket-command',
+      content: JSON.stringify(commandPayload.payload, null, 2),
       overwrite: false,
     }],
   });
   const safety = await assertWriteAllowed(projectPath, {
     operation: `editor_${command.type}`,
     riskLevel: 'write',
-    paths: [commandPayload.commandPath],
+    paths: ['.godot-devtool/websocket-command'],
   });
-  await mkdir(dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, JSON.stringify(commandPayload, null, 2), 'utf8');
+  pendingBridgeReceipts.set(
+    commandId,
+    getWsBridge().sendCommand(projectPath, 'editor', String(command.type), commandPayload.payload, timeoutMs) as Promise<EditorBridgeReceipt>
+  );
   await appendAuditEntry(projectPath, {
     operation: `editor_${command.type}`,
-    changedFiles: [commandPayload.commandPath],
+    changedFiles: [],
     skippedFiles: [],
     details: commandPayload.payload,
   });
@@ -309,7 +313,27 @@ export async function enqueueRuntimeCommand(
   projectPath: string,
   command: EditorBridgeCommand
 ): Promise<QueuedEditorBridgeCommand> {
-  return enqueueBridgeCommand(projectPath, command, RUNTIME_COMMANDS_DIR, `runtime_${command.type}`);
+  const commandId = command.commandId ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const timeoutMs = normalizeTimeout(command.timeoutMs);
+  const createdAtMs = Date.now();
+  const bridge = await readBridgeConfig(projectPath);
+  const commandPayload: QueuedEditorBridgeCommand = {
+    commandId,
+    type: command.type,
+    payload: command.payload ?? {},
+    timeoutMs,
+    createdAt: new Date(createdAtMs).toISOString(),
+    createdAtMs,
+    expiresAt: new Date(createdAtMs + timeoutMs).toISOString(),
+    expiresAtMs: createdAtMs + timeoutMs,
+    status: 'queued',
+    commandPath: `ws://127.0.0.1:${bridge.port}/runtime/${commandId}`,
+  };
+  pendingBridgeReceipts.set(
+    commandId,
+    getWsBridge().sendCommand(projectPath, 'runtime', String(command.type), commandPayload.payload, timeoutMs) as Promise<EditorBridgeReceipt>
+  );
+  return commandPayload;
 }
 
 export async function waitForRuntimeCommandReceipt(
@@ -317,43 +341,26 @@ export async function waitForRuntimeCommandReceipt(
   commandId: string,
   timeoutMs: number = DEFAULT_COMMAND_TIMEOUT_MS
 ): Promise<EditorBridgeReceipt> {
-  return waitForBridgeCommandReceipt(projectPath, RUNTIME_RECEIPTS_DIR, RUNTIME_COMMANDS_DIR, commandId, timeoutMs, 'runtime bridge');
+  return waitForWebSocketReceipt(commandId, timeoutMs, 'runtime bridge');
 }
 
 export async function readRuntimeBridgeStatus(projectPath: string): Promise<RuntimeBridgeStatus> {
-  const stateAbsolutePath = join(projectPath, RUNTIME_STATE_PATH);
-  let lastState: Record<string, unknown> | null = null;
-  let ageMs: number | null = null;
-
-  if (existsSync(stateAbsolutePath)) {
-    const parsedState = JSON.parse(await readFile(stateAbsolutePath, 'utf8')) as Record<string, unknown>;
-    lastState = parsedState;
-    const updatedAtMs = Date.parse(String(parsedState.updatedAt ?? ''));
-    if (Number.isFinite(updatedAtMs)) {
-      ageMs = Date.now() - updatedAtMs;
-    }
-  }
-
-  let pendingCommandDetails: QueuedEditorBridgeCommand[] = [];
-  const commandsAbsoluteDir = join(projectPath, RUNTIME_COMMANDS_DIR);
-  if (existsSync(commandsAbsoluteDir)) {
-    pendingCommandDetails = await readJsonFiles<QueuedEditorBridgeCommand>(projectPath, RUNTIME_COMMANDS_DIR);
-  }
-  const nowMs = Date.now();
-  const expiredCommands = pendingCommandDetails.filter((command) => command.expiresAtMs <= nowMs);
-  const recentReceipts = await readJsonFiles<EditorBridgeReceipt>(projectPath, RUNTIME_RECEIPTS_DIR, 20);
-  const stale = !lastState || ageMs === null || ageMs > 5000;
+  const bridge = await readBridgeConfig(projectPath);
+  await getWsBridge().start(bridge.port);
+  const bridgeStatus = getWsBridge().status(projectPath);
+  const connected = bridgeStatus.clients.some((client) => client.context === 'runtime');
 
   return {
     installed: existsSync(join(projectPath, RUNTIME_SCRIPT_PATH)),
+    transport: 'runtime_ws',
     statePath: RUNTIME_STATE_PATH,
-    lastState,
-    stale,
-    ageMs,
-    pendingCommands: pendingCommandDetails.length,
-    pendingCommandDetails,
-    expiredCommands,
-    recentReceipts,
+    lastState: { websocket: bridgeStatus, connected },
+    stale: !connected,
+    ageMs: null,
+    pendingCommands: bridgeStatus.pendingCommands,
+    pendingCommandDetails: [],
+    expiredCommands: [],
+    recentReceipts: [],
   };
 }
 
@@ -362,7 +369,42 @@ export async function waitForEditorCommandReceipt(
   commandId: string,
   timeoutMs: number = DEFAULT_COMMAND_TIMEOUT_MS
 ): Promise<EditorBridgeReceipt> {
-  return waitForBridgeCommandReceipt(projectPath, RECEIPTS_DIR, COMMANDS_DIR, commandId, timeoutMs, 'editor bridge');
+  return waitForWebSocketReceipt(commandId, timeoutMs, 'editor bridge');
+}
+
+async function waitForWebSocketReceipt(
+  commandId: string,
+  timeoutMs: number,
+  bridgeLabel: string
+): Promise<EditorBridgeReceipt> {
+  const pending = pendingBridgeReceipts.get(commandId);
+  if (!pending) {
+    return {
+      commandId,
+      type: bridgeLabel,
+      status: 'failed',
+      finishedAt: new Date().toISOString(),
+      error: `No pending ${bridgeLabel} receipt is registered for ${commandId}.`,
+      result: {},
+    };
+  }
+  try {
+    return await Promise.race([
+      pending,
+      new Promise<EditorBridgeReceipt>((resolve) => {
+        setTimeout(() => resolve({
+          commandId,
+          type: bridgeLabel,
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+          error: `Timed out waiting for ${bridgeLabel} receipt.`,
+          result: {},
+        }), normalizeTimeout(timeoutMs));
+      }),
+    ]);
+  } finally {
+    pendingBridgeReceipts.delete(commandId);
+  }
 }
 
 async function waitForBridgeCommandReceipt(
@@ -457,25 +499,20 @@ async function createOrReadBridgeConfig(
 ): Promise<EditorBridgeConfig> {
   const existing = await tryReadBridgeConfig(projectPath);
   const shouldApplyOptions = options.overwrite === true || !existing;
-  const mode = shouldApplyOptions ? options.mode ?? existing?.mode ?? 'file' : existing.mode;
-  if (!['file', 'http', 'websocket'].includes(mode)) {
+  const mode: EditorBridgeMode = 'websocket';
+  if (options.mode && options.mode !== 'websocket') {
     throw new Error(`Unsupported editor bridge mode: ${mode}`);
   }
+  const host = existing?.host ?? '127.0.0.1';
+  const port = shouldApplyOptions ? options.websocketPort ?? existing?.port ?? DEFAULT_WEBSOCKET_PORT : existing.port;
 
   return {
     mode,
     instanceId: existing?.instanceId ?? createInstanceId(projectPath),
     projectPath,
-    commandsDir: COMMANDS_DIR,
-    receiptsDir: RECEIPTS_DIR,
-    http: {
-      host: existing?.http?.host ?? '127.0.0.1',
-      port: shouldApplyOptions ? options.httpPort ?? existing?.http?.port ?? 8765 : existing.http.port,
-    },
-    websocket: {
-      host: existing?.websocket?.host ?? '127.0.0.1',
-      port: shouldApplyOptions ? options.websocketPort ?? existing?.websocket?.port ?? 8766 : existing.websocket.port,
-    },
+    host,
+    port,
+    url: `ws://${host}:${port}`,
   };
 }
 
@@ -490,21 +527,60 @@ async function tryReadBridgeConfig(projectPath: string): Promise<EditorBridgeCon
   }
 
   const parsed = JSON.parse(await readFile(configAbsolutePath, 'utf8')) as Partial<EditorBridgeConfig>;
+  const host = parsed.host ?? '127.0.0.1';
+  const port = parsed.port ?? DEFAULT_WEBSOCKET_PORT;
   return {
-    mode: parsed.mode ?? 'file',
+    mode: 'websocket',
     instanceId: parsed.instanceId ?? createInstanceId(projectPath),
     projectPath: parsed.projectPath ?? projectPath,
-    commandsDir: parsed.commandsDir ?? COMMANDS_DIR,
-    receiptsDir: parsed.receiptsDir ?? RECEIPTS_DIR,
-    http: {
-      host: parsed.http?.host ?? '127.0.0.1',
-      port: parsed.http?.port ?? 8765,
-    },
-    websocket: {
-      host: parsed.websocket?.host ?? '127.0.0.1',
-      port: parsed.websocket?.port ?? 8766,
-    },
+    host,
+    port,
+    url: parsed.url ?? `ws://${host}:${port}`,
   };
+}
+
+function getBundledAddonRoot(): string {
+  const modulePath = fileURLToPath(import.meta.url);
+  const buildAddonRoot = join(dirname(modulePath), '..', 'addons', 'godot_devtool');
+  if (existsSync(buildAddonRoot)) {
+    return buildAddonRoot;
+  }
+  return join(dirname(modulePath), '..', '..', 'src', 'addons', 'godot_devtool');
+}
+
+async function collectAddonFiles(sourceRoot: string, targetRoot: string): Promise<Record<string, string>> {
+  const files: Record<string, string> = {};
+  async function visit(directory: string): Promise<void> {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const absolutePath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await visit(absolutePath);
+        continue;
+      }
+      const relativePath = normalizeProjectRelativePath(join(targetRoot, absolutePath.slice(sourceRoot.length + 1)));
+      files[relativePath] = await readFile(absolutePath, 'utf8');
+    }
+  }
+  await visit(sourceRoot);
+  return files;
+}
+
+async function writeFileIfAllowed(
+  projectPath: string,
+  relativePath: string,
+  content: string,
+  overwrite: boolean,
+  changedFiles: string[],
+  skippedFiles: string[]
+): Promise<void> {
+  const absolutePath = join(projectPath, relativePath);
+  if (existsSync(absolutePath) && !overwrite) {
+    skippedFiles.push(relativePath);
+    return;
+  }
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await writeFile(absolutePath, content, 'utf8');
+  changedFiles.push(relativePath);
 }
 
 async function readJsonFiles<T>(projectPath: string, directory: string, limit?: number): Promise<T[]> {

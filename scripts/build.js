@@ -39,6 +39,12 @@ try {
 
   console.log('Successfully generated godot_operations.gd from source fragments');
 
+  const sourceAddonDir = path.join(__dirname, '..', 'src', 'addons', 'godot_devtool');
+  const buildAddonDir = path.join(__dirname, '..', 'build', 'addons', 'godot_devtool');
+  fs.removeSync(buildAddonDir);
+  fs.copySync(sourceAddonDir, buildAddonDir);
+  console.log('Successfully copied godot-devtool Godot addon into build output');
+
   const sourceSkillDir = path.join(__dirname, '..', 'skills', 'godot-devtool');
   const buildSkillDir = path.join(__dirname, '..', 'build', 'skills', 'godot-devtool');
   fs.removeSync(buildSkillDir);
