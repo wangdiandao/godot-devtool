@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.2.0
+
+README installation and capability guide release.
+
+- Expanded README and Chinese README with detailed release-zip, source-build, MCP client, and Godot plugin installation steps.
+- Added copy-ready prompts that ask an AI assistant to install and verify the bundled Godot plugin through MCP tools.
+- Added a fuller capability guide covering project, filesystem, resource, script, scene, node, visual, editor, runtime, animation, tilemap, UI/theme, physics, navigation, audio, analysis/QA, and compatibility routes.
+- Documented when to choose native, headless Godot, editor WebSocket, or runtime WebSocket transports.
+
 ## Version 2.1.0
 
 Server and verification structure cleanup release.

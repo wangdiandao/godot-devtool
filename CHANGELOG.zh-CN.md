@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.2.0
+
+README 安装和能力指南版本。
+
+- 扩展 README 和中文 README，写清 release zip、源码构建、MCP 客户端配置和 Godot 插件安装步骤。
+- 增加可直接复制给 AI 助手的提示词，用 MCP 工具安装并验收内置 Godot 插件。
+- 增加更完整的能力说明，覆盖 project、filesystem、resource、script、scene、node、visual、editor、runtime、animation、tilemap、UI/theme、physics、navigation、audio、analysis/QA 和 compatibility 路由。
+- 说明什么时候应该选择 native、headless Godot、editor WebSocket 或 runtime WebSocket transport。
+
 ## 2.1.0
 
 服务端与验证结构清理版本。

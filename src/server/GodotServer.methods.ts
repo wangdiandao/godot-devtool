@@ -1670,7 +1670,7 @@ class GodotServerMethodMixin {
 
     const result: any = {
       name: 'godot-devtool',
-      version: '2.1.0',
+      version: '2.2.0',
       serverMode: 'mcp_stdio',
       bridgeMode: 'websocket',
       executionModes: ['native', 'headless_godot', 'process_control', 'editor_ws', 'runtime_ws'],
