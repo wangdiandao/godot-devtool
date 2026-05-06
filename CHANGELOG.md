@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 1.3.1
+
+Code organization and maintainability release.
+
+- Split MCP tool definitions into category modules while preserving all exported tool names and compatibility aliases.
+- Replaced the monolithic server tool switch with categorized handler registries.
+- Split Godot operation source into ordered category fragments while keeping the generated runtime script byte-for-byte compatible with the previous single-file script.
+- Added verification scripts for tool definition coverage and Godot operation script generation.
+- Updated release documentation and package download links for `1.3.1`.
+
 ## Version 1.3.0
 
 Visual, shader, animation, and UI enhancement release.

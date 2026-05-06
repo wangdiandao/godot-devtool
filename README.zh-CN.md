@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 最新发行包：
 
-[godot-devtool-build-1.3.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.0/godot-devtool-build-1.3.0.zip)
+[godot-devtool-build-1.3.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v1.3.1/godot-devtool-build-1.3.1.zip)
 
 解压 zip，然后让 MCP 客户端指向解压后的 `build/index.js`。
 

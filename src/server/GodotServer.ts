@@ -13,9 +13,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
-  ErrorCode,
   ListToolsRequestSchema,
-  McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { analyzeGodotProject, indexGodotProjectResources } from '../godot/projectAnalysis.js';
 import { analyzeGDScriptFile, indexGDScriptFiles, readGDScriptFile } from '../godot/scriptAnalysis.js';
@@ -58,6 +56,7 @@ import {
 } from '../godot/scriptTools.js';
 import { getOperationsScriptPath } from '../godot/paths.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
+import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
 
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
@@ -1086,176 +1085,20 @@ export class GodotServer {
       tools: GODOT_TOOL_DEFINITIONS,
     }));
 
+    const toolHandlers = createToolHandlers(this);
+
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const requestedToolName = request.params.name;
       const toolName = GODOT_TOOL_ALIASES[requestedToolName] ?? requestedToolName;
       this.logDebug(`Handling tool request: ${requestedToolName} as ${toolName}`);
-      switch (toolName) {
-        case 'launch_editor':
-          return await this.handleLaunchEditor(request.params.arguments);
-        case 'run_project':
-          return await this.handleRunProject(request.params.arguments);
-        case 'get_debug_output':
-          return await this.handleGetDebugOutput(request.params.arguments);
-        case 'clear_debug_output':
-          return await this.handleClearDebugOutput();
-        case 'stop_project':
-          return await this.handleStopProject();
-        case 'get_godot_version':
-          return await this.handleGetGodotVersion();
-        case 'get_capabilities':
-          return this.handleGetCapabilities(request.params.arguments);
-        case 'list_projects':
-          return await this.handleListProjects(request.params.arguments);
-        case 'get_project_info':
-          return await this.handleGetProjectInfo(request.params.arguments);
-        case 'project_get_settings':
-          return await this.handleProjectGetSettings(request.params.arguments);
-        case 'project_set_setting':
-          return await this.handleProjectSetSetting(request.params.arguments);
-        case 'project_input_action':
-          return await this.handleProjectInputAction(request.params.arguments);
-        case 'get_resource_index':
-          return await this.handleGetResourceIndex(request.params.arguments);
-        case 'resource_dependency_graph':
-          return await this.handleResourceDependencyGraph(request.params.arguments);
-        case 'get_script_index':
-          return await this.handleGetScriptIndex(request.params.arguments);
-        case 'get_export_presets':
-          return await this.handleGetExportPresets(request.params.arguments);
-        case 'check_export_presets':
-          return await this.handleCheckExportPresets(request.params.arguments);
-        case 'export_matrix':
-          return await this.handleExportMatrix(request.params.arguments);
-        case 'update_export_preset':
-          return await this.handleUpdateExportPreset(request.params.arguments);
-        case 'export_project':
-          return await this.handleExportProject(request.params.arguments);
-        case 'create_gameplay_prototype':
-          return await this.handleCreateGameplayPrototype(request.params.arguments);
-        case 'create_workflow_test_scene':
-          return await this.handleCreateWorkflowTestScene(request.params.arguments);
-        case 'get_audit_log':
-          return await this.handleGetAuditLog(request.params.arguments);
-        case 'run_project_checks':
-          return await this.handleRunProjectChecks(request.params.arguments);
-        case 'scene_open':
-          return await this.handleSceneOpen(request.params.arguments);
-        case 'scene_get_current':
-          return await this.handleSceneGetCurrent(request.params.arguments);
-        case 'install_editor_bridge':
-          return await this.handleInstallEditorBridge(request.params.arguments);
-        case 'editor_bridge_status':
-          return await this.handleEditorBridgeStatus(request.params.arguments);
-        case 'editor_get_selection':
-          return await this.handleEditorGetSelection(request.params.arguments);
-        case 'editor_select_node':
-          return await this.handleEditorSelectNode(request.params.arguments);
-        case 'editor_undo_redo':
-          return await this.handleEditorUndoRedo(request.params.arguments);
-        case 'editor_inspector_get_properties':
-          return await this.handleEditorInspectorGetProperties(request.params.arguments);
-        case 'editor_inspector_set_properties':
-          return await this.handleEditorInspectorSetProperties(request.params.arguments);
-        case 'filesystem_list':
-          return await this.handleFilesystemList(request.params.arguments);
-        case 'filesystem_read':
-          return await this.handleFilesystemRead(request.params.arguments);
-        case 'filesystem_write':
-          return await this.handleFilesystemWrite(request.params.arguments);
-        case 'filesystem_delete':
-          return await this.handleFilesystemDelete(request.params.arguments);
-        case 'filesystem_preview_delete':
-          return await this.handleFilesystemPreviewDelete(request.params.arguments);
-        case 'resource_load':
-          return await this.handleResourceLoad(request.params.arguments);
-        case 'resource_create':
-          return await this.handleResourceCreate(request.params.arguments);
-        case 'resource_save':
-          return await this.handleResourceSave(request.params.arguments);
-        case 'script_create':
-          return await this.handleScriptCreate(request.params.arguments);
-        case 'script_write':
-          return await this.handleScriptWrite(request.params.arguments);
-        case 'script_attach':
-          return await this.handleScriptAttach(request.params.arguments);
-        case 'node_get':
-          return await this.handleNodeGet(request.params.arguments);
-        case 'node_get_property':
-          return await this.handleGetNodeProperties(request.params.arguments);
-        case 'node_set_property':
-          return await this.handleUpdateNodeProperties(request.params.arguments);
-        case 'node_move':
-          return await this.handleNodeMove(request.params.arguments);
-        case 'node_duplicate':
-          return await this.handleNodeDuplicate(request.params.arguments);
-        case 'node_find':
-          return await this.handleNodeFind(request.params.arguments);
-        case 'animation':
-          return await this.handleP9SceneOperation('animation', request.params.arguments);
-        case 'animation_state_machine':
-          return await this.handleP9SceneOperation('animation_state_machine', request.params.arguments);
-        case 'signal':
-          return await this.handleP9SceneOperation('signal', request.params.arguments);
-        case 'group':
-          return await this.handleP9SceneOperation('group', request.params.arguments);
-        case 'ui':
-          return await this.handleP9SceneOperation('ui', request.params.arguments);
-        case 'material':
-          return await this.handleP10VisualOperation('material', request.params.arguments);
-        case 'shader':
-          return await this.handleP10VisualOperation('shader', request.params.arguments);
-        case 'lighting':
-          return await this.handleP10VisualOperation('lighting', request.params.arguments);
-        case 'particle':
-          return await this.handleP10VisualOperation('particle', request.params.arguments);
-        case 'tilemap':
-          return await this.handleP11SceneOperation('tilemap', request.params.arguments);
-        case 'geometry':
-          return await this.handleP11SceneOperation('geometry', request.params.arguments);
-        case 'physics':
-          return await this.handleP11SceneOperation('physics', request.params.arguments);
-        case 'navigation':
-          return await this.handleP11SceneOperation('navigation', request.params.arguments);
-        case 'audio':
-          return await this.handleP11SceneOperation('audio', request.params.arguments);
-        case 'read_script_file':
-          return await this.handleReadScriptFile(request.params.arguments);
-        case 'analyze_script_references':
-          return await this.handleAnalyzeScriptReferences(request.params.arguments);
-        case 'check_gdscript_syntax':
-          return await this.handleCheckGDScriptSyntax(request.params.arguments);
-        case 'create_scene':
-          return await this.handleCreateScene(request.params.arguments);
-        case 'get_scene_tree':
-          return await this.handleGetSceneTree(request.params.arguments);
-        case 'get_node_properties':
-          return await this.handleGetNodeProperties(request.params.arguments);
-        case 'update_node_properties':
-          return await this.handleUpdateNodeProperties(request.params.arguments);
-        case 'rename_node':
-          return await this.handleRenameNode(request.params.arguments);
-        case 'delete_node':
-          return await this.handleDeleteNode(request.params.arguments);
-        case 'add_node':
-          return await this.handleAddNode(request.params.arguments);
-        case 'load_sprite':
-          return await this.handleLoadSprite(request.params.arguments);
-        case 'export_mesh_library':
-          return await this.handleExportMeshLibrary(request.params.arguments);
-        case 'save_scene':
-          return await this.handleSaveScene(request.params.arguments);
-        case 'get_uid':
-          return await this.handleGetUid(request.params.arguments);
-        case 'update_project_uids':
-          return await this.handleUpdateProjectUids(request.params.arguments);
-        default:
-          throw new McpError(
-            ErrorCode.MethodNotFound,
-            `Unknown tool: ${requestedToolName}`
-          );
+
+      const handler = toolHandlers[toolName];
+      if (!handler) {
+        throw createUnknownToolError(requestedToolName);
       }
+
+      return await handler(request.params.arguments);
     });
   }
 

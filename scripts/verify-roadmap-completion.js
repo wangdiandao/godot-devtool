@@ -175,6 +175,7 @@ try {
     changelogZh,
     license,
     tsconfigRaw,
+    packageRaw,
     gitignore,
   ] = await Promise.all([
     readRepoFile('README.md'),
@@ -185,9 +186,13 @@ try {
     readRepoFile('CHANGELOG.zh-CN.md'),
     readRepoFile('LICENSE'),
     readRepoFile('tsconfig.json'),
+    readRepoFile('package.json'),
     readRepoFile('.gitignore'),
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
+  const packageJson = JSON.parse(packageRaw);
+  const releaseVersion = packageJson.version;
+  const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -230,18 +235,18 @@ try {
   assert.match(operationsScript, /func ui_create_template/);
   assert.match(operationsScript, /func ui_auto_connect_signals/);
 
-  assert.match(readme, /version-1\.3\.0/);
-  assert.match(readmeZh, /version-1\.3\.0/);
+  assert.match(readme, new RegExp(`version-${escapedReleaseVersion}`));
+  assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readme, /Latest release package/);
-  assert.match(readme, /godot-devtool-build-1\.3\.0\.zip/);
+  assert.match(readme, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readmeZh, /最新发行包/);
-  assert.match(readmeZh, /godot-devtool-build-1\.3\.0\.zip/);
+  assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedReleaseVersion}\\.zip`));
   assert.match(readme, /## All Tools/);
   assert.match(readmeZh, /## 全部工具/);
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of ['1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
