@@ -1,7 +1,0 @@
-interface:
-  display_name: "Godot Devtool"
-  short_description: "Operate Godot projects through the godot-devtool MCP server."
-  default_prompt: "Use $godot-devtool to inspect and safely modify this Godot project through the MCP tools."
-
-policy:
-  allow_implicit_invocation: true

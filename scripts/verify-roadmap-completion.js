@@ -177,7 +177,6 @@ try {
     tsconfigRaw,
     packageRaw,
     skillRaw,
-    skillOpenAiRaw,
     gitignore,
   ] = await Promise.all([
     readRepoFile('README.md'),
@@ -190,7 +189,6 @@ try {
     readRepoFile('tsconfig.json'),
     readRepoFile('package.json'),
     readRepoFile('skills/godot-devtool/SKILL.md'),
-    readRepoFile('skills/godot-devtool/agents/openai.yaml'),
     readRepoFile('.gitignore'),
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
@@ -301,10 +299,11 @@ try {
   assert.match(skillRaw, /get_capabilities/);
   assert.match(skillRaw, /run_project_checks/);
   assert.match(skillRaw, /When updating the `godot-devtool` package version/);
-  assert.match(skillOpenAiRaw, /display_name: "Godot Devtool"/);
+  assert.match(skillRaw, /MCP clients and connected AI assistants/);
+  assert.match(skillRaw, /"mcpServers"/);
+  assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
-  assert.match(skillOpenAiRaw, /default_prompt: "Use \$godot-devtool/);
 
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);

@@ -64,13 +64,13 @@ get_capabilities
 npm run check:project -- E:/test
 ```
 
-### 4. 给 AI 助手提供操作指引
+### 4. 给 MCP 客户端提供操作指引
 
-本仓库包含一个面向支持 Skill 的 AI 助手的 Codex 风格 Skill：
+本仓库只包含一个 Skill 文件，用来告诉 MCP 客户端和接入的 AI 助手如何安全使用这个服务端：
 
 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
 
-该 Skill 会指导 AI 先检查项目状态，优先使用结构化 MCP 工具而不是直接改文件，对高风险操作使用 preview/dry-run，并在结束前运行验证。
+该 Skill 会指导客户端先检查项目状态，优先使用结构化 MCP 工具而不是直接改文件，对高风险操作使用 preview/dry-run，并在结束前运行验证。
 
 ## 环境要求
 

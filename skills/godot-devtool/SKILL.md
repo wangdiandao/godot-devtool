@@ -1,6 +1,6 @@
 ---
 name: godot-devtool
-description: "Use when operating Godot Engine projects through the godot-devtool MCP server: inspect projects, edit scenes/nodes/scripts/resources, use the editor bridge, run checks, debug output, and prepare exports while preserving project safety."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool MCP server for Godot projects: inspect first, prefer structured tools, edit safely, validate changes, and prepare exports."
 metadata:
   version: "1.4.0"
   mcp_server: "godot-devtool"
@@ -8,16 +8,36 @@ metadata:
 
 # Godot Devtool MCP
 
-Use this skill when a task should be done through the `godot-devtool` MCP server. This skill is for AI assistants working on Godot 4 projects with the `godot-devtool` tools available.
+Use this skill as the operating guide for any MCP client or connected AI assistant using the `godot-devtool` MCP server with Godot 4 projects.
 
 Compatibility: `godot-devtool` 1.4.0.
 
-## Start Every Session
+## Client Setup
 
-1. Confirm the server and tool surface:
+Configure the MCP client to run the server entry point:
+
+```json
+{
+  "mcpServers": {
+    "godot-devtool": {
+      "command": "node",
+      "args": ["E:/godot-devtool/build/index.js"],
+      "env": {
+        "GODOT_PATH": "D:/Program Files/Godot/Godot_v4.x.exe"
+      }
+    }
+  }
+}
+```
+
+If Godot is already available in `PATH`, `GODOT_PATH` can be omitted.
+
+## Start Every Task
+
+1. Confirm the server and tool surface.
    - `get_godot_version`
    - `get_capabilities` with schemas when unsure about arguments
-2. Establish project context before writing:
+2. Establish project context before writing.
    - `get_project_info`
    - `get_resource_index`
    - `get_script_index`

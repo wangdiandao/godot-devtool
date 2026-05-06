@@ -64,13 +64,13 @@ For a local project check:
 npm run check:project -- E:/test
 ```
 
-### 4. Give AI Assistants Operating Guidance
+### 4. Give MCP Clients Operating Guidance
 
-This repository includes a Codex-style skill for assistants that support skills:
+This repository includes a single skill file that tells MCP clients and connected AI assistants how to use this server safely:
 
 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
 
-The skill teaches assistants to inspect project state first, prefer structured MCP tools over raw file edits, use preview/dry-run flows for risky operations, and run validation before finishing.
+The skill teaches clients to inspect project state first, prefer structured MCP tools over raw file edits, use preview/dry-run flows for risky operations, and run validation before finishing.
 
 ## Requirements
 
