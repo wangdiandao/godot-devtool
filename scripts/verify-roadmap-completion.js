@@ -437,6 +437,9 @@ try {
   assert.match(readmeZh, /plugin_install/);
   assert.match(readme, /Ask AI To Install It/);
   assert.match(readmeZh, /让 AI 协助安装/);
+  assert.match(readme, /Chinese prompt:/);
+  assert.match(readme, /请使用 `godot-devtool` MCP server 帮我安装并验收 Godot 插件。/);
+  assert.doesNotMatch(readme, /璇|椤|绔|锛|銆|乸|甯/);
   assert.match(readme, /What It Can Do/);
   assert.match(readmeZh, /能做什么/);
   assert.match(readme, /Expand-Archive/);
