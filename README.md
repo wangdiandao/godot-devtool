@@ -8,7 +8,7 @@
 
 English | [中文](README.zh-CN.md)
 
-[Buy me a coffee on Patreon](https://www.patreon.com/cw/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
+[Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
 `godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.6.1 adds a local Browser visualizer for WebSocket bridge status, connected editor/runtime clients, and live-route guidance.
 
