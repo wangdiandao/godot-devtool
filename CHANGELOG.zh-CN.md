@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.4.0
+
+运行时兼容能力补全版本。
+
+- 将只返回回执的运行时输入兼容路由改为通过 `Input.parse_input_event` 注入按键、鼠标点击和鼠标移动事件。
+- 加固 `simulate_action` 和 `simulate_sequence`，加入 InputMap 校验、strength 限制、逐事件失败结果和帧延迟处理。
+- 增加 `start_recording`、`stop_recording` 和 `replay_recording` 运行时 bridge 路由，支持 `_input(event)` 捕获和 JSON 持久化。
+- 更新兼容能力元数据和 README 工具表，让 runtime bridge 路由与通用兼容封装区分开。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.4.0`。
+
 ## 2.3.2
 
 编辑器语言检测与运行时兼容能力路线图版本。

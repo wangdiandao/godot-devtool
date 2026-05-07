@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.3.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 English | [中文](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.3.2 keeps the stdio/headless MCP server plus optional localhost WebSocket bridge architecture, and adds the documented 2.4.0 runtime compatibility completion roadmap.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.4.0 completes runtime input and recording compatibility routes through the localhost WebSocket runtime bridge.
 
 ## Architecture
 
@@ -38,12 +38,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.3.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.3.2/godot-devtool-build-2.3.2.zip)
+   [godot-devtool-build-2.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.4.0/godot-devtool-build-2.4.0.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.3.2.zip E:\godot-devtool -Force
+   Expand-Archive .\godot-devtool-build-2.4.0.zip E:\godot-devtool -Force
    ```
 
 3. Confirm the server entry exists:
@@ -187,88 +187,88 @@ The feature display references the public [godot-mcp-pro README](https://github.
 ### Project Tools (23)
 | Tool | Description |
 |------|-------------|
-| `add_autoload` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `add_autoload` | Exact-name compatibility route for add_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `export_project` | Run a controlled Godot export for a configured preset |
-| `get_autoload` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_input_actions` | Executable compatibility wrapper for project_input_action. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_autoload` | Exact-name compatibility route for get_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_input_actions` | Executable compatibility wrapper for project_input_action. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `get_project_info` | Retrieve metadata about a Godot project |
 | `get_project_settings` | Compatibility alias for project_get_settings. Read Godot project.godot settings by section or section/key list |
-| `get_project_statistics` | Executable compatibility wrapper for get_project_info. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_project_statistics` | Executable compatibility wrapper for get_project_info. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `list_projects` | List Godot projects in a directory |
 | `play_scene` | Compatibility alias for run_project. Run the Godot project and capture output |
 | `project_get_info` | Compatibility alias for get_project_info. Retrieve metadata about a Godot project |
 | `project_get_settings` | Read Godot project.godot settings by section or section/key list |
 | `project_input_action` | List or update project InputMap actions in project.godot |
 | `project_set_setting` | Update Godot project.godot settings with dry-run preview and audit logging |
-| `reload_project` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `remove_autoload` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `reload_project` | Exact-name compatibility route for reload_project. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `remove_autoload` | Exact-name compatibility route for remove_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `run_project` | Run the Godot project and capture output |
 | `run_project_checks` | Run stable project checks for CI, review, and release workflows |
-| `set_input_action` | Executable compatibility wrapper for project_input_action. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `set_input_action` | Executable compatibility wrapper for project_input_action. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `set_project_setting` | Compatibility alias for project_set_setting. Update Godot project.godot settings with dry-run preview and audit logging |
 | `stop_project` | Stop the currently running Godot project |
 | `stop_scene` | Compatibility alias for stop_project. Stop the currently running Godot project |
-| `uid_to_project_path` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `uid_to_project_path` | Exact-name compatibility route for uid_to_project_path. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `update_project_uids` | Update UID references in a Godot project by resaving resources (for Godot 4.4+) |
 
 ### Scene Tools (55)
 | Tool | Description |
 |------|-------------|
-| `add_animation_track` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_audio_bus` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_audio_bus_effect` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_audio_player` | Executable compatibility wrapper for audio. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_scene_instance` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `analyze_scene_complexity` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `analyze_signal_flow` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `add_animation_track` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `add_audio_bus` | Exact-name compatibility route for add_audio_bus. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_audio_bus_effect` | Exact-name compatibility route for add_audio_bus_effect. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_audio_player` | Executable compatibility wrapper for audio. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `add_scene_instance` | Exact-name compatibility route for add_scene_instance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `analyze_scene_complexity` | Exact-name compatibility route for analyze_scene_complexity. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `analyze_signal_flow` | Exact-name compatibility route for analyze_signal_flow. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `animation` | Create, inspect, remove, and edit AnimationPlayer tracks and keyframes |
 | `animation_state_machine` | Create, inspect, and configure AnimationTree state machines |
 | `audio` | Create and list AudioStreamPlayer nodes with basic playback configuration |
-| `bake_navigation_mesh` | Executable compatibility wrapper for navigation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `connect_signal` | Executable compatibility wrapper for signal. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `create_animation` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `create_animation_tree` | Executable compatibility wrapper for animation_state_machine. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `bake_navigation_mesh` | Executable compatibility wrapper for navigation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `connect_signal` | Executable compatibility wrapper for signal. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `create_animation` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `create_animation_tree` | Executable compatibility wrapper for animation_state_machine. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `create_scene` | Create a new Godot scene file |
-| `cross_scene_set_property` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `disconnect_signal` | Executable compatibility wrapper for signal. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_signal_connections` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_animation_info` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_animation_tree_structure` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_audio_bus_layout` | Executable compatibility wrapper for audio. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_audio_info` | Executable compatibility wrapper for audio. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_collision_info` | Executable compatibility wrapper for physics. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_navigation_info` | Executable compatibility wrapper for navigation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_physics_layers` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_scene_dependencies` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `cross_scene_set_property` | Exact-name compatibility route for cross_scene_set_property. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `disconnect_signal` | Executable compatibility wrapper for signal. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `find_signal_connections` | Exact-name compatibility route for find_signal_connections. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_animation_info` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_animation_tree_structure` | Exact-name compatibility route for get_animation_tree_structure. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_audio_bus_layout` | Executable compatibility wrapper for audio. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_audio_info` | Executable compatibility wrapper for audio. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_collision_info` | Executable compatibility wrapper for physics. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_navigation_info` | Executable compatibility wrapper for navigation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_physics_layers` | Exact-name compatibility route for get_physics_layers. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_scene_dependencies` | Exact-name compatibility route for get_scene_dependencies. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `get_scene_tree` | Return the node tree for a Godot scene |
-| `get_signals` | Executable compatibility wrapper for signal. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `list_animations` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_signals` | Executable compatibility wrapper for signal. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `list_animations` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `navigation` | Create, inspect, configure, bake, query, and debug NavigationRegion and NavigationAgent nodes |
 | `open_scene` | Compatibility alias for scene_open. Open a scene in the MCP session using headless/file-based scene access |
 | `physics` | Create, inspect, configure, template, and analyze physics bodies, areas, collision layers, and shapes |
-| `remove_animation` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `remove_animation` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `save_scene` | Save changes to a scene file |
 | `scene_create` | Compatibility alias for create_scene. Create a new Godot scene file |
 | `scene_get_current` | Return the current scene tracked by this MCP session, if one was opened |
 | `scene_get_tree` | Compatibility alias for get_scene_tree. Return the node tree for a Godot scene |
 | `scene_open` | Open a scene in the MCP session using headless/file-based scene access |
 | `scene_save` | Compatibility alias for save_scene. Save changes to a scene file |
-| `set_animation_keyframe` | Executable compatibility wrapper for animation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_audio_bus` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_navigation_layers` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_physics_layers` | Executable compatibility wrapper for physics. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_collision` | Executable compatibility wrapper for physics. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_navigation_agent` | Executable compatibility wrapper for navigation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_navigation_region` | Executable compatibility wrapper for navigation. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_physics_body` | Executable compatibility wrapper for physics. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `set_animation_keyframe` | Executable compatibility wrapper for animation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `set_audio_bus` | Exact-name compatibility route for set_audio_bus. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_navigation_layers` | Exact-name compatibility route for set_navigation_layers. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_physics_layers` | Executable compatibility wrapper for physics. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `setup_collision` | Executable compatibility wrapper for physics. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `setup_navigation_agent` | Executable compatibility wrapper for navigation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `setup_navigation_region` | Executable compatibility wrapper for navigation. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `setup_physics_body` | Executable compatibility wrapper for physics. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `signal` | List, connect, or disconnect node signals in a scene |
 | `tilemap` | Create, list, and edit TileMapLayer or legacy TileMap nodes |
-| `tilemap_clear` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `tilemap_fill_rect` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `tilemap_get_cell` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `tilemap_get_info` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `tilemap_get_used_cells` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `tilemap_set_cell` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `tilemap_clear` | Exact-name compatibility route for tilemap_clear. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `tilemap_fill_rect` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `tilemap_get_cell` | Exact-name compatibility route for tilemap_get_cell. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `tilemap_get_info` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `tilemap_get_used_cells` | Exact-name compatibility route for tilemap_get_used_cells. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `tilemap_set_cell` | Executable compatibility wrapper for tilemap. Routes exact-name client calls through the canonical godot-devtool implementation. |
 
 ### Node Tools (26)
 | Tool | Description |
@@ -276,11 +276,11 @@ The feature display references the public [godot-mcp-pro README](https://github.
 | `add_node` | Add a node to an existing scene |
 | `delete_node` | Delete a non-root node from a Godot scene |
 | `duplicate_node` | Compatibility alias for node_duplicate. Duplicate a node in a Godot scene |
-| `find_nearby_nodes` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_node_references` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_nodes_by_type` | Executable compatibility wrapper for node_find. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_nodes_in_group` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_node_groups` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `find_nearby_nodes` | Runtime WebSocket compatibility route. Executes find_nearby_nodes through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `find_node_references` | Exact-name compatibility route for find_node_references. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `find_nodes_by_type` | Executable compatibility wrapper for node_find. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `find_nodes_in_group` | Exact-name compatibility route for find_nodes_in_group. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_node_groups` | Exact-name compatibility route for get_node_groups. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `get_node_properties` | Read selected properties from a node in a Godot scene |
 | `group` | List, add, or remove node groups |
 | `move_node` | Compatibility alias for node_move. Move a node by setting its position in a Godot scene |
@@ -294,11 +294,11 @@ The feature display references the public [godot-mcp-pro README](https://github.
 | `node_rename` | Compatibility alias for rename_node. Rename a node in a Godot scene |
 | `node_set_property` | Compatibility alias for updating node properties |
 | `rename_node` | Rename a node in a Godot scene |
-| `set_blend_tree_node` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_node_groups` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `set_blend_tree_node` | Exact-name compatibility route for set_blend_tree_node. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_node_groups` | Exact-name compatibility route for set_node_groups. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `update_node_properties` | Update properties on a node in a Godot scene |
 | `update_property` | Compatibility alias for node_set_property. Compatibility alias for updating node properties |
-| `wait_for_node` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `wait_for_node` | Runtime WebSocket compatibility route. Executes wait_for_node through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 
 ### Script Tools (15)
 | Tool | Description |
@@ -307,11 +307,11 @@ The feature display references the public [godot-mcp-pro README](https://github.
 | `attach_script` | Compatibility alias for script_attach. Attach a GDScript resource to a node in a scene |
 | `check_gdscript_syntax` | Run Godot --check-only against a GDScript file and return diagnostics |
 | `create_script` | Compatibility alias for script_create. Create a GDScript file inside a Godot project |
-| `edit_script` | Executable compatibility wrapper for script_write. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `execute_editor_script` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_nodes_by_script` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_script_references` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_open_scripts` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `edit_script` | Executable compatibility wrapper for script_write. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `execute_editor_script` | Exact-name compatibility route for execute_editor_script. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `find_nodes_by_script` | Exact-name compatibility route for find_nodes_by_script. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `find_script_references` | Exact-name compatibility route for find_script_references. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_open_scripts` | Exact-name compatibility route for get_open_scripts. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `get_script_index` | Return GDScript files with class, base class, exported variables, and functions |
 | `list_scripts` | Compatibility alias for get_script_index. Return GDScript files with class, base class, exported variables, and functions |
 | `script_attach` | Attach a GDScript resource to a node in a scene |
@@ -332,39 +332,39 @@ The feature display references the public [godot-mcp-pro README](https://github.
 | `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |
 | `plugin_reload` | Reload the godot-devtool v2 editor plugin through the WebSocket bridge |
 | `plugin_status` | Read godot-devtool v2 plugin installation status and WebSocket bridge configuration |
-| `reload_plugin` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `reload_plugin` | Exact-name compatibility route for reload_plugin. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 
 ### Filesystem Tools (13)
 | Tool | Description |
 |------|-------------|
-| `delete_scene` | Executable compatibility wrapper for filesystem_delete. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `delete_scene` | Executable compatibility wrapper for filesystem_delete. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `filesystem_delete` | Delete a project-local file or directory with explicit confirmation |
 | `filesystem_list` | List files and directories inside a Godot project |
 | `filesystem_preview_delete` | Preview a project-local delete operation without deleting files |
 | `filesystem_read` | Read a UTF-8 text file inside a Godot project |
 | `filesystem_write` | Write a UTF-8 text file inside a Godot project |
-| `get_filesystem_tree` | Executable compatibility wrapper for filesystem_list. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_scene_file_content` | Executable compatibility wrapper for filesystem_read. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_filesystem_tree` | Executable compatibility wrapper for filesystem_list. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_scene_file_content` | Executable compatibility wrapper for filesystem_read. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `read_script` | Compatibility alias for read_script_file. Read a GDScript file from a Godot project |
 | `read_script_file` | Read a GDScript file from a Godot project |
 | `script_read` | Compatibility alias for read_script_file. Read a GDScript file from a Godot project |
-| `search_files` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `search_in_files` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `search_files` | Exact-name compatibility route for search_files. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `search_in_files` | Exact-name compatibility route for search_in_files. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 
 ### Resource Tools (20)
 | Tool | Description |
 |------|-------------|
-| `add_resource` | Executable compatibility wrapper for resource_create. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `add_resource` | Executable compatibility wrapper for resource_create. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `check_export_presets` | Inspect Godot export presets and report pre-export issues |
 | `create_resource` | Compatibility alias for resource_create. Create a simple structured Godot resource file |
-| `edit_resource` | Executable compatibility wrapper for resource_save. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `edit_resource` | Executable compatibility wrapper for resource_save. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `export_matrix` | Summarize export targets, platform families, signing/template status, and CI steps |
 | `export_mesh_library` | Export a scene as a MeshLibrary resource |
-| `find_unused_resources` | Executable compatibility wrapper for resource_dependency_graph. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_export_info` | Executable compatibility wrapper for export_matrix. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `find_unused_resources` | Executable compatibility wrapper for resource_dependency_graph. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_export_info` | Executable compatibility wrapper for export_matrix. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `get_export_presets` | Read configured Godot export presets |
 | `get_resource_index` | Return a categorized resource index for a Godot project |
-| `get_resource_preview` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_resource_preview` | Exact-name compatibility route for get_resource_preview. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `get_uid` | Get the UID for a specific file in a Godot project (for Godot 4.4+) |
 | `list_export_presets` | Compatibility alias for get_export_presets. Read configured Godot export presets |
 | `project_path_to_uid` | Compatibility alias for get_uid. Get the UID for a specific file in a Godot project (for Godot 4.4+) |
@@ -378,100 +378,100 @@ The feature display references the public [godot-mcp-pro README](https://github.
 ### Visual Tools (26)
 | Tool | Description |
 |------|-------------|
-| `apply_particle_preset` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `assign_shader_material` | Executable compatibility wrapper for material. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `create_particles` | Executable compatibility wrapper for particle. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `create_shader` | Executable compatibility wrapper for shader. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `create_theme` | Executable compatibility wrapper for ui. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `edit_shader` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `find_ui_elements` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_particle_info` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_shader_params` | Executable compatibility wrapper for shader. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_theme_info` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `apply_particle_preset` | Exact-name compatibility route for apply_particle_preset. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `assign_shader_material` | Executable compatibility wrapper for material. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `create_particles` | Executable compatibility wrapper for particle. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `create_shader` | Executable compatibility wrapper for shader. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `create_theme` | Executable compatibility wrapper for ui. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `edit_shader` | Exact-name compatibility route for edit_shader. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `find_ui_elements` | Runtime WebSocket compatibility route. Executes find_ui_elements through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_particle_info` | Exact-name compatibility route for get_particle_info. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_shader_params` | Executable compatibility wrapper for shader. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `get_theme_info` | Exact-name compatibility route for get_theme_info. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `lighting` | Create and list basic Godot light and environment nodes |
 | `material` | Create, read, update, and apply Godot material resources |
 | `particle` | Create and list basic Godot particle emitter nodes |
-| `read_shader` | Executable compatibility wrapper for shader. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_material_3d` | Executable compatibility wrapper for material. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_particle_color_gradient` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_particle_material` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_shader_param` | Executable compatibility wrapper for shader. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_theme_color` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_theme_constant` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_theme_font_size` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_theme_stylebox` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_environment` | Executable compatibility wrapper for lighting. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_lighting` | Executable compatibility wrapper for lighting. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `read_shader` | Executable compatibility wrapper for shader. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `set_material_3d` | Executable compatibility wrapper for material. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `set_particle_color_gradient` | Exact-name compatibility route for set_particle_color_gradient. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_particle_material` | Exact-name compatibility route for set_particle_material. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_shader_param` | Executable compatibility wrapper for shader. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `set_theme_color` | Exact-name compatibility route for set_theme_color. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_theme_constant` | Exact-name compatibility route for set_theme_constant. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_theme_font_size` | Exact-name compatibility route for set_theme_font_size. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_theme_stylebox` | Exact-name compatibility route for set_theme_stylebox. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `setup_environment` | Executable compatibility wrapper for lighting. Routes exact-name client calls through the canonical godot-devtool implementation. |
+| `setup_lighting` | Executable compatibility wrapper for lighting. Routes exact-name client calls through the canonical godot-devtool implementation. |
 | `shader` | Create, read, inspect, and configure ShaderMaterial parameters |
 | `ui` | Create Control nodes, reusable UI templates, themes, and automatic signal wiring |
 
 ### Runtime Tools (20)
 | Tool | Description |
 |------|-------------|
-| `assert_node_state` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `assert_screen_text` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `compare_screenshots` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `assert_node_state` | Exact-name compatibility route for assert_node_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `assert_screen_text` | Exact-name compatibility route for assert_screen_text. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `compare_screenshots` | Exact-name compatibility route for compare_screenshots. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `create_workflow_test_scene` | Create a small Godot scene for validating MCP scene/script/check workflows |
-| `execute_game_script` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_editor_screenshot` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_game_node_properties` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_game_scene_tree` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_game_screenshot` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_test_report` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `replay_recording` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `run_test_scenario` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_game_node_property` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `simulate_action` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `simulate_key` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `simulate_mouse_click` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `simulate_mouse_move` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `simulate_sequence` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `start_recording` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `stop_recording` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `execute_game_script` | Runtime WebSocket compatibility route. Executes execute_game_script through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_editor_screenshot` | Exact-name compatibility route for get_editor_screenshot. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_game_node_properties` | Runtime WebSocket compatibility route. Executes get_game_node_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_game_scene_tree` | Runtime WebSocket compatibility route. Executes get_game_scene_tree through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_game_screenshot` | Runtime WebSocket compatibility route. Executes get_game_screenshot through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_test_report` | Exact-name compatibility route for get_test_report. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `replay_recording` | Runtime WebSocket compatibility route. Executes replay_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `run_test_scenario` | Exact-name compatibility route for run_test_scenario. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_game_node_property` | Runtime WebSocket compatibility route. Executes set_game_node_property through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `simulate_action` | Runtime WebSocket compatibility route. Executes simulate_action through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `simulate_key` | Runtime WebSocket compatibility route. Executes simulate_key through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `simulate_mouse_click` | Runtime WebSocket compatibility route. Executes simulate_mouse_click through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `simulate_mouse_move` | Runtime WebSocket compatibility route. Executes simulate_mouse_move through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `simulate_sequence` | Runtime WebSocket compatibility route. Executes simulate_sequence through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `start_recording` | Runtime WebSocket compatibility route. Executes start_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `stop_recording` | Runtime WebSocket compatibility route. Executes stop_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 
 ### Core Tools (40)
 | Tool | Description |
 |------|-------------|
-| `add_gridmap` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_mesh_instance` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_raycast` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_state_machine_state` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `add_state_machine_transition` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `batch_get_properties` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `batch_set_property` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `capture_frames` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `add_gridmap` | Exact-name compatibility route for add_gridmap. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_mesh_instance` | Exact-name compatibility route for add_mesh_instance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_raycast` | Exact-name compatibility route for add_raycast. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_state_machine_state` | Exact-name compatibility route for add_state_machine_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_state_machine_transition` | Exact-name compatibility route for add_state_machine_transition. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `batch_get_properties` | Exact-name compatibility route for batch_get_properties. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `batch_set_property` | Exact-name compatibility route for batch_set_property. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `capture_frames` | Runtime WebSocket compatibility route. Executes capture_frames through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `clear_debug_output` | Clear buffered output for the currently running Godot project |
 | `clear_output` | Compatibility alias for clear_debug_output. Clear buffered output for the currently running Godot project |
-| `click_button_by_text` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `click_button_by_text` | Runtime WebSocket compatibility route. Executes click_button_by_text through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `create_gameplay_prototype` | Create a high-level block-based gameplay prototype scaffold in a Godot project |
 | `debug_get_logs` | Compatibility alias for get_debug_output. Get the current debug output and errors |
-| `detect_circular_dependencies` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `detect_circular_dependencies` | Exact-name compatibility route for detect_circular_dependencies. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `generate_ci_snippet` | Generate GitHub Actions or GitLab CI snippets for Godot headless checks, export preflight, release export, and artifact archiving |
 | `geometry` | Create and list basic 2D geometry/debug drawing nodes |
 | `get_audit_log` | Read godot-devtool project audit log entries |
 | `get_audit_replay` | Summarize godot-devtool audit log entries into replay steps, counters, and risk highlights |
 | `get_capabilities` | Return supported godot-devtool MCP tools, compatibility aliases, run modes, risk levels, and input schemas |
 | `get_debug_output` | Get the current debug output and errors |
-| `get_editor_errors` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `get_editor_performance` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_editor_errors` | Exact-name compatibility route for get_editor_errors. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `get_editor_performance` | Exact-name compatibility route for get_editor_performance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `get_godot_version` | Get the installed Godot version |
 | `get_output_log` | Compatibility alias for get_debug_output. Get the current debug output and errors |
-| `get_performance_monitors` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `get_performance_monitors` | Runtime WebSocket compatibility route. Executes get_performance_monitors through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_rollback_suggestions` | Return honest rollback guidance for an operation, audit entry, or changed paths |
 | `get_safety_policy` | Read the project-local godot-devtool safety policy and default enforcement state |
 | `launch_editor` | Launch Godot editor for a specific project |
 | `load_sprite` | Load a sprite into a Sprite2D node |
-| `monitor_properties` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `move_to` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `navigate_to` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `monitor_properties` | Runtime WebSocket compatibility route. Executes monitor_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `move_to` | Runtime WebSocket compatibility route. Executes move_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `navigate_to` | Runtime WebSocket compatibility route. Executes navigate_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `preview_write_safety` | Preview safety policy and diff summary metadata for proposed writes or deletes |
-| `remove_state_machine_state` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `remove_state_machine_transition` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `run_stress_test` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `set_anchor_preset` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `remove_state_machine_state` | Exact-name compatibility route for remove_state_machine_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `remove_state_machine_transition` | Exact-name compatibility route for remove_state_machine_transition. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `run_stress_test` | Exact-name compatibility route for run_stress_test. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `set_anchor_preset` | Exact-name compatibility route for set_anchor_preset. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `set_safety_policy` | Configure project write allowlists and blocked paths in .godot-devtool/safety.json |
-| `set_tree_parameter` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
-| `setup_camera_3d` | Executable compatibility wrapper for compatibility_native. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt. |
+| `set_tree_parameter` | Exact-name compatibility route for set_tree_parameter. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `setup_camera_3d` | Exact-name compatibility route for setup_camera_3d. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 
 ## Which Route Should I Use?
 

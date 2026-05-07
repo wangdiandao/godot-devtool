@@ -15,6 +15,9 @@ var _last_connect_attempt_ms := 0
 func _ready() -> void:
 	set_process(true)
 
+func _input(event: InputEvent) -> void:
+	_router.capture_input_event(event)
+
 func _process(_delta: float) -> void:
 	if _socket.get_ready_state() == WebSocketPeer.STATE_CLOSED:
 		_try_connect()

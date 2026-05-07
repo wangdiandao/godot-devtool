@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.4.0
+
+Runtime compatibility completion release.
+
+- Replaced receipt-only runtime input compatibility routes with `Input.parse_input_event` injection for keys, mouse clicks, and mouse motion.
+- Hardened `simulate_action` and `simulate_sequence` with InputMap validation, strength clamping, per-event failures, and frame-delay handling.
+- Added runtime bridge recording routes for `start_recording`, `stop_recording`, and `replay_recording`, including `_input(event)` capture and JSON persistence.
+- Updated compatibility metadata and README tool tables so runtime bridge routes are distinguished from generic compatibility wrappers.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.4.0`.
+
 ## Version 2.3.2
 
 Editor locale detection and runtime compatibility roadmap release.

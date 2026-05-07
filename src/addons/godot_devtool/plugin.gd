@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.3.2"
+const PLUGIN_VERSION := "2.4.0"
 
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()

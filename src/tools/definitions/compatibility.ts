@@ -45,7 +45,7 @@ const COMPATIBILITY_SCHEMA_PROPERTIES: Record<string, unknown> = {
 
 export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.values(COMPATIBILITY_TOOL_ROUTES).map((route) => ({
   name: route.toolName,
-  description: `Executable compatibility wrapper for ${route.canonicalTool}. Routes exact-name client calls through a real godot-devtool implementation or a bridge command that returns a completion receipt.`,
+  description: compatibilityDescription(route),
   inputSchema: {
     type: 'object',
     properties: COMPATIBILITY_SCHEMA_PROPERTIES,
@@ -54,6 +54,17 @@ export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.valu
   compatibility: {
     since: '1.7.0',
     canonicalTool: route.canonicalTool,
+    implementationStatus: route.implementationStatus,
     supported: true,
   },
 }));
+
+function compatibilityDescription(route: (typeof COMPATIBILITY_TOOL_ROUTES)[string]): string {
+  if (route.implementationStatus === 'runtime_bridge') {
+    return `Runtime WebSocket compatibility route. Executes ${route.toolName} through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected.`;
+  }
+  if (route.implementationStatus === 'canonical_route') {
+    return `Executable compatibility wrapper for ${route.canonicalTool}. Routes exact-name client calls through the canonical godot-devtool implementation.`;
+  }
+  return `Exact-name compatibility route for ${route.toolName}. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available.`;
+}

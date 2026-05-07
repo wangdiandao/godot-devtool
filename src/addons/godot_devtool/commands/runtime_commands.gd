@@ -1,5 +1,9 @@
 extends RefCounted
 
+var _recording := false
+var _recording_path := "res://.godot-devtool/input-recording.json"
+var _recorded_events: Array = []
+
 func routes() -> Dictionary:
 	return {
 		"get_game_scene_tree": true,
@@ -12,6 +16,9 @@ func routes() -> Dictionary:
 		"simulate_mouse_move": true,
 		"simulate_action": true,
 		"simulate_sequence": true,
+		"start_recording": true,
+		"stop_recording": true,
+		"replay_recording": true,
 		"capture_frames": true,
 		"monitor_properties": true,
 		"find_ui_elements": true,
@@ -37,6 +44,8 @@ func dispatch(command_name: String, payload: Dictionary, _plugin = null) -> Dict
 			return _simulate_input(command_name, payload)
 		"simulate_sequence":
 			return _simulate_sequence(payload)
+		"start_recording", "stop_recording", "replay_recording":
+			return _recording_command(command_name, payload)
 		"get_game_screenshot":
 			return _screenshot(payload)
 		"capture_frames":
@@ -58,6 +67,10 @@ func dispatch(command_name: String, payload: Dictionary, _plugin = null) -> Dict
 		"execute_game_script":
 			return _ok({"executed": false, "reason": "Use structured runtime routes instead of arbitrary script execution."})
 	return _err("unknown runtime command: " + command_name)
+
+func capture_input_event(event: InputEvent) -> void:
+	if _recording:
+		_recorded_events.append(_serialize_input_event(event))
 
 func _root() -> Node:
 	return Engine.get_main_loop().current_scene if Engine.get_main_loop().current_scene else Engine.get_main_loop().root
@@ -103,22 +116,100 @@ func _simulate_action(payload: Dictionary) -> Dictionary:
 	var action_name := str(payload.get("action", payload.get("actionName", "")))
 	if action_name == "":
 		return _err("action is required")
-	if bool(payload.get("pressed", true)):
-		Input.action_press(action_name, float(payload.get("strength", 1.0)))
+	if not InputMap.has_action(action_name):
+		return _err("InputMap action does not exist: " + action_name)
+	var pressed := bool(payload.get("pressed", true))
+	var strength := clampf(float(payload.get("strength", 1.0)), 0.0, 1.0)
+	if pressed:
+		Input.action_press(action_name, strength)
 	else:
 		Input.action_release(action_name)
-	return _ok({"action": action_name, "pressed": bool(payload.get("pressed", true))})
+	return _ok({"command": "simulate_action", "action": action_name, "pressed": pressed, "strength": strength})
 
 func _simulate_input(command_name: String, payload: Dictionary) -> Dictionary:
-	return _ok({"command": command_name, "payload": payload})
+	if command_name == "simulate_action":
+		return _simulate_action(payload)
+	var event: InputEvent = null
+	if command_name == "simulate_key":
+		var key_event := InputEventKey.new()
+		var key_value = payload.get("keycode", payload.get("key", payload.get("physicalKeycode", 0)))
+		key_event.keycode = int(key_value) if typeof(key_value) != TYPE_STRING else OS.find_keycode_from_string(str(key_value))
+		if key_event.keycode == 0:
+			return _err("key/keycode must resolve to a Godot keycode")
+		key_event.pressed = bool(payload.get("pressed", true))
+		event = key_event
+	elif command_name == "simulate_mouse_click":
+		var button_event := InputEventMouseButton.new()
+		button_event.button_index = int(payload.get("buttonIndex", payload.get("button", MOUSE_BUTTON_LEFT)))
+		button_event.pressed = bool(payload.get("pressed", true))
+		button_event.position = _vector2_from_payload(payload.get("position", payload))
+		event = button_event
+	elif command_name == "simulate_mouse_move":
+		var motion_event := InputEventMouseMotion.new()
+		motion_event.position = _vector2_from_payload(payload.get("position", payload))
+		motion_event.relative = _vector2_from_payload(payload.get("relative", {"x": 0, "y": 0}))
+		event = motion_event
+	else:
+		return _err("Unsupported input command: " + command_name)
+	Input.parse_input_event(event)
+	return _ok({"command": command_name, "event": _serialize_input_event(event)})
 
 func _simulate_sequence(payload: Dictionary) -> Dictionary:
-	var events: Array = payload.get("events", payload.get("sequence", []))
+	var events_value = payload.get("events", payload.get("sequence", []))
+	if typeof(events_value) != TYPE_ARRAY:
+		return _err("events must be an array")
+	var events: Array = events_value
 	var results := []
+	var failed := false
 	for item in events:
-		if typeof(item) == TYPE_DICTIONARY:
-			results.append(dispatch(str(item.get("type", item.get("command", ""))), item))
-	return _ok({"count": results.size(), "results": results})
+		if typeof(item) != TYPE_DICTIONARY:
+			var invalid := _err("sequence event must be an object")
+			results.append(invalid)
+			failed = true
+			continue
+		var result := _simulate_input(str(item.get("type", item.get("command", ""))), item)
+		results.append(result)
+		if not bool(result.get("ok", false)):
+			failed = true
+		var delayFrames := max(0, int(item.get("delayFrames", item.get("delay_frames", 0))))
+	return {"ok": not failed, "error": "One or more sequence events failed." if failed else "", "result": {"count": results.size(), "results": results}}
+
+func _recording_command(command_name: String, payload: Dictionary) -> Dictionary:
+	var path := str(payload.get("recordingPath", payload.get("recording_path", ".godot-devtool/input-recording.json")))
+	var resource_path := path if path.begins_with("res://") else "res://" + path
+	if command_name == "start_recording":
+		_recording = true
+		_recording_path = resource_path
+		_recorded_events = []
+		return _ok({"recordingPath": resource_path, "recording": true})
+	if command_name == "stop_recording":
+		_recording = false
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(resource_path.get_base_dir()))
+		var write_file := FileAccess.open(resource_path, FileAccess.WRITE)
+		if not write_file:
+			return _err("Failed to write recording file: " + resource_path)
+		write_file.store_string(JSON.stringify({"events": _recorded_events, "stoppedAt": Time.get_datetime_string_from_system(true)}, "\t"))
+		return _ok({"recordingPath": resource_path, "eventCount": _recorded_events.size()})
+	var read_file := FileAccess.open(resource_path, FileAccess.READ)
+	if not read_file:
+		return _err("Recording file not found: " + resource_path)
+	var parsed = JSON.parse_string(read_file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY or typeof(parsed.get("events", null)) != TYPE_ARRAY:
+		return _err("Recording file must contain an events array: " + resource_path)
+	var events: Array = parsed.get("events", [])
+	var results := []
+	var failed := false
+	for item in events:
+		if typeof(item) != TYPE_DICTIONARY:
+			var invalid := _err("recorded event must be an object")
+			results.append(invalid)
+			failed = true
+			continue
+		var result := _simulate_input(str(item.get("type", "")), item)
+		results.append(result)
+		if not bool(result.get("ok", false)):
+			failed = true
+	return {"ok": not failed, "error": "One or more recorded events failed." if failed else "", "result": {"recordingPath": resource_path, "replayedEvents": events.size(), "results": results}}
 
 func _screenshot(payload: Dictionary) -> Dictionary:
 	var output_path := str(payload.get("outputPath", ".godot-devtool/game-screenshot.png"))
@@ -155,6 +246,42 @@ func _move_to(payload: Dictionary) -> Dictionary:
 	if node.has_method("set_position"):
 		node.set("position", payload.get("position", payload.get("target", Vector2.ZERO)))
 	return _ok({"nodePath": str(node.get_path())})
+
+func _vector2_from_payload(value) -> Vector2:
+	if value is Vector2:
+		return value
+	if typeof(value) == TYPE_DICTIONARY:
+		if value.has("value") and value.get("value") is Array:
+			var raw: Array = value.get("value", [0, 0])
+			return Vector2(float(raw[0]), float(raw[1]))
+		return Vector2(float(value.get("x", 0)), float(value.get("y", 0)))
+	if value is Array and value.size() >= 2:
+		return Vector2(float(value[0]), float(value[1]))
+	return Vector2.ZERO
+
+func _serialize_value(value):
+	match typeof(value):
+		TYPE_VECTOR2:
+			return {"type": "Vector2", "value": [value.x, value.y]}
+		_:
+			return value
+
+func _serialize_input_event(event: InputEvent) -> Dictionary:
+	var result := {"type": event.get_class()}
+	if event is InputEventKey:
+		result["type"] = "simulate_key"
+		result["keycode"] = event.keycode
+		result["pressed"] = event.pressed
+	elif event is InputEventMouseButton:
+		result["type"] = "simulate_mouse_click"
+		result["button"] = event.button_index
+		result["pressed"] = event.pressed
+		result["position"] = _serialize_value(event.position)
+	elif event is InputEventMouseMotion:
+		result["type"] = "simulate_mouse_move"
+		result["position"] = _serialize_value(event.position)
+		result["relative"] = _serialize_value(event.relative)
+	return result
 
 func _ok(result: Dictionary) -> Dictionary:
 	return {"ok": true, "error": "", "result": result}

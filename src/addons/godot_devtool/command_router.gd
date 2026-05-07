@@ -45,6 +45,15 @@ func dispatch_command(command_name: String, payload: Dictionary, plugin: EditorP
 		return {"ok": false, "error": "unknown_command: " + command_name, "result": {"code": "unknown_command", "command": command_name}}
 	return _routes[command_name].dispatch(command_name, payload, plugin)
 
+func capture_input_event(event: InputEvent) -> void:
+	var visited := []
+	for provider in _routes.values():
+		if visited.has(provider):
+			continue
+		visited.append(provider)
+		if provider.has_method("capture_input_event"):
+			provider.capture_input_event(event)
+
 func list_routes() -> Array:
 	var names := _routes.keys()
 	names.sort()

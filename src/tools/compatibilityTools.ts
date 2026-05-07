@@ -5,6 +5,7 @@ export type CompatibilityToolRoute = {
   fieldMap?: Record<string, string>;
   runMode?: string;
   riskLevel?: string;
+  implementationStatus?: 'canonical_route' | 'runtime_bridge' | 'native_or_bridge';
 };
 
 export const DIRECT_COMPATIBILITY_ALIASES: Record<string, string> = {
@@ -122,6 +123,31 @@ const NATIVE_COMPATIBILITY_TOOL_NAMES = [
   'assert_screen_text', 'compare_screenshots', 'run_stress_test', 'get_test_report',
 ];
 
+const RUNTIME_BRIDGE_IMPLEMENTED_COMPATIBILITY_TOOLS = new Set([
+  'get_game_screenshot',
+  'simulate_key',
+  'simulate_mouse_click',
+  'simulate_mouse_move',
+  'simulate_action',
+  'simulate_sequence',
+  'get_game_scene_tree',
+  'get_game_node_properties',
+  'set_game_node_property',
+  'execute_game_script',
+  'capture_frames',
+  'monitor_properties',
+  'start_recording',
+  'stop_recording',
+  'replay_recording',
+  'find_ui_elements',
+  'click_button_by_text',
+  'wait_for_node',
+  'find_nearby_nodes',
+  'navigate_to',
+  'move_to',
+  'get_performance_monitors',
+]);
+
 const UNSUPPORTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = NATIVE_COMPATIBILITY_TOOL_NAMES.map((toolName) => ({
   toolName,
   canonicalTool: 'compatibility_native',
@@ -129,10 +155,14 @@ const UNSUPPORTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = NATIVE_COMPATI
   runMode: toolName.includes('game') || toolName.includes('simulate') || toolName.includes('record') || toolName.includes('screenshot') || toolName.includes('test')
     ? 'runtime_bridge_or_file'
     : 'file_system_or_editor_bridge',
+  implementationStatus: RUNTIME_BRIDGE_IMPLEMENTED_COMPATIBILITY_TOOLS.has(toolName) ? 'runtime_bridge' : 'native_or_bridge',
 }));
 
 export const COMPATIBILITY_TOOL_ROUTES: Record<string, CompatibilityToolRoute> = Object.fromEntries(
-  [...ROUTED_COMPATIBILITY_TOOLS, ...UNSUPPORTED_COMPATIBILITY_TOOLS].map((route) => [route.toolName, route])
+  [
+    ...ROUTED_COMPATIBILITY_TOOLS.map((route) => ({ ...route, implementationStatus: 'canonical_route' as const })),
+    ...UNSUPPORTED_COMPATIBILITY_TOOLS,
+  ].map((route) => [route.toolName, route])
 );
 
 export const REQUIRED_COMPATIBILITY_TOOL_NAMES_17 = [

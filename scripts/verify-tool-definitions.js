@@ -237,6 +237,35 @@ if (missingCompatibilityTools17.length > 0) {
   process.exit(1);
 }
 
+for (const runtimeToolName of [
+  'simulate_key',
+  'simulate_mouse_click',
+  'simulate_mouse_move',
+  'simulate_action',
+  'simulate_sequence',
+  'start_recording',
+  'stop_recording',
+  'replay_recording',
+]) {
+  const tool = toolsByName.get(runtimeToolName);
+  if (!tool) {
+    console.error(`Missing runtime compatibility route: ${runtimeToolName}`);
+    process.exit(1);
+  }
+  if (tool.transport !== 'runtime_ws' || tool.routeGroup !== 'runtime' || tool.requiresRuntime !== true) {
+    console.error(`${runtimeToolName} must be advertised as a runtime_ws runtime route`);
+    process.exit(1);
+  }
+  if (tool.compatibility?.implementationStatus !== 'runtime_bridge') {
+    console.error(`${runtimeToolName} must report runtime_bridge compatibility implementation status`);
+    process.exit(1);
+  }
+  if (!String(tool.description).includes('Runtime WebSocket compatibility route')) {
+    console.error(`${runtimeToolName} must describe runtime bridge execution instead of completion receipts`);
+    process.exit(1);
+  }
+}
+
 const routeSource = readFileSync(join(repoRoot, 'src/tools/compatibilityTools.ts'), 'utf8');
 const serverSource = [
   readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8'),
