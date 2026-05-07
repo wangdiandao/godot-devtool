@@ -2,6 +2,7 @@
 extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
+const RUNTIME_STATE_PATH := "res://.godot-devtool/runtime-state.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
 const PLUGIN_VERSION := "2.6.0"
 const HANDSHAKE_PROTOCOL_VERSION := 1
@@ -20,8 +21,15 @@ var _last_heartbeat_sent_ms := 0
 var _last_heartbeat_ms := 0
 var _session_id := ""
 var _dock: VBoxContainer
+var _primary_status_label: Label
+var _primary_status_dot: ColorRect
 var _server_status_label: Label
+var _server_status_dot: ColorRect
 var _handshake_label: Label
+var _handshake_status_dot: ColorRect
+var _runtime_status_label: Label
+var _runtime_status_dot: ColorRect
+var _transport_label: Label
 var _bridge_url_label: Label
 var _last_command_label: Label
 var _last_receipt_label: Label
@@ -71,35 +79,101 @@ func _process(_delta: float) -> void:
 func _create_status_dock() -> void:
 	_dock = VBoxContainer.new()
 	_dock.name = "GDT"
-	_dock.custom_minimum_size = Vector2(260, 0)
+	_dock.custom_minimum_size = Vector2(280, 0)
+
+	var title_row := HBoxContainer.new()
+	_dock.add_child(title_row)
 
 	var title := Label.new()
 	title.text = "GDT"
 	title.add_theme_font_size_override("font_size", 18)
-	_dock.add_child(title)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
 
-	_server_status_label = _create_status_label()
-	_handshake_label = _create_status_label()
-	_bridge_url_label = _create_status_label()
-	_last_command_label = _create_status_label()
-	_last_receipt_label = _create_status_label()
-	_last_error_label = _create_status_label()
+	var version_label := Label.new()
+	version_label.text = "v%s" % PLUGIN_VERSION
+	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_row.add_child(version_label)
+
+	var primary_row := _create_status_row(_dock, "", true)
+	_primary_status_label = primary_row["label"]
+	_primary_status_dot = primary_row["dot"]
+
+	var connection_section := _create_status_section("connection_section")
+	var server_row := _create_status_row(connection_section, "server_label", true)
+	_server_status_label = server_row["label"]
+	_server_status_dot = server_row["dot"]
+
+	var editor_row := _create_status_row(connection_section, "editor_bridge_label", true)
+	_handshake_label = editor_row["label"]
+	_handshake_status_dot = editor_row["dot"]
+
+	var runtime_row := _create_status_row(connection_section, "runtime_bridge_label", true)
+	_runtime_status_label = runtime_row["label"]
+	_runtime_status_dot = runtime_row["dot"]
+
+	_transport_label = _create_status_label(connection_section, "transport_label")
+	_bridge_url_label = _transport_label
+
+	var activity_section := _create_status_section("activity_section")
+	_last_command_label = _create_status_label(activity_section, "last_command_label")
+	_last_receipt_label = _create_status_label(activity_section, "last_receipt_label")
+	_last_error_label = _create_status_label(activity_section, "last_error_label")
+
+	var button_row := HBoxContainer.new()
+	button_row.add_theme_constant_override("separation", 8)
+	_dock.add_child(button_row)
 
 	_reconnect_button = Button.new()
 	_reconnect_button.pressed.connect(_force_reconnect)
-	_dock.add_child(_reconnect_button)
+	_reconnect_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button_row.add_child(_reconnect_button)
 
 	_refresh_button = Button.new()
 	_refresh_button.pressed.connect(_refresh_status)
-	_dock.add_child(_refresh_button)
+	_refresh_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button_row.add_child(_refresh_button)
 
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, _dock)
 	_update_status_panel()
 
-func _create_status_label() -> Label:
+func _create_status_section(title_key: String) -> VBoxContainer:
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", 4)
+	_dock.add_child(section)
+
+	var title := Label.new()
+	title.text = _ui_text(title_key).to_upper()
+	title.add_theme_font_size_override("font_size", 11)
+	section.add_child(title)
+	return section
+
+func _create_status_row(parent: Control, label_key: String, include_dot: bool) -> Dictionary:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+
+	var dot: ColorRect = null
+	if include_dot:
+		dot = _create_status_dot()
+		row.add_child(dot)
+
+	var status_label := _create_status_label(row, label_key)
+	return {"label": status_label, "dot": dot}
+
+func _create_status_dot() -> ColorRect:
+	var dot := ColorRect.new()
+	dot.custom_minimum_size = Vector2(9, 9)
+	dot.color = Color(0.55, 0.62, 0.72)
+	return dot
+
+func _create_status_label(parent: Control, label_key: String) -> Label:
 	var status_label := Label.new()
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_dock.add_child(status_label)
+	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if label_key != "":
+		status_label.text = "%s: %s" % [_ui_text(label_key), _ui_text("none")]
+	parent.add_child(status_label)
 	return status_label
 
 func _load_config() -> void:
@@ -218,7 +292,7 @@ func _send(message: Dictionary) -> void:
 	_socket.send_text(JSON.stringify(message))
 
 func _update_status_panel() -> void:
-	if not _server_status_label:
+	if not _primary_status_label:
 		return
 	var state := _socket.get_ready_state()
 	var status_key := "status_disconnected"
@@ -228,9 +302,14 @@ func _update_status_panel() -> void:
 		status_key = "status_connected"
 	elif state == WebSocketPeer.STATE_CLOSING:
 		status_key = "status_closing"
-	_set_status_text(_server_status_label, "server_label", _ui_text(status_key))
+	_set_primary_status(status_key)
+	_set_status_dot(_server_status_dot, "ok")
+	_set_status_text(_server_status_label, "server_label", _ui_text("server_ready_stdio"))
+	_set_status_dot(_handshake_status_dot, _editor_status_level())
 	_set_status_text(_handshake_label, "handshake_label", _handshake_status_text())
-	_set_status_text(_bridge_url_label, "url_label", _bridge_url)
+	_set_status_dot(_runtime_status_dot, _runtime_status_level())
+	_set_status_text(_runtime_status_label, "runtime_bridge_label", _runtime_status_text())
+	_set_status_text(_transport_label, "transport_label", _bridge_url)
 	_set_status_text(_last_command_label, "last_command_label", _last_command if _last_command != "" else _ui_text("none"))
 	_set_status_text(_last_receipt_label, "last_receipt_label", _ui_text(_last_receipt_key))
 	_set_status_text(_last_error_label, "last_error_label", _last_error if _last_error != "" else _ui_text("none"))
@@ -251,6 +330,65 @@ func _handshake_status_text() -> String:
 		return _ui_text("handshake_stale")
 	return _ui_text("handshake_registered")
 
+func _set_primary_status(status_key: String) -> void:
+	var primary_text := _ui_text("primary_disconnected")
+	var level := "error"
+	if status_key == "status_connecting":
+		primary_text = _ui_text("primary_connecting")
+		level = "warn"
+	elif status_key == "status_connected":
+		primary_text = _ui_text("primary_connected") if _hello_acknowledged else _ui_text("primary_waiting")
+		level = "ok" if _hello_acknowledged else "warn"
+	elif status_key == "status_closing":
+		primary_text = _ui_text("primary_closing")
+		level = "warn"
+	_primary_status_label.text = primary_text
+	_set_status_dot(_primary_status_dot, level)
+
+func _editor_status_level() -> String:
+	if not _connected:
+		return "error"
+	if not _hello_acknowledged:
+		return "warn"
+	var age := Time.get_ticks_msec() - _last_heartbeat_ms
+	if age > HEARTBEAT_STALE_MS:
+		return "warn"
+	return "ok"
+
+func _runtime_status_text() -> String:
+	var state := _read_runtime_state()
+	if not state.is_empty() and (bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false))):
+		return _ui_text("runtime_connected")
+	return _ui_text("runtime_waiting")
+
+func _runtime_status_level() -> String:
+	var state := _read_runtime_state()
+	if not state.is_empty() and (bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false))):
+		return "ok"
+	return "warn"
+
+func _read_runtime_state() -> Dictionary:
+	if not FileAccess.file_exists(RUNTIME_STATE_PATH):
+		return {}
+	var file := FileAccess.open(RUNTIME_STATE_PATH, FileAccess.READ)
+	if not file:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
+
+func _set_status_dot(dot: ColorRect, level: String) -> void:
+	if not dot:
+		return
+	match level:
+		"ok":
+			dot.color = Color(0.39, 0.82, 0.56)
+		"warn":
+			dot.color = Color(0.94, 0.78, 0.36)
+		"error":
+			dot.color = Color(1.0, 0.48, 0.45)
+		_:
+			dot.color = Color(0.55, 0.62, 0.72)
+
 func _set_status_text(label: Label, label_key: String, value: String) -> void:
 	label.text = "%s: %s" % [_ui_text(label_key), value]
 
@@ -259,6 +397,18 @@ func _ui_text(key: String) -> String:
 	match key:
 		"server_label":
 			return "MCP \u670d\u52a1" if zh else "MCP Server"
+		"editor_bridge_label":
+			return "\u7f16\u8f91\u5668\u6865\u63a5" if zh else "Editor Bridge"
+		"runtime_bridge_label":
+			return "\u8fd0\u884c\u65f6\u6865\u63a5" if zh else "Runtime Bridge"
+		"transport_label":
+			return "\u4f20\u8f93" if zh else "Transport"
+		"connection_section":
+			return "\u8fde\u63a5" if zh else "Connection"
+		"activity_section":
+			return "\u6d3b\u52a8" if zh else "Activity"
+		"server_ready_stdio":
+			return "\u901a\u8fc7 stdio \u5c31\u7eea" if zh else "Ready via stdio"
 		"handshake_label":
 			return "\u63e1\u624b" if zh else "Handshake"
 		"url_label":
@@ -277,6 +427,16 @@ func _ui_text(key: String) -> String:
 			return "\u5df2\u8fde\u63a5" if zh else "Connected"
 		"status_closing":
 			return "\u6b63\u5728\u5173\u95ed" if zh else "Closing"
+		"primary_disconnected":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u672a\u8fde\u63a5" if zh else "Editor bridge disconnected"
+		"primary_connecting":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u8fde\u63a5\u4e2d" if zh else "Editor bridge connecting"
+		"primary_connected":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u5df2\u6ce8\u518c" if zh else "Editor bridge registered"
+		"primary_waiting":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u7b49\u5f85\u786e\u8ba4" if zh else "Editor bridge waiting for ack"
+		"primary_closing":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u6b63\u5728\u5173\u95ed" if zh else "Editor bridge closing"
 		"handshake_disconnected":
 			return "\u672a\u6ce8\u518c" if zh else "Unregistered"
 		"handshake_waiting":
@@ -285,6 +445,10 @@ func _ui_text(key: String) -> String:
 			return "\u5df2\u6ce8\u518c" if zh else "Registered"
 		"handshake_stale":
 			return "\u5fc3\u8df3\u8fc7\u671f" if zh else "Heartbeat stale"
+		"runtime_connected":
+			return "\u5df2\u8fde\u63a5" if zh else "Connected"
+		"runtime_waiting":
+			return "\u7b49\u5f85\u6e38\u620f\u8fd0\u884c" if zh else "Waiting for game"
 		"receipt_completed":
 			return "\u5df2\u5b8c\u6210" if zh else "completed"
 		"receipt_failed":
@@ -292,11 +456,11 @@ func _ui_text(key: String) -> String:
 		"reconnect":
 			return "\u91cd\u65b0\u8fde\u63a5" if zh else "Reconnect"
 		"reconnect_tooltip":
-			return "\u91cd\u65b0\u8fde\u63a5\u5230\u672c\u5730 godot-devtool MCP WebSocket \u670d\u52a1\u3002" if zh else "Reconnect to the local godot-devtool MCP WebSocket server."
+			return "\u91cd\u65b0\u8fde\u63a5\u672c\u5730 godot-devtool bridge \u4f20\u8f93\u3002" if zh else "Reconnect the local godot-devtool bridge transport."
 		"refresh":
 			return "\u5237\u65b0\u72b6\u6001" if zh else "Refresh"
 		"refresh_tooltip":
-			return "\u7acb\u5373\u5237\u65b0 WebSocket \u8fde\u63a5\u548c\u63e1\u624b\u72b6\u6001\u3002" if zh else "Refresh the WebSocket connection and handshake status immediately."
+			return "\u7acb\u5373\u5237\u65b0 bridge \u4f20\u8f93\u3001\u63e1\u624b\u548c runtime \u72b6\u6001\u3002" if zh else "Refresh bridge transport, handshake, and runtime status immediately."
 		"none":
 			return "\u65e0" if zh else "None"
 	return key
