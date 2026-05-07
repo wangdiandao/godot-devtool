@@ -9,7 +9,8 @@ const tag = `v${version}`;
 const repo = process.env.GITHUB_REPOSITORY || 'wangdiandao/godot-devtool';
 const assetName = `godot-devtool-build-${version}.zip`;
 const assetPath = join(process.cwd(), assetName);
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npmCommand = process.env.npm_execpath ? process.execPath : process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const npmRunArgs = process.env.npm_execpath ? [process.env.npm_execpath, 'run'] : ['run'];
 let uploaded = false;
 
 try {
@@ -77,7 +78,7 @@ function runReleaseGuards(releaseTag) {
     throw new Error(`Refusing to publish ${releaseTag}: tag points to ${tagSha}, but HEAD is ${headSha}.`);
   }
 
-  execFileSync(npmCommand, ['run', 'verify:all'], { stdio: 'inherit' });
+  execFileSync(npmCommand, [...npmRunArgs, 'verify:all'], { stdio: 'inherit' });
 }
 
 function createZip(destination) {
