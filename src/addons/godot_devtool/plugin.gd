@@ -3,7 +3,7 @@ extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.4.0"
+const PLUGIN_VERSION := "2.4.1"
 
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()
@@ -17,6 +17,7 @@ var _last_command_label: Label
 var _last_receipt_label: Label
 var _last_error_label: Label
 var _reconnect_button: Button
+var _refresh_button: Button
 var _last_command := ""
 var _last_receipt_key := "none"
 var _last_error := ""
@@ -80,6 +81,10 @@ func _create_status_dock() -> void:
 	_reconnect_button.pressed.connect(_force_reconnect)
 	_dock.add_child(_reconnect_button)
 
+	_refresh_button = Button.new()
+	_refresh_button.pressed.connect(_refresh_status)
+	_dock.add_child(_refresh_button)
+
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, _dock)
 	_update_status_panel()
 
@@ -115,6 +120,15 @@ func _force_reconnect() -> void:
 	_socket = WebSocketPeer.new()
 	_last_connect_attempt_ms = 0
 	_try_connect()
+	_update_status_panel()
+
+func _refresh_status() -> void:
+	_load_config()
+	if _socket.get_ready_state() == WebSocketPeer.STATE_CLOSED:
+		_last_connect_attempt_ms = 0
+		_try_connect()
+		return
+	_socket.poll()
 	_update_status_panel()
 
 func _handle_packet(packet_text: String) -> void:
@@ -168,6 +182,9 @@ func _update_status_panel() -> void:
 	if _reconnect_button:
 		_reconnect_button.text = _ui_text("reconnect")
 		_reconnect_button.tooltip_text = _ui_text("reconnect_tooltip")
+	if _refresh_button:
+		_refresh_button.text = _ui_text("refresh")
+		_refresh_button.tooltip_text = _ui_text("refresh_tooltip")
 
 func _set_status_text(label: Label, label_key: String, value: String) -> void:
 	label.text = "%s: %s" % [_ui_text(label_key), value]
@@ -201,6 +218,10 @@ func _ui_text(key: String) -> String:
 			return "重新连接" if zh else "Reconnect"
 		"reconnect_tooltip":
 			return "重新连接到本地 godot-devtool MCP WebSocket 服务。" if zh else "Reconnect to the local godot-devtool MCP WebSocket server."
+		"refresh":
+			return "刷新状态" if zh else "Refresh"
+		"refresh_tooltip":
+			return "立即刷新 WebSocket 连接状态。" if zh else "Refresh the WebSocket connection status immediately."
 		"none":
 			return "无" if zh else "None"
 	return key

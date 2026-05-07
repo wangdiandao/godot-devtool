@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.4.1
+
+WebSocket bridge lifecycle and dock refresh release.
+
+- Kept the localhost WebSocket bridge tied to the MCP server lifecycle so the Godot editor plugin can reconnect to a stable listener while the server is running.
+- Added a `Refresh` / `刷新状态` action to the `GDT` editor dock for immediate status polling and reconnect attempts without waiting for the next process tick.
+- Added regression checks for server bridge lifecycle startup/shutdown and the dock refresh UI.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.4.1`.
+
 ## Version 2.4.0
 
 Runtime compatibility completion release.

@@ -271,6 +271,14 @@ const serverSource = [
   readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8'),
   readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8'),
 ].join('\n');
+if (!serverSource.includes('GODOT_DEVTOOL_WS_PORT') || !serverSource.includes('getWsBridge().start(websocketPort)')) {
+  console.error('GodotServer.run must keep the WebSocket bridge listening for the MCP server lifetime');
+  process.exit(1);
+}
+if (!serverSource.includes('await getWsBridge().stop()')) {
+  console.error('GodotServer.cleanup must stop the WebSocket bridge');
+  process.exit(1);
+}
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');
 const weakImplementationPatterns = [
   'unsupportedReason',

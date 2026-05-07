@@ -46,8 +46,8 @@ try {
   }
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, /PLUGIN_VERSION := "2\.4\.0"/, 'plugin.gd must report plugin version 2.4.0');
-  assert.match(pluginConfigSource, /version="2\.4\.0"/, 'plugin.cfg must report plugin version 2.4.0');
+  assert.match(pluginSource, /PLUGIN_VERSION := "2\.4\.1"/, 'plugin.gd must report plugin version 2.4.1');
+  assert.match(pluginConfigSource, /version="2\.4\.1"/, 'plugin.cfg must report plugin version 2.4.1');
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
   assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
@@ -59,6 +59,10 @@ try {
   assert.match(pluginSource, /MCP 服务/, 'plugin.gd status dock must include Simplified Chinese server label');
   assert.match(pluginSource, /Reconnect/, 'plugin.gd status dock must expose a reconnect action');
   assert.match(pluginSource, /重新连接/, 'plugin.gd status dock must include Simplified Chinese reconnect action');
+  assert.match(pluginSource, /_refresh_button/, 'plugin.gd status dock must expose a refresh button');
+  assert.match(pluginSource, /_refresh_status/, 'plugin.gd status dock must implement immediate status refresh');
+  assert.match(pluginSource, /Refresh/, 'plugin.gd status dock must expose a refresh action');
+  assert.match(pluginSource, /刷新状态/, 'plugin.gd status dock must include Simplified Chinese refresh action');
   assert.match(pluginSource, /Last Command/, 'plugin.gd status dock must show the most recent command');
   assert.match(pluginSource, /最近命令/, 'plugin.gd status dock must include Simplified Chinese command label');
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');

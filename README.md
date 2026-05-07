@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.4.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 English | [中文](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.4.0 completes runtime input and recording compatibility routes through the localhost WebSocket runtime bridge.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.4.1 keeps the localhost WebSocket bridge alive for the MCP server lifetime and adds a manual dock status refresh action.
 
 ## Architecture
 
@@ -38,12 +38,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.4.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.4.0/godot-devtool-build-2.4.0.zip)
+   [godot-devtool-build-2.4.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.4.1/godot-devtool-build-2.4.1.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.4.0.zip E:\godot-devtool -Force
+   Expand-Archive .\godot-devtool-build-2.4.1.zip E:\godot-devtool -Force
    ```
 
 3. Confirm the server entry exists:

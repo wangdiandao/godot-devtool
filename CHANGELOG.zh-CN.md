@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.4.1
+
+WebSocket bridge 生命周期和 dock 刷新版本。
+
+- 将 localhost WebSocket bridge 绑定到 MCP server 生命周期，让 Godot 编辑器插件在 server 运行期间能重连到稳定监听端。
+- 在 `GDT` 编辑器 dock 增加 `Refresh` / `刷新状态` 操作，可立即轮询状态并触发重连，不必等待下一次 process tick。
+- 增加 server bridge 生命周期启动/关闭和 dock 刷新 UI 的回归检查。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.4.1`。
+
 ## 2.4.0
 
 运行时兼容能力补全版本。

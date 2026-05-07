@@ -248,9 +248,9 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  const latestReleaseZipVersion = '2.4.0';
+  const latestReleaseZipVersion = '2.4.1';
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.4.0');
+  assert.equal(releaseVersion, '2.4.1');
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
