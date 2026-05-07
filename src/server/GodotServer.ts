@@ -75,6 +75,7 @@ import { getOperationsScriptPath } from '../godot/paths.js';
 import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
+import { PACKAGE_NAME, PACKAGE_VERSION } from './packageMetadata.js';
 import { getWsBridge } from './transports/wsBridge.js';
 import { registerGodotServerMethods } from './GodotServer.methods.js';
 
@@ -311,6 +312,7 @@ export class GodotServer {
       if (config.godotPath) {
         const normalizedPath = normalize(config.godotPath);
         this.godotPath = normalizedPath;
+        process.env.GODOT_PATH = normalizedPath;
         this.logDebug(`Custom Godot path provided: ${this.godotPath}`);
 
         // Validate immediately with sync check
@@ -328,8 +330,8 @@ export class GodotServer {
     // Initialize the MCP server
     this.server = new Server(
       {
-        name: 'godot-devtool',
-        version: '2.2.0',
+        name: PACKAGE_NAME,
+        version: PACKAGE_VERSION,
       },
       {
         capabilities: {

@@ -36,7 +36,7 @@ import {
 } from '../godot/exportConfig.js';
 import { isSafeProjectRelativePath } from '../godot/pathValidation.js';
 import { buildResourceDependencyGraph } from '../godot/resourceDependencies.js';
-import { deleteProjectSettings, readProjectSettings, writeProjectSettings } from '../godot/projectSettings.js';
+import { deleteProjectSettings, rawProjectSettingValue, readProjectSettings, writeProjectSettings } from '../godot/projectSettings.js';
 import {
   appendAuditEntry,
   createGameplayPrototype,
@@ -85,6 +85,7 @@ import { getOperationsScriptPath } from '../godot/paths.js';
 import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
+import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from './packageMetadata.js';
 import { getWsBridge } from './transports/wsBridge.js';
 
 // Check if debug mode is enabled
@@ -719,6 +720,7 @@ class GodotServerMethodMixin {
     const timeoutMs = Number(args.timeoutMs ?? 10000);
     const command = await enqueueEditorCommand(args.projectPath, { type: toolName, payload: args, timeoutMs });
     const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+    this.assertCompletedBridgeReceipt(toolName, receipt);
     return {
       toolName,
       commandId: command.commandId,
@@ -744,6 +746,7 @@ class GodotServerMethodMixin {
     const timeoutMs = Number(args.timeoutMs ?? 10000);
     const command = await enqueueRuntimeCommand(args.projectPath, { type: toolName, payload: args, timeoutMs });
     const receipt = await waitForRuntimeCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+    this.assertCompletedBridgeReceipt(toolName, receipt);
     return {
       toolName,
       commandId: command.commandId,
@@ -756,6 +759,11 @@ class GodotServerMethodMixin {
       result: receipt.result ?? null,
       receipt,
     };
+  }
+  private assertCompletedBridgeReceipt(toolName: string, receipt: any): void {
+    if (receipt.status === 'completed') return;
+    const error = receipt.error ? `: ${receipt.error}` : '';
+    throw new Error(`${toolName} failed through the WebSocket bridge${error}`);
   }
   private escapeRegExp(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
@@ -1196,6 +1204,12 @@ class GodotServerMethodMixin {
         'C:\\Program Files (x86)\\Godot_4\\Godot.exe',
         `${process.env.USERPROFILE}\\Godot\\Godot.exe`
       );
+      if (process.env['ProgramFiles(x86)']) {
+        possiblePaths.push(`${process.env['ProgramFiles(x86)']}\\Steam\\steamapps\\common\\Godot Engine\\Godot.exe`);
+      }
+      if (process.env.ProgramFiles) {
+        possiblePaths.push(`${process.env.ProgramFiles}\\Steam\\steamapps\\common\\Godot Engine\\Godot.exe`);
+      }
     } else if (osPlatform === 'linux') {
       possiblePaths.push(
         '/usr/bin/godot',
@@ -1210,6 +1224,7 @@ class GodotServerMethodMixin {
       const normalizedPath = normalize(path);
       if (await this.isValidGodotPath(normalizedPath)) {
         this.godotPath = normalizedPath;
+        process.env.GODOT_PATH = normalizedPath;
         this.logDebug(`Found Godot at: ${normalizedPath}`);
         return;
       }
@@ -1218,7 +1233,9 @@ class GodotServerMethodMixin {
     // If we get here, we couldn't find Godot
     this.logDebug(`Warning: Could not find Godot in common locations for ${osPlatform}`);
     console.error(`[SERVER] Could not find Godot in common locations for ${osPlatform}`);
-    console.error(`[SERVER] Set GODOT_PATH=/path/to/godot environment variable or pass { godotPath: '/path/to/godot' } in the config to specify the correct path.`);
+    for (const guidance of godotPathGuidance(osPlatform)) {
+      console.error(`[SERVER] ${guidance}`);
+    }
 
     if (this.strictPathValidation) {
       // In strict mode, throw an error
@@ -1254,6 +1271,7 @@ class GodotServerMethodMixin {
     const normalizedPath = normalize(customPath);
     if (await this.isValidGodotPath(normalizedPath)) {
       this.godotPath = normalizedPath;
+      process.env.GODOT_PATH = normalizedPath;
       this.logDebug(`Godot path set to: ${normalizedPath}`);
       return true;
     }
@@ -1669,12 +1687,13 @@ class GodotServerMethodMixin {
     });
 
     const result: any = {
-      name: 'godot-devtool',
-      version: '2.2.0',
+      name: PACKAGE_NAME,
+      version: PACKAGE_VERSION,
       serverMode: 'mcp_stdio',
       bridgeMode: 'websocket',
       executionModes: ['native', 'headless_godot', 'process_control', 'editor_ws', 'runtime_ws'],
       godotPathConfigured: Boolean(this.godotPath || process.env.GODOT_PATH),
+      godotPathGuidance: godotPathGuidance(),
       strictPathValidation: this.strictPathValidation,
       toolCount: tools.length,
       aliasCount: Object.keys(GODOT_TOOL_ALIASES).length,
@@ -2237,10 +2256,7 @@ class GodotServerMethodMixin {
         const deadzone = typeof args.deadzone === 'number' ? args.deadzone : 0.5;
         const result = await writeProjectSettings(args.projectPath, {
           changes: {
-            [`input/${args.name}`]: {
-              deadzone,
-              events,
-            },
+            [`input/${args.name}`]: rawProjectSettingValue(this.formatInputActionProjectValue(deadzone, events)),
           },
           dryRun: args.dryRun === true,
         });
@@ -2261,6 +2277,76 @@ class GodotServerMethodMixin {
         ['Check the InputMap action name and event payload']
       );
     }
+  }
+
+  private formatInputActionProjectValue(deadzone: number, events: unknown[]): string {
+    const serializedEvents = events.map((event) => this.formatInputEventProjectValue(event));
+    return [
+      '{',
+      `"deadzone": ${Number.isFinite(deadzone) ? deadzone : 0.5},`,
+      `"events": [${serializedEvents.join(', ')}]`,
+      '}',
+    ].join('\n');
+  }
+
+  private formatInputEventProjectValue(event: unknown): string {
+    if (typeof event === 'string') {
+      const trimmed = event.trim();
+      if (/^(Object|InputEvent)/.test(trimmed)) return trimmed;
+      return JSON.stringify(trimmed);
+    }
+
+    if (!event || typeof event !== 'object' || Array.isArray(event)) {
+      throw new Error('InputMap events must be Godot event strings or JSON objects with a type field');
+    }
+
+    const source = event as Record<string, unknown>;
+    const eventType = String(source.type ?? source.class ?? source.eventType ?? 'InputEventKey');
+    if (!/^InputEvent[A-Za-z0-9_]*$/.test(eventType)) {
+      throw new Error(`Unsupported InputMap event type: ${eventType}`);
+    }
+
+    const pairs: string[] = [
+      '"resource_local_to_scene": false',
+      '"resource_name": ""',
+      '"device": ' + this.godotProjectLiteral(source.device ?? -1),
+      '"window_id": ' + this.godotProjectLiteral(source.windowId ?? source.window_id ?? 0),
+    ];
+
+    for (const [key, value] of Object.entries(source)) {
+      if (['type', 'class', 'eventType'].includes(key)) continue;
+      pairs.push(`${JSON.stringify(this.toGodotSnakeCase(key))}: ${this.godotProjectLiteral(value)}`);
+    }
+
+    if (!pairs.some((pair) => pair.startsWith('"script":'))) {
+      pairs.push('"script": null');
+    }
+
+    return `Object(${eventType},${pairs.join(',')})`;
+  }
+
+  private godotProjectLiteral(value: unknown): string {
+    if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '0';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (/^(Object|InputEvent|NodePath|Vector2|Vector3|Color)\(/.test(trimmed)) return trimmed;
+      return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+      return `[${value.map((entry) => this.godotProjectLiteral(entry)).join(', ')}]`;
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>)
+        .map(([key, entry]) => `${JSON.stringify(this.toGodotSnakeCase(key))}: ${this.godotProjectLiteral(entry)}`);
+      return `{${entries.join(', ')}}`;
+    }
+    return JSON.stringify(String(value));
+  }
+
+  private toGodotSnakeCase(value: string): string {
+    return value.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
   /**
@@ -2989,8 +3075,9 @@ class GodotServerMethodMixin {
         timeoutMs: args.timeoutMs,
       });
       const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      this.assertCompletedBridgeReceipt('plugin_reload', receipt);
       return this.createJsonResponse({
-        ok: receipt.status === 'completed',
+        ok: true,
         mode: 'godot_editor_websocket_bridge',
         command,
         receipt,
@@ -3048,10 +3135,13 @@ class GodotServerMethodMixin {
         },
         timeoutMs: args.timeoutMs,
       });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      this.assertCompletedBridgeReceipt('editor_select_node', receipt);
       return this.createJsonResponse({
         ok: true,
-        mode: 'godot_editor_file_bridge',
+        mode: 'godot_editor_websocket_bridge',
         command,
+        receipt,
       });
     } catch (error: any) {
       return this.createErrorResponse(
@@ -3076,10 +3166,13 @@ class GodotServerMethodMixin {
         payload: {},
         timeoutMs: args.timeoutMs,
       });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      this.assertCompletedBridgeReceipt('editor_undo_redo', receipt);
       return this.createJsonResponse({
         ok: true,
-        mode: 'godot_editor_file_bridge',
+        mode: 'godot_editor_websocket_bridge',
         command,
+        receipt,
       });
     } catch (error: any) {
       return this.createErrorResponse(
@@ -3108,10 +3201,13 @@ class GodotServerMethodMixin {
         },
         timeoutMs: args.timeoutMs,
       });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      this.assertCompletedBridgeReceipt('editor_inspector_get_properties', receipt);
       return this.createJsonResponse({
         ok: true,
-        mode: 'godot_editor_bridge',
+        mode: 'godot_editor_websocket_bridge',
         command,
+        receipt,
       });
     } catch (error: any) {
       return this.createErrorResponse(
@@ -3140,10 +3236,13 @@ class GodotServerMethodMixin {
         },
         timeoutMs: args.timeoutMs,
       });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
+      this.assertCompletedBridgeReceipt('editor_inspector_set_properties', receipt);
       return this.createJsonResponse({
         ok: true,
-        mode: 'godot_editor_bridge',
+        mode: 'godot_editor_websocket_bridge',
         command,
+        receipt,
       });
     } catch (error: any) {
       return this.createErrorResponse(

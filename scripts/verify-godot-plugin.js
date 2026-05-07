@@ -46,28 +46,36 @@ try {
   }
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, /PLUGIN_VERSION := "2\.4\.1"/, 'plugin.gd must report plugin version 2.4.1');
-  assert.match(pluginConfigSource, /version="2\.4\.1"/, 'plugin.cfg must report plugin version 2.4.1');
+  assert.match(pluginSource, /PLUGIN_VERSION := "2\.5\.0"/, 'plugin.gd must report plugin version 2.5.0');
+  assert.match(pluginConfigSource, /version="2\.5\.0"/, 'plugin.cfg must report plugin version 2.5.0');
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
   assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
   assert.match(pluginSource, /title\.text = "GDT"/, 'plugin.gd status dock heading must be GDT');
+  assert.match(pluginSource, /HANDSHAKE_PROTOCOL_VERSION/, 'plugin.gd must declare a versioned handshake protocol');
+  assert.match(pluginSource, /_session_id/, 'plugin.gd must include a stable editor session id in hello messages');
+  assert.match(pluginSource, /hello_ack/, 'plugin.gd must wait for a server hello_ack');
+  assert.match(pluginSource, /_hello_acknowledged/, 'plugin.gd must expose handshake acknowledgement state');
+  assert.match(pluginSource, /_last_heartbeat_ms/, 'plugin.gd must track heartbeat-backed registration state');
+  assert.match(pluginSource, /handshake_label/, 'plugin.gd status dock must show handshake state separately from socket state');
   assert.match(pluginSource, /TranslationServer\.get_locale/, 'plugin.gd must read the Godot engine locale');
   assert.match(pluginSource, /normalized_locale == "zh"/, 'plugin.gd must detect generic Chinese locales used by the Godot editor');
   assert.match(pluginSource, /zh_cn|zh_hans|zh_sg/, 'plugin.gd must detect explicit Simplified Chinese locales');
   assert.match(pluginSource, /MCP Server/, 'plugin.gd status dock must label MCP server state');
-  assert.match(pluginSource, /MCP 服务/, 'plugin.gd status dock must include Simplified Chinese server label');
+  assert.match(pluginSource, /MCP (服务|\\u670d\\u52a1)/, 'plugin.gd status dock must include Simplified Chinese server label');
   assert.match(pluginSource, /Reconnect/, 'plugin.gd status dock must expose a reconnect action');
-  assert.match(pluginSource, /重新连接/, 'plugin.gd status dock must include Simplified Chinese reconnect action');
+  assert.match(pluginSource, /(重新连接|\\u91cd\\u65b0\\u8fde\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese reconnect action');
   assert.match(pluginSource, /_refresh_button/, 'plugin.gd status dock must expose a refresh button');
   assert.match(pluginSource, /_refresh_status/, 'plugin.gd status dock must implement immediate status refresh');
   assert.match(pluginSource, /Refresh/, 'plugin.gd status dock must expose a refresh action');
-  assert.match(pluginSource, /刷新状态/, 'plugin.gd status dock must include Simplified Chinese refresh action');
+  assert.match(pluginSource, /(刷新状态|\\u5237\\u65b0\\u72b6\\u6001)/, 'plugin.gd status dock must include Simplified Chinese refresh action');
   assert.match(pluginSource, /Last Command/, 'plugin.gd status dock must show the most recent command');
-  assert.match(pluginSource, /最近命令/, 'plugin.gd status dock must include Simplified Chinese command label');
+  assert.match(pluginSource, /(最近命令|\\u6700\\u8fd1\\u547d\\u4ee4)/, 'plugin.gd status dock must include Simplified Chinese command label');
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
   assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
+  assert.match(runtimeSource, /"type": "hello"/, 'runtime bridge must send a hello registration message');
+  assert.match(runtimeSource, /"context": "runtime"/, 'runtime bridge must register with context runtime');
   assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
   assertNoUntypedInferenceHazards(sourceRoot);
 
@@ -106,6 +114,7 @@ try {
   assert.match(installedRuntimeSource, /simulate_action/);
   assert.match(installedRuntimeSource, /get_game_node_properties/);
   assert.match(installedRuntimeSource, /get_game_screenshot/);
+  assert.match(installedRuntimeSource, /"context": "runtime"/);
 
   console.log('Verified Godot plugin router source, build output, and project installation.');
 } finally {

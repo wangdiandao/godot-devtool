@@ -4,6 +4,18 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.5.0
+
+MCP 验证加固版本。
+
+- 让 `get_capabilities` 和 MCP server metadata 上报当前 package 版本，修复旧 `2.2.0` 版本残留。
+- 通过顶层 `canonicalName` 暴露兼容路由真实目标，同时保留现有兼容别名。
+- 增加可执行的 Godot 可执行文件配置提示，并把配置或检测到的 Godot 路径传播到 `GODOT_PATH`，便于 stdio 客户端继承。
+- 修复 `project_input_action` 写入逻辑，保留 Godot project-setting 字面量和原生 `InputEvent*` 语法。
+- 增加带 `context: "runtime"` 的 runtime `hello` 注册，并为 editor bridge 增加带 session id、重试、heartbeat 和 dock 状态的 `hello` -> `hello_ack` 握手。
+- 让 WebSocket 封装器把失败的 editor/runtime 回执暴露为 MCP 错误，并让已公开 editor 路由与已安装插件实现对齐。
+- 增加覆盖插件、工具、roadmap 和 `E:/test` 风格项目检查的 2.5.0 回归验证。
+
 ## 2.4.1
 
 WebSocket bridge 生命周期和 dock 刷新版本。

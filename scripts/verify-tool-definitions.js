@@ -271,6 +271,14 @@ const serverSource = [
   readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8'),
   readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8'),
 ].join('\n');
+if (/version:\s*['"]2\.2\.0['"]/.test(serverSource)) {
+  console.error('Server metadata must not hard-code stale version 2.2.0');
+  process.exit(1);
+}
+if (!serverSource.includes('PACKAGE_VERSION')) {
+  console.error('Server metadata must use package version metadata');
+  process.exit(1);
+}
 if (!serverSource.includes('GODOT_DEVTOOL_WS_PORT') || !serverSource.includes('getWsBridge().start(websocketPort)')) {
   console.error('GodotServer.run must keep the WebSocket bridge listening for the MCP server lifetime');
   process.exit(1);
@@ -280,6 +288,20 @@ if (!serverSource.includes('await getWsBridge().stop()')) {
   process.exit(1);
 }
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');
+const pluginRouterSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/command_router.gd'), 'utf8');
+const pluginEditorCommandsSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/commands/editor_commands.gd'), 'utf8');
+if (!pluginEditorCommandsSource.includes('"get_open_scripts"') || !pluginEditorCommandsSource.includes('"get_editor_performance"')) {
+  console.error('Installed editor plugin routes must implement get_open_scripts and get_editor_performance before advertising them');
+  process.exit(1);
+}
+if (!pluginRouterSource.includes('dispatch_command')) {
+  console.error('Installed editor plugin router must dispatch advertised editor routes');
+  process.exit(1);
+}
+if (!serverSource.includes('assertCompletedBridgeReceipt')) {
+  console.error('WebSocket wrappers must propagate failed receipts as MCP errors');
+  process.exit(1);
+}
 const weakImplementationPatterns = [
   'unsupportedReason',
   "status: 'implemented'",
@@ -304,6 +326,26 @@ for (const pattern of weakImplementationPatterns) {
 for (const [aliasName, targetName] of Object.entries(GODOT_TOOL_ALIASES)) {
   if (!toolNames.includes(targetName)) {
     console.error(`Alias ${aliasName} points to missing tool ${targetName}`);
+    process.exit(1);
+  }
+}
+
+for (const tool of GODOT_TOOL_DEFINITIONS) {
+  if (tool.canonicalName) {
+    const canonicalTool = toolsByName.get(tool.canonicalName);
+    if (!canonicalTool) {
+      console.error(`Tool ${tool.name} declares missing canonicalName ${tool.canonicalName}`);
+      process.exit(1);
+    }
+    if (canonicalTool.canonicalName) {
+      console.error(`Tool ${tool.name} must resolve directly to canonical tool ${tool.canonicalName}, not another alias`);
+      process.exit(1);
+    }
+  }
+
+  const compatibilityCanonical = tool.compatibility?.canonicalTool;
+  if (compatibilityCanonical && compatibilityCanonical !== 'compatibility_native' && tool.canonicalName !== compatibilityCanonical) {
+    console.error(`Compatibility tool ${tool.name} must expose top-level canonicalName ${compatibilityCanonical}`);
     process.exit(1);
   }
 }

@@ -4,6 +4,18 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.5.0
+
+MCP validation hardening release.
+
+- Made `get_capabilities` and MCP server metadata report the live package version instead of the stale `2.2.0` value.
+- Exposed canonical compatibility routing through top-level `canonicalName` metadata while preserving existing compatibility aliases.
+- Added actionable Godot executable guidance and propagated configured/detected Godot paths into `GODOT_PATH` for stdio clients.
+- Fixed `project_input_action` writes to preserve Godot project-setting literals and native `InputEvent*` syntax.
+- Added runtime `hello` registration with `context: "runtime"` and a versioned editor `hello` -> `hello_ack` handshake with session id, retry, heartbeat, and dock status.
+- Made WebSocket wrappers surface failed editor/runtime receipts as MCP errors and aligned advertised editor routes with installed plugin implementations.
+- Added regression coverage for 2.5.0 validation hardening across plugin, tool, roadmap, and `E:/test`-style project checks.
+
 ## Version 2.4.1
 
 WebSocket bridge lifecycle and dock refresh release.

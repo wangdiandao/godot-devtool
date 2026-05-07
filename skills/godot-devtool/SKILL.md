@@ -1,8 +1,8 @@
 ---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.4.1 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.5.0 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
 metadata:
-  version: "2.4.1"
+  version: "2.5.0"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill when an MCP client or connected AI assistant is working with a Godot 4 project through `godot-devtool`.
 
-Compatibility: `godot-devtool` 2.4.1.
+Compatibility: `godot-devtool` 2.5.0.
 
 ## Tool Coverage
 
@@ -18,8 +18,8 @@ This skill lists the recommended operating flow and common entry-point tools. It
 
 Use `get_capabilities` as the live source of truth for the server's complete tool list, schemas, route groups, transports, risk levels, and compatibility aliases. The generated README tool table is the packaged reference list:
 
-- `README.md` -> `## All 249 Tools`
-- `README.zh-CN.md` -> `## 全部 249 个工具`
+- `README.md` -> generated `## All ... Tools` table
+- `README.zh-CN.md` -> generated localized full tool table
 
 Do not treat a tool as unsupported just because it is not named in this skill. Check `get_capabilities` or the README table first.
 

@@ -13,7 +13,9 @@ func routes() -> Dictionary:
 		"inspector_get_properties": true,
 		"inspector_set_properties": true,
 		"execute_editor_script": true,
-		"get_editor_screenshot": true
+		"get_editor_screenshot": true,
+		"get_open_scripts": true,
+		"get_editor_performance": true
 	}
 
 func dispatch(command_name: String, payload: Dictionary, plugin: EditorPlugin) -> Dictionary:
@@ -38,6 +40,10 @@ func dispatch(command_name: String, payload: Dictionary, plugin: EditorPlugin) -
 			return _ok({"executed": false, "reason": "Use structured routes instead of arbitrary editor script execution."})
 		"get_editor_screenshot":
 			return _ok({"available": false, "reason": "Editor screenshot capture is not exposed by Godot editor API in headless mode."})
+		"get_open_scripts":
+			return _get_open_scripts(plugin)
+		"get_editor_performance":
+			return _get_editor_performance()
 	return _err("unknown editor command: " + command_name)
 
 func _selection(plugin: EditorPlugin) -> Dictionary:
@@ -78,6 +84,46 @@ func _set_properties(payload: Dictionary, plugin: EditorPlugin) -> Dictionary:
 		undo.add_undo_property(node, str(key), node.get(str(key)))
 	undo.commit_action()
 	return _ok({"nodePath": str(node.get_path()), "changed": properties.keys()})
+
+func _get_open_scripts(plugin: EditorPlugin) -> Dictionary:
+	var script_editor := plugin.get_editor_interface().get_script_editor()
+	var open_scripts := []
+	var current_script_path := ""
+	if script_editor != null and script_editor.has_method("get_open_scripts"):
+		for script in script_editor.get_open_scripts():
+			if script == null:
+				continue
+			var script_path := ""
+			var script_name := ""
+			if script is Resource:
+				script_path = script.resource_path
+				script_name = script.resource_name
+			open_scripts.append({
+				"path": script_path,
+				"name": script_name,
+				"type": script.get_class()
+			})
+	if script_editor != null and script_editor.has_method("get_current_script"):
+		var current_script = script_editor.get_current_script()
+		if current_script is Resource:
+			current_script_path = current_script.resource_path
+	return _ok({
+		"openScripts": open_scripts,
+		"count": open_scripts.size(),
+		"currentScript": current_script_path
+	})
+
+func _get_editor_performance() -> Dictionary:
+	return _ok({
+		"monitors": {
+			"fps": Performance.get_monitor(Performance.TIME_FPS),
+			"processTime": Performance.get_monitor(Performance.TIME_PROCESS),
+			"physicsProcessTime": Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS),
+			"staticMemory": Performance.get_monitor(Performance.MEMORY_STATIC),
+			"objectCount": Performance.get_monitor(Performance.OBJECT_COUNT),
+			"resourceCount": Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)
+		}
+	})
 
 func _resolve_editor_node(payload: Dictionary, plugin: EditorPlugin) -> Node:
 	var edited := plugin.get_editor_interface().get_edited_scene_root()

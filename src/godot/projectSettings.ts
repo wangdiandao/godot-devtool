@@ -10,7 +10,8 @@ import {
 } from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 
-type SettingValue = string | number | boolean | null | Record<string, unknown> | unknown[];
+type RawProjectSettingValue = { __godotRaw: string };
+type SettingValue = string | number | boolean | null | RawProjectSettingValue | Record<string, unknown> | unknown[];
 
 export interface ProjectSettingsReadOptions {
   section?: string;
@@ -326,11 +327,25 @@ function removeSetting(lines: string[], sectionName: string, key: string): strin
 }
 
 function formatProjectValue(value: SettingValue): string {
+  if (isRawProjectSettingValue(value)) return value.__godotRaw;
   if (typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (value === null) return 'null';
   if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value);
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+export function rawProjectSettingValue(value: string): RawProjectSettingValue {
+  return { __godotRaw: value };
+}
+
+function isRawProjectSettingValue(value: SettingValue): value is RawProjectSettingValue {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    typeof (value as RawProjectSettingValue).__godotRaw === 'string'
+  );
 }
 
 function normalizeProjectValue(value: string): string {

@@ -20,6 +20,10 @@ interface BridgeClient {
   context: BridgeContext | null;
   socket: import('node:net').Socket;
   connectedAt: string;
+  acknowledgedAt: string | null;
+  lastSeenAt: string;
+  protocolVersion: number | null;
+  sessionId: string | null;
 }
 
 class WebSocketBridge extends EventEmitter {
@@ -81,6 +85,10 @@ class WebSocketBridge extends EventEmitter {
         context: client.context,
         projectPath: client.projectPath,
         connectedAt: client.connectedAt,
+        acknowledgedAt: client.acknowledgedAt,
+        lastSeenAt: client.lastSeenAt,
+        protocolVersion: client.protocolVersion,
+        sessionId: client.sessionId,
       }));
     return {
       running: Boolean(this.server),
@@ -125,6 +133,10 @@ class WebSocketBridge extends EventEmitter {
       context: null,
       socket,
       connectedAt: new Date().toISOString(),
+      acknowledgedAt: null,
+      lastSeenAt: new Date().toISOString(),
+      protocolVersion: null,
+      sessionId: null,
     };
     this.clients.set(client.id, client);
     let buffer = Buffer.alloc(0);
@@ -149,12 +161,37 @@ class WebSocketBridge extends EventEmitter {
       return;
     }
     if (message.type === 'hello') {
+      const now = new Date().toISOString();
       client.context = message.context === 'runtime' ? 'runtime' : 'editor';
       client.projectPath = String(message.projectPath ?? '');
+      client.protocolVersion = Number.isFinite(Number(message.protocolVersion)) ? Number(message.protocolVersion) : null;
+      client.sessionId = typeof message.sessionId === 'string' ? message.sessionId : null;
+      client.acknowledgedAt = now;
+      client.lastSeenAt = now;
       this.emit('client', client);
+      this.sendFrame(client.socket, JSON.stringify({
+        type: 'hello_ack',
+        context: client.context,
+        projectPath: client.projectPath,
+        protocolVersion: client.protocolVersion,
+        sessionId: client.sessionId,
+        serverTime: now,
+      }));
+      return;
+    }
+    if (message.type === 'heartbeat') {
+      const now = new Date().toISOString();
+      client.lastSeenAt = now;
+      this.sendFrame(client.socket, JSON.stringify({
+        type: 'heartbeat_ack',
+        context: client.context,
+        sessionId: client.sessionId,
+        serverTime: now,
+      }));
       return;
     }
     if (message.type === 'receipt') {
+      client.lastSeenAt = new Date().toISOString();
       const commandId = String(message.commandId ?? '');
       const pending = this.pending.get(commandId);
       if (!pending) return;

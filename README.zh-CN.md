@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -38,19 +38,19 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.4.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.4.1/godot-devtool-build-2.4.1.zip)
+   [godot-devtool-build-2.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.0/godot-devtool-build-2.5.0.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.4.1.zip E:\godot-devtool -Force
+   Expand-Archive ".\godot-devtool-build-2.5.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
 
    ```powershell
-   Test-Path E:\godot-devtool\build\index.js
-   Test-Path E:\godot-devtool\build\addons\godot_devtool\plugin.gd
+   Test-Path "E:\godot-devtool\build\index.js"
+   Test-Path "E:\godot-devtool\build\addons\godot_devtool\plugin.gd"
    ```
 
 4. 把 MCP server 加入客户端配置：
@@ -145,7 +145,7 @@ autoload/DevtoolRuntime = *res://addons/godot_devtool/runtime_bridge.gd
 ```text
 请使用 godot-devtool MCP server 帮我安装并验收 Godot 插件。
 
-项目路径：E:/my-godot-project
+项目路径："E:/my-godot-project"
 WebSocket 端口：8766
 
 步骤：
@@ -163,7 +163,7 @@ WebSocket 端口：8766
 ```text
 Use the godot-devtool MCP server to install and verify the Godot plugin for my project.
 
-Project path: E:/my-godot-project
+Project path: "E:/my-godot-project"
 WebSocket port: 8766
 
 Steps:
@@ -497,7 +497,7 @@ npm.cmd run verify:all
 
 ```bash
 npm.cmd run verify:runtime
-npm.cmd run check:project -- E:/test
+npm.cmd run check:project -- "E:/test"
 ```
 
 ## 故障排查

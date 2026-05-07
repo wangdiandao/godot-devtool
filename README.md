@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
-English | [中文](README.zh-CN.md)
+English | [涓枃](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.4.1 keeps the localhost WebSocket bridge alive for the MCP server lifetime and adds a manual dock status refresh action.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.5.0 hardens MCP validation, package capability metadata, InputMap serialization, WebSocket receipts, and editor/runtime bridge handshakes.
 
 ## Architecture
 
@@ -38,19 +38,19 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.4.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.4.1/godot-devtool-build-2.4.1.zip)
+   [godot-devtool-build-2.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.0/godot-devtool-build-2.5.0.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive .\godot-devtool-build-2.4.1.zip E:\godot-devtool -Force
+   Expand-Archive ".\godot-devtool-build-2.5.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
 
    ```powershell
-   Test-Path E:\godot-devtool\build\index.js
-   Test-Path E:\godot-devtool\build\addons\godot_devtool\plugin.gd
+   Test-Path "E:\godot-devtool\build\index.js"
+   Test-Path "E:\godot-devtool\build\addons\godot_devtool\plugin.gd"
    ```
 
 4. Add this MCP server to your client configuration:
@@ -145,7 +145,7 @@ After adding the MCP server to your client, you can paste this prompt into the A
 ```text
 Use the godot-devtool MCP server to install and verify the Godot plugin for my project.
 
-Project path: E:/my-godot-project
+Project path: "E:/my-godot-project"
 WebSocket port: 8766
 
 Steps:
@@ -161,19 +161,19 @@ Do not edit unrelated files.
 Chinese prompt:
 
 ```text
-请使用 godot-devtool MCP server 帮我安装并验收 Godot 插件。
+璇蜂娇鐢?godot-devtool MCP server 甯垜瀹夎骞堕獙鏀?Godot 鎻掍欢銆?
 
-项目路径：E:/my-godot-project
-WebSocket 端口：8766
+椤圭洰璺緞锛?E:/my-godot-project"
+WebSocket 绔彛锛?766
 
-步骤：
-1. 调用 get_godot_version 和 get_capabilities。
-2. 确认 plugin_install、plugin_status、plugin_reload 可用。
-3. 对上述项目路径调用 plugin_install，overwrite=true。
-4. 调用 plugin_status，总结已安装文件、autoload 注册、bridge mode 和 WebSocket 端口。
-5. 告诉我在 Godot 编辑器里如何启用插件。
-6. 如果需要 runtime 路由，提醒我运行项目后再验证 runtime bridge 状态。
-不要修改无关文件。
+姝ラ锛?
+1. 璋冪敤 get_godot_version 鍜?get_capabilities銆?
+2. 纭 plugin_install銆乸lugin_status銆乸lugin_reload 鍙敤銆?
+3. 瀵逛笂杩伴」鐩矾寰勮皟鐢?plugin_install锛宱verwrite=true銆?
+4. 璋冪敤 plugin_status锛屾€荤粨宸插畨瑁呮枃浠躲€乤utoload 娉ㄥ唽銆乥ridge mode 鍜?WebSocket 绔彛銆?
+5. 鍛婅瘔鎴戝湪 Godot 缂栬緫鍣ㄩ噷濡備綍鍚敤鎻掍欢銆?
+6. 濡傛灉闇€瑕?runtime 璺敱锛屾彁閱掓垜杩愯椤圭洰鍚庡啀楠岃瘉 runtime bridge 鐘舵€併€?
+涓嶈淇敼鏃犲叧鏂囦欢銆?
 ```
 
 ## What It Can Do
@@ -497,7 +497,7 @@ Godot-backed checks require `GODOT_PATH`:
 
 ```bash
 npm.cmd run verify:runtime
-npm.cmd run check:project -- E:/test
+npm.cmd run check:project -- "E:/test"
 ```
 
 ## Troubleshooting

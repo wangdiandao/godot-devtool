@@ -43,21 +43,26 @@ const COMPATIBILITY_SCHEMA_PROPERTIES: Record<string, unknown> = {
   confirm: { type: 'boolean', description: 'Confirm a destructive operation' },
 };
 
-export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.values(COMPATIBILITY_TOOL_ROUTES).map((route) => ({
-  name: route.toolName,
-  description: compatibilityDescription(route),
-  inputSchema: {
-    type: 'object',
-    properties: COMPATIBILITY_SCHEMA_PROPERTIES,
-    required: [],
-  },
-  compatibility: {
-    since: '1.7.0',
-    canonicalTool: route.canonicalTool,
-    implementationStatus: route.implementationStatus,
-    supported: true,
-  },
-}));
+export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.values(COMPATIBILITY_TOOL_ROUTES).map((route) => {
+  const canonicalName = route.canonicalTool !== 'compatibility_native' ? route.canonicalTool : undefined;
+
+  return {
+    name: route.toolName,
+    description: compatibilityDescription(route),
+    ...(canonicalName ? { canonicalName } : {}),
+    inputSchema: {
+      type: 'object',
+      properties: COMPATIBILITY_SCHEMA_PROPERTIES,
+      required: [],
+    },
+    compatibility: {
+      since: '1.7.0',
+      canonicalTool: route.canonicalTool,
+      implementationStatus: route.implementationStatus,
+      supported: true,
+    },
+  };
+});
 
 function compatibilityDescription(route: (typeof COMPATIBILITY_TOOL_ROUTES)[string]): string {
   if (route.implementationStatus === 'runtime_bridge') {

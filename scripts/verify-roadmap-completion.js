@@ -12,8 +12,10 @@ const filesystem = await import('../build/godot/filesystemTools.js');
 const exportConfig = await import('../build/godot/exportConfig.js');
 const safetyRecovery = await import('../build/godot/safetyRecovery.js');
 const toolDefinitions = await import('../build/tools/toolDefinitions.js');
+const { GodotServer } = await import('../build/server/GodotServer.js');
 
 const projectPath = await mkdtemp(join(tmpdir(), 'godot-devtool-roadmap-'));
+const server = new GodotServer();
 
 try {
   await writeFile(
@@ -65,6 +67,26 @@ try {
   assert.match(updatedProjectFile, /\[rendering\]/);
   assert.doesNotMatch(updatedProjectFile, /move_left=/);
 
+  const inputActionResult = await server.handleProjectInputAction({
+    projectPath,
+    action: 'update',
+    name: 'restart_run',
+    deadzone: 0.5,
+    events: [
+      {
+        type: 'InputEventKey',
+        keycode: 4194309,
+        physicalKeycode: 4194309,
+        pressed: false,
+      },
+    ],
+  });
+  assert.equal(inputActionResult.isError, undefined);
+  const inputProjectFile = await readFile(join(projectPath, 'project.godot'), 'utf8');
+  assert.match(inputProjectFile, /restart_run=\{/);
+  assert.match(inputProjectFile, /Object\(InputEventKey/);
+  assert.doesNotMatch(inputProjectFile, /restart_run=\{"deadzone":0\.5,"events":\[/);
+
   const install = await editorBridge.installEditorBridge(projectPath, { overwrite: true });
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.cfg'));
   assert.ok(existsSync(join(projectPath, 'addons/godot_devtool/plugin.gd')));
@@ -94,6 +116,7 @@ try {
   assert.match(bridgeScript, /dispatch_command/);
   const runtimeScript = await readFile(join(projectPath, 'addons/godot_devtool/runtime_bridge.gd'), 'utf8');
   assert.match(runtimeScript, /class_name GodotDevtoolRuntimeBridge/);
+  assert.match(runtimeScript, /"context": "runtime"/);
   assert.match(runtimeScript, /get_game_scene_tree/);
   assert.match(runtimeScript, /simulate_action/);
   assert.match(runtimeScript, /get_game_screenshot/);
@@ -248,9 +271,15 @@ try {
   const packageJson = JSON.parse(packageRaw);
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
-  const latestReleaseZipVersion = '2.4.1';
+  const latestReleaseZipVersion = releaseVersion;
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.4.1');
+  assert.equal(releaseVersion, '2.5.0');
+  const capabilitiesResponse = server.handleGetCapabilities({});
+  const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
+  assert.equal(capabilities.version, releaseVersion);
+  assert.notEqual(capabilities.version, '2.2.0');
+  assert.equal(capabilities.serverMode, 'mcp_stdio');
+  assert.ok(capabilities.godotPathGuidance.some((entry) => entry.includes('GODOT_PATH')));
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
