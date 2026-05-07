@@ -4,6 +4,18 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.2
+
+安全加固版本。
+
+- 为 editor/runtime WebSocket bridge peer 增加按项目生成的认证 token，并将命令回执绑定到已认证 client。
+- 加固项目相对文件操作，拒绝 symlink/junction 逃逸和不安全路径穿越。
+- 阻止 MCP 传入的 `project.godot` raw value 和普通字符串换行注入，同时保留内部可信 InputMap 序列化。
+- 将 runtime 截图和录制输出限制在 `.godot-devtool` 下，并增加穿越与覆盖检查。
+- 为 Godot 进程增加超时，修正 editor 启动 stdio 处理，并加强 `script_attach` 路径校验。
+- 为发布脚本增加 clean tree、tag/HEAD 一致性、`verify:all` 和显式 clobber 开关。
+- 增加 `verify:security`，将 `verify:runtime` 和 `verify:security` 纳入 `verify:all`，并将 package、插件、Skill、README、CHANGELOG、ROADMAP 和 release zip 链接同步到 `2.6.2`。
+
 ## 2.6.1
 
 工具路由 metadata 与兼容层加固版本。

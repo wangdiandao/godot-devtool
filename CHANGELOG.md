@@ -4,6 +4,18 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.2
+
+Security hardening release.
+
+- Added per-project WebSocket bridge authentication for editor/runtime peers and bound command receipts to the authenticated client.
+- Hardened project-relative filesystem operations against symlink/junction escapes and unsafe traversal.
+- Blocked MCP-supplied `project.godot` raw value and string line injection while preserving trusted internal InputMap serialization.
+- Constrained runtime screenshot and recording outputs to `.godot-devtool` with traversal and overwrite checks.
+- Added Godot process timeouts, safer editor launch stdio handling, and stricter script attach path validation.
+- Added release publishing gates for clean tree, tag/HEAD consistency, `verify:all`, and explicit asset clobber opt-in.
+- Added `verify:security`, included `verify:runtime` and `verify:security` in `verify:all`, and synchronized package, plugin, Skill, README, changelog, roadmap, and release zip links to `2.6.2`.
+
 ## Version 2.6.1
 
 Tool route metadata and compatibility hardening release.

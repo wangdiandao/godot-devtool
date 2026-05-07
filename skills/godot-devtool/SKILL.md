@@ -1,14 +1,14 @@
 ---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.6.1 MCP server for Godot 4 projects: map each common Godot operation to the right tool, use stdio/headless for repeatable edits, use WebSocket only for live editor/runtime state, and verify changes."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.6.2 MCP server for Godot 4 projects: map each common Godot operation to the right tool, use stdio/headless for repeatable edits, use WebSocket only for live editor/runtime state, and verify changes."
 metadata:
-  version: "2.6.1"
+  version: "2.6.2"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.6.1.
+Compatibility: `godot-devtool` 2.6.2.
 
 Tool catalog: All 221 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. 中文：全部 221 个工具以 `get_capabilities` 输出为准。
 

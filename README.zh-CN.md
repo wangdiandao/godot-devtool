@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.6.1-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.6.2-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@
 
 [请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.1 增加本地 Browser visualizer，用于查看 WebSocket bridge 状态、已连接的 editor/runtime client 和实时路由提示。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.2 加固本地 WebSocket bridge 认证、项目相对文件安全、发布门禁和 runtime 验证覆盖。
 
 ## 架构
 
@@ -41,12 +41,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.6.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.1/godot-devtool-build-2.6.1.zip)
+   [godot-devtool-build-2.6.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.2/godot-devtool-build-2.6.2.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.6.1.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.6.2.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
