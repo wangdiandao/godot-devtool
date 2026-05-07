@@ -8,6 +8,8 @@
 
 [English](README.md) | 中文
 
+[请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
+
 `godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.1 增加本地 Browser visualizer，用于查看 WebSocket bridge 状态、已连接的 editor/runtime client 和实时路由提示。
 
 ## 架构
