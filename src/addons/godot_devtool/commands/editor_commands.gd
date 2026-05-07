@@ -15,6 +15,7 @@ func routes() -> Dictionary:
 		"execute_editor_script": true,
 		"get_editor_screenshot": true,
 		"get_open_scripts": true,
+		"reload_project": true,
 		"get_editor_performance": true
 	}
 
@@ -42,6 +43,8 @@ func dispatch(command_name: String, payload: Dictionary, plugin: EditorPlugin) -
 			return _ok({"available": false, "reason": "Editor screenshot capture is not exposed by Godot editor API in headless mode."})
 		"get_open_scripts":
 			return _get_open_scripts(plugin)
+		"reload_project":
+			return _reload_project(plugin)
 		"get_editor_performance":
 			return _get_editor_performance()
 	return _err("unknown editor command: " + command_name)
@@ -112,6 +115,12 @@ func _get_open_scripts(plugin: EditorPlugin) -> Dictionary:
 		"count": open_scripts.size(),
 		"currentScript": current_script_path
 	})
+
+func _reload_project(plugin: EditorPlugin) -> Dictionary:
+	var filesystem = plugin.get_editor_interface().get_resource_filesystem() if plugin else null
+	if filesystem:
+		filesystem.scan()
+	return _ok({"rescanned": filesystem != null})
 
 func _get_editor_performance() -> Dictionary:
 	return _ok({

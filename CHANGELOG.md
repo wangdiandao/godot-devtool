@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.1
+
+Tool route metadata and compatibility hardening release.
+
+- Corrected TileMap compatibility routes so `tilemap_clear`, `tilemap_get_cell`, and `tilemap_get_used_cells` report the concrete headless `tilemap` implementation instead of a generic native/bridge path.
+- Fixed `reload_project` in the installed editor plugin command router so the advertised editor WebSocket route is registered and executable.
+- Corrected QA compatibility route metadata for `assert_screen_text`, `run_test_scenario`, and `run_stress_test` so native QA helpers are not advertised as runtime WebSocket routes.
+- Added regression checks that compare published tools, handlers, compatibility routes, editor/runtime WebSocket route declarations, and installed plugin routes.
+- Synchronized package, plugin, Skill, README, changelog, and verification metadata to `2.6.1`.
+
 ## Version 2.6.0
 
 Browser visualizer release.

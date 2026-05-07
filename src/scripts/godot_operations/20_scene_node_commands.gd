@@ -400,14 +400,48 @@ func node_move(params):
 		printerr("Failed to find node: " + params.node_path)
 		quit(1)
 
-	if not params.has("position"):
-		printerr("Position is required")
+	var should_reparent = params.has("parent_node_path") and str(params.parent_node_path) != ""
+	var should_move_position = params.has("position")
+	if not should_reparent and not should_move_position:
+		printerr("Position or parent_node_path is required")
 		quit(1)
 
-	node.set("position", variant_from_json(params.position))
+	var previous_parent_path = ""
+	var new_parent_path = ""
+	if should_reparent:
+		if node == scene_root:
+			printerr("Cannot reparent the scene root node")
+			quit(1)
+
+		var old_parent = node.get_parent()
+		if not old_parent:
+			printerr("Cannot reparent node without an existing parent: " + params.node_path)
+			quit(1)
+
+		var new_parent = find_node_by_tool_path(scene_root, params.parent_node_path)
+		if not new_parent:
+			printerr("Failed to find destination parent: " + params.parent_node_path)
+			quit(1)
+		if new_parent == node or node.is_ancestor_of(new_parent):
+			printerr("Cannot reparent a node under itself or one of its descendants")
+			quit(1)
+
+		previous_parent_path = find_tool_path_by_reference(scene_root, old_parent, "root")
+		set_owner_recursive(node, null)
+		old_parent.remove_child(node)
+		new_parent.add_child(node)
+		set_owner_recursive(node, scene_root)
+		new_parent_path = find_tool_path_by_reference(scene_root, new_parent, "root")
+
+	if should_move_position:
+		node.set("position", variant_from_json(params.position))
+
 	pack_and_save_scene(scene_root, full_scene_path)
 	print(JSON.stringify({
 		"nodePath": params.node_path,
+		"path": find_tool_path_by_reference(scene_root, node, "root"),
+		"previousParentPath": previous_parent_path,
+		"newParentPath": new_parent_path,
 		"position": serialize_variant(node.get("position"))
 	}))
 

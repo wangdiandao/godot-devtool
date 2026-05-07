@@ -254,6 +254,8 @@ class GodotServerMethodMixin {
         return this.handleScriptWrite(routedArgs);
       case 'node_find':
         return this.handleNodeFind(routedArgs);
+      case 'node_move':
+        return this.handleNodeMove(routedArgs);
       case 'export_matrix':
         return this.handleExportMatrix(routedArgs);
       case 'physics':
@@ -3602,16 +3604,19 @@ class GodotServerMethodMixin {
 
     const validationError = this.validateSceneOperationArgs(args, ['projectPath', 'scenePath', 'nodePath']);
     if (validationError) return validationError;
-    if (!args.position) {
-      return this.createErrorResponse('Missing required parameters', ['Provide position']);
+    if (!args.position && !args.parentNodePath) {
+      return this.createErrorResponse('Missing required parameters', ['Provide position or parentNodePath']);
     }
 
     try {
-      const { stdout, stderr } = await this.executeOperation('node_move', {
+      const params: any = {
         scenePath: args.scenePath,
         nodePath: args.nodePath,
-        position: args.position,
-      }, args.projectPath);
+      };
+      if (args.position) params.position = args.position;
+      if (args.parentNodePath) params.parentNodePath = args.parentNodePath;
+
+      const { stdout, stderr } = await this.executeOperation('node_move', params, args.projectPath);
       if (stderr && stderr.includes('Failed to')) {
         return this.createErrorResponse(`Failed to move node: ${stderr}`);
       }
@@ -3619,13 +3624,17 @@ class GodotServerMethodMixin {
         operation: 'node_move',
         changedFiles: [args.scenePath],
         skippedFiles: [],
-        details: { nodePath: args.nodePath, position: args.position },
+        details: {
+          nodePath: args.nodePath,
+          parentNodePath: args.parentNodePath ?? null,
+          position: args.position ?? null,
+        },
       });
       return this.createJsonResponse(JSON.parse(this.extractLastJsonObject(stdout)));
     } catch (error: any) {
       return this.createErrorResponse(
         `Failed to move node: ${error?.message || 'Unknown error'}`,
-        ['Ensure the node exists and accepts a position property']
+        ['Ensure the node exists, the destination parent exists, and position is valid when provided']
       );
     }
   }

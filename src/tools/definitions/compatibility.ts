@@ -71,7 +71,7 @@ function compatibilityDescription(route: (typeof COMPATIBILITY_TOOL_ROUTES)[stri
   if (route.implementationStatus === 'canonical_route') {
     return `${humanizeCompatibilityToolName(route.toolName)} using the ${route.canonicalTool} implementation.`;
   }
-  return `Exact-name compatibility route for ${route.toolName}. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available.`;
+  return `Exact-name compatibility route for ${route.toolName}. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable.`;
 }
 
 function humanizeCompatibilityToolName(toolName: string): string {
@@ -82,20 +82,31 @@ function humanizeCompatibilityToolName(toolName: string): string {
     add: 'Add',
     assign: 'Assign',
     bake: 'Bake',
+    clear: 'Clear',
     connect: 'Connect',
     create: 'Create',
     delete: 'Delete',
     disconnect: 'Disconnect',
     edit: 'Edit',
+    fill: 'Fill',
     find: 'Find',
     get: 'Get',
     list: 'List',
+    move: 'Move',
     read: 'Read',
     remove: 'Remove',
     set: 'Set',
     setup: 'Set up',
     tilemap: 'Update',
   };
+  if (words[0] === 'tilemap' && words.length > 1) {
+    const tilemapVerb = verbMap[words[1]] ?? 'Run';
+    const tilemapSubject = ['TileMap', ...words.slice(2)]
+      .map((word) => (word === 'ui' ? 'UI' : word))
+      .join(' ')
+      .trim();
+    return tilemapSubject ? `${tilemapVerb} ${tilemapSubject}` : `${tilemapVerb} TileMap`;
+  }
   const subject = words
     .slice(1)
     .map((word) => (word === 'ui' ? 'UI' : word))

@@ -10,6 +10,7 @@ const { getWsBridge } = await import('../build/server/transports/wsBridge.js');
 const dependencies = await import('../build/godot/resourceDependencies.js');
 const filesystem = await import('../build/godot/filesystemTools.js');
 const exportConfig = await import('../build/godot/exportConfig.js');
+const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
 const safetyRecovery = await import('../build/godot/safetyRecovery.js');
 const toolDefinitions = await import('../build/tools/toolDefinitions.js');
 const { GodotServer } = await import('../build/server/GodotServer.js');
@@ -87,13 +88,13 @@ try {
   assert.match(inputProjectFile, /Object\(InputEventKey/);
   assert.doesNotMatch(inputProjectFile, /restart_run=\{"deadzone":0\.5,"events":\[/);
 
-  const install = await editorBridge.installEditorBridge(projectPath, { overwrite: true });
+  const install = await editorBridge.installEditorBridge(projectPath, { overwrite: true, websocketPort });
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.cfg'));
   assert.ok(existsSync(join(projectPath, 'addons/godot_devtool/plugin.gd')));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/runtime_bridge.gd'));
   assert.ok(existsSync(join(projectPath, 'addons/godot_devtool/runtime_bridge.gd')));
   assert.equal(install.bridge.mode, 'websocket');
-  assert.equal(install.bridge.port, 8766);
+  assert.equal(install.bridge.port, websocketPort);
   assert.ok(install.bridge.instanceId);
   assert.equal(install.runtime.enabled, true);
   assert.equal(install.runtime.statePath, '.godot-devtool/runtime-state.json');
@@ -273,7 +274,7 @@ try {
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
   const latestReleaseZipVersion = releaseVersion;
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.6.0');
+  assert.match(releaseVersion, /^\d+\.\d+\.\d+$/);
   const capabilitiesResponse = server.handleGetCapabilities({});
   const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
   assert.equal(capabilities.version, releaseVersion);
@@ -468,8 +469,8 @@ try {
   assert.match(skillRaw, /"mcpServers"/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 220 Tools/);
-  assert.match(skillRaw, /全部 220 个工具/);
+  assert.match(skillRaw, /All 221 Tools/);
+  assert.match(skillRaw, /全部 221 个工具/);
   assert.match(skillRaw, /browser_visualizer_start/);
   assert.match(skillRaw, /get_node_properties/);
   assert.match(skillRaw, /update_node_properties/);

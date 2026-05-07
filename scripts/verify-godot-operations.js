@@ -38,4 +38,23 @@ if (generated !== expected) {
   process.exit(1);
 }
 
+const nodeMoveMatch = expected.match(/func node_move\(params\):[\s\S]*?\nfunc node_duplicate\(params\):/);
+if (!nodeMoveMatch) {
+  console.error('Could not locate node_move implementation in Godot operation fragments.');
+  process.exit(1);
+}
+const nodeMoveSource = nodeMoveMatch[0];
+for (const requiredSnippet of [
+  'params.has("parent_node_path")',
+  'old_parent.remove_child(node)',
+  'new_parent.add_child(node)',
+  '"previousParentPath"',
+  '"newParentPath"',
+]) {
+  if (!nodeMoveSource.includes(requiredSnippet)) {
+    console.error(`node_move reparent support is missing required snippet: ${requiredSnippet}`);
+    process.exit(1);
+  }
+}
+
 console.log(`Verified generated Godot operation script from ${fragments.length} fragments.`);

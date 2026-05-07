@@ -117,6 +117,7 @@ const requiredCompatibilityTools17 = [
   'get_scene_file_content',
   'delete_scene',
   'add_scene_instance',
+  'move_node',
   'add_resource',
   'set_anchor_preset',
   'get_node_groups',
@@ -231,6 +232,68 @@ if (missingCompatibilityTools17.length > 0) {
   process.exit(1);
 }
 
+const nodeMove = toolsByName.get('node_move');
+if (!nodeMove?.inputSchema?.properties?.parentNodePath) {
+  console.error('node_move must support parentNodePath for reparenting existing nodes');
+  process.exit(1);
+}
+if (nodeMove.inputSchema.required.includes('position')) {
+  console.error('node_move must allow reparent-only calls without requiring position');
+  process.exit(1);
+}
+const moveNode = toolsByName.get('move_node');
+if (!moveNode || moveNode.canonicalName !== 'node_move') {
+  console.error('move_node must be an exact-name compatibility route backed by node_move');
+  process.exit(1);
+}
+
+for (const [toolName, expectedRisk] of Object.entries({
+  tilemap_set_cell: 'write',
+  tilemap_fill_rect: 'write',
+  tilemap_get_cell: 'read',
+  tilemap_get_info: 'read',
+  tilemap_get_used_cells: 'read',
+  tilemap_clear: 'destructive',
+})) {
+  const tool = toolsByName.get(toolName);
+  if (!tool || tool.canonicalName !== 'tilemap' || tool.transport !== 'headless_godot' || tool.requiresEditor || tool.requiresRuntime) {
+    console.error(`${toolName} must be a headless_godot compatibility route backed by tilemap`);
+    process.exit(1);
+  }
+  if (tool.riskLevel !== expectedRisk) {
+    console.error(`${toolName} must advertise ${expectedRisk} risk, got ${tool.riskLevel}`);
+    process.exit(1);
+  }
+  if (/Exact-name compatibility route|editor bridge|runtime bridge/i.test(String(tool.description))) {
+    console.error(`${toolName} must describe the concrete tilemap implementation instead of generic bridge availability`);
+    process.exit(1);
+  }
+}
+
+for (const toolName of [
+  'animation',
+  'animation_state_machine',
+  'audio',
+  'geometry',
+  'group',
+  'lighting',
+  'material',
+  'navigation',
+  'particle',
+  'physics',
+  'project_input_action',
+  'shader',
+  'signal',
+  'tilemap',
+  'ui',
+]) {
+  const tool = toolsByName.get(toolName);
+  if (!tool || tool.riskLevel !== 'write') {
+    console.error(`${toolName} is a multi-action tool and must advertise write risk`);
+    process.exit(1);
+  }
+}
+
 for (const runtimeToolName of [
   'simulate_key',
   'simulate_mouse_click',
@@ -256,6 +319,22 @@ for (const runtimeToolName of [
   }
   if (!String(tool.description).includes('Runtime WebSocket compatibility route')) {
     console.error(`${runtimeToolName} must describe runtime bridge execution instead of completion receipts`);
+    process.exit(1);
+  }
+}
+
+for (const nativeQaToolName of [
+  'assert_screen_text',
+  'run_test_scenario',
+  'run_stress_test',
+]) {
+  const tool = toolsByName.get(nativeQaToolName);
+  if (!tool) {
+    console.error(`Missing native QA compatibility route: ${nativeQaToolName}`);
+    process.exit(1);
+  }
+  if (tool.transport !== 'native' || tool.requiresRuntime !== false) {
+    console.error(`${nativeQaToolName} is implemented by native QA helpers and must not be advertised as runtime_ws`);
     process.exit(1);
   }
 }
@@ -286,11 +365,32 @@ if (!serverSource.includes('await getBrowserVisualizer().stop()')) {
   process.exit(1);
 }
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');
+const routeRegistrySource = readFileSync(join(repoRoot, 'src/server/routeRegistry.ts'), 'utf8');
 const pluginRouterSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/command_router.gd'), 'utf8');
 const pluginEditorCommandsSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/commands/editor_commands.gd'), 'utf8');
-if (!pluginEditorCommandsSource.includes('"get_open_scripts"') || !pluginEditorCommandsSource.includes('"get_editor_performance"')) {
-  console.error('Installed editor plugin routes must implement get_open_scripts and get_editor_performance before advertising them');
+if (!pluginEditorCommandsSource.includes('"get_open_scripts"') || !pluginEditorCommandsSource.includes('"get_editor_performance"') || !pluginEditorCommandsSource.includes('"reload_project"')) {
+  console.error('Installed editor plugin routes must implement get_open_scripts, get_editor_performance, and reload_project before advertising them');
   process.exit(1);
+}
+if (!pluginEditorCommandsSource.includes('func _reload_project')) {
+  console.error('Installed editor plugin must implement reload_project instead of routing it to unknown_command');
+  process.exit(1);
+}
+const editorWsBlock = routeRegistrySource.match(/const EDITOR_WS_TOOLS = new Set\(\[([\s\S]*?)\]\);/)?.[1] ?? '';
+const advertisedEditorWsTools = [...editorWsBlock.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+const pluginEditorRoutesBlock = pluginEditorCommandsSource.match(/func routes\(\) -> Dictionary:[\s\S]*?return \{([\s\S]*?)\n\t\}/)?.[1] ?? '';
+const pluginEditorRoutes = new Set([...pluginEditorRoutesBlock.matchAll(/"([^"]+)"/g)].map((match) => match[1]));
+const editorRouteAliases = {
+  editor_undo_redo: ['undo', 'redo'],
+  editor_inspector_get_properties: ['inspector_get_properties'],
+  editor_inspector_set_properties: ['inspector_set_properties'],
+};
+for (const toolName of advertisedEditorWsTools) {
+  const acceptedRouteNames = editorRouteAliases[toolName] ?? [toolName];
+  if (!acceptedRouteNames.some((routeName) => pluginEditorRoutes.has(routeName))) {
+    console.error(`Advertised editor_ws tool ${toolName} is missing from the installed editor plugin routes`);
+    process.exit(1);
+  }
 }
 if (!pluginRouterSource.includes('dispatch_command')) {
   console.error('Installed editor plugin router must dispatch advertised editor routes');

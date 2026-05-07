@@ -10,6 +10,9 @@ const { getWsBridge } = await import('../build/server/transports/wsBridge.js');
 const addonRoot = join(process.cwd(), 'build', 'addons', 'godot_devtool');
 const sourceRoot = join(process.cwd(), 'src', 'addons', 'godot_devtool');
 const projectPath = await mkdtemp(join(tmpdir(), 'godot-devtool-plugin-'));
+const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
+const releaseVersion = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version;
+const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
 
 try {
   for (const root of [sourceRoot, addonRoot]) {
@@ -46,8 +49,8 @@ try {
   }
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, /PLUGIN_VERSION := "2\.6\.0"/, 'plugin.gd must report plugin version 2.6.0');
-  assert.match(pluginConfigSource, /version="2\.6\.0"/, 'plugin.cfg must report plugin version 2.6.0');
+  assert.match(pluginSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `plugin.gd must report plugin version ${releaseVersion}`);
+  assert.match(pluginConfigSource, new RegExp(`version="${escapedReleaseVersion}"`), `plugin.cfg must report plugin version ${releaseVersion}`);
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
   assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
@@ -109,9 +112,9 @@ try {
     'utf8'
   );
 
-  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort: 8766 });
+  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
   assert.equal(install.bridge.mode, 'websocket');
-  assert.equal(install.bridge.port, 8766);
+  assert.equal(install.bridge.port, websocketPort);
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.cfg'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.gd'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/command_router.gd'));
@@ -124,7 +127,7 @@ try {
   const status = await readEditorBridgeStatus(projectPath);
   assert.equal(status.installed, true);
   assert.equal(status.bridge.mode, 'websocket');
-  assert.equal(status.bridge.port, 8766);
+  assert.equal(status.bridge.port, websocketPort);
   assert.equal(status.runtime.installed, true);
   assert.equal(status.runtime.transport, 'runtime_ws');
 

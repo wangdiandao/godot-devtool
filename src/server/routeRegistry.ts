@@ -59,12 +59,26 @@ const RUNTIME_WS_TOOLS = new Set([
   'find_nearby_nodes',
   'navigate_to',
   'move_to',
-  'assert_screen_text',
-  'run_test_scenario',
-  'run_stress_test',
 ]);
 
 const HEADLESS_GROUPS = new Set(['scene', 'node', 'visual']);
+const MULTI_ACTION_WRITE_TOOLS = new Set([
+  'animation',
+  'animation_state_machine',
+  'audio',
+  'geometry',
+  'group',
+  'lighting',
+  'material',
+  'navigation',
+  'particle',
+  'physics',
+  'project_input_action',
+  'shader',
+  'signal',
+  'tilemap',
+  'ui',
+]);
 
 export function routeMetadataForTool(toolName: string): RouteMetadata {
   const compatibilityRoute = COMPATIBILITY_TOOL_ROUTES[toolName];
@@ -95,14 +109,15 @@ function inferRiskLevel(toolName: string, configured?: string): RouteMetadata['r
   if (configured === 'destructive' || configured === 'write' || configured === 'process') return configured;
   if (PROCESS_TOOLS.has(toolName)) return 'process';
   if (/(delete|remove|clear|stop|kill)/.test(toolName)) return 'destructive';
-  if (/(set|add|create|write|save|install|reload|run|launch|edit|update|attach|connect|disconnect|simulate|click|move|rename|duplicate|export|record|replay)/.test(toolName)) return 'write';
+  if (MULTI_ACTION_WRITE_TOOLS.has(toolName)) return 'write';
+  if (/(set|add|create|write|save|install|reload|run|launch|edit|update|attach|connect|disconnect|simulate|click|move|rename|duplicate|export|record|replay|fill)/.test(toolName)) return 'write';
   return 'read';
 }
 
 function inferRouteGroup(canonical: string, toolName: string): string {
   const name = canonical === 'compatibility_native' ? toolName : canonical;
   if (name.startsWith('plugin_') || name.startsWith('editor_') || name === 'reload_plugin') return 'editor';
-  if (name.includes('runtime') || name.includes('game_') || name.startsWith('simulate_') || name.includes('screenshot') || name.includes('recording') || name.includes('test_') || name.startsWith('assert_')) return 'runtime';
+  if (name.includes('runtime') || name.includes('game_') || name.startsWith('simulate_') || name.includes('screenshot') || name.includes('recording') || name.includes('test_') || name.includes('_test') || name.startsWith('assert_')) return 'runtime';
   if (name.includes('project') || name.includes('autoload') || name.includes('input_action')) return 'project';
   if (name.includes('filesystem') || name.includes('file') || name.includes('search')) return 'filesystem';
   if (name.includes('resource') || name.includes('uid') || name.includes('export')) return 'resource';

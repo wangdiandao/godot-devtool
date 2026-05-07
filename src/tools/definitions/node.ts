@@ -16,19 +16,20 @@ export const NODE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'node_move',
-    description: 'Move a node by setting its position in a Godot scene',
+    description: 'Move a node by setting its position or reparenting it in a Godot scene',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         scenePath: { type: 'string', description: 'Project-relative scene path' },
         nodePath: { type: 'string', description: 'Path to the target node' },
+        parentNodePath: { type: 'string', description: 'Optional destination parent node path for reparenting' },
         position: {
           type: 'object',
           description: 'Position value, for example { "type": "Vector2", "value": [x, y] }',
         },
       },
-      required: ['projectPath', 'scenePath', 'nodePath', 'position'],
+      required: ['projectPath', 'scenePath', 'nodePath'],
     },
   },
   {

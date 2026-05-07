@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.1
+
+工具路由 metadata 与兼容层加固版本。
+
+- 修正 TileMap 兼容路由，让 `tilemap_clear`、`tilemap_get_cell` 和 `tilemap_get_used_cells` 明确指向 headless `tilemap` 实现，不再显示泛化 native/bridge 路径。
+- 修复已安装 editor 插件 command router 中的 `reload_project`，让已公开的 editor WebSocket 路由可注册并执行。
+- 修正 `assert_screen_text`、`run_test_scenario` 和 `run_stress_test` 的 QA 兼容路由 metadata，避免把 native QA helper 误标为 runtime WebSocket 路由。
+- 增加回归检查，对比已发布工具、handler、兼容路由、editor/runtime WebSocket 路由声明和已安装插件路由。
+- 将 package、插件、Skill、README、CHANGELOG 和验证 metadata 同步到 `2.6.1`。
+
 ## 2.6.0
 
 Browser visualizer 版本。
