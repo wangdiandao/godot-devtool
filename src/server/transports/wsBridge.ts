@@ -29,7 +29,8 @@ interface BridgeClient {
 class WebSocketBridge extends EventEmitter {
   private server: HttpServer | null = null;
   private clients = new Map<string, BridgeClient>();
-  private pending = new Map<string, { resolve: (receipt: BridgeReceipt) => void; reject: (error: Error) => void; timer: NodeJS.Timeout }>();
+  private pending = new Map<string, { clientId: string; resolve: (receipt: BridgeReceipt) => void; reject: (error: Error) => void; timer: NodeJS.Timeout }>();
+  private authTokens = new Map<string, string>();
   private port = 8766;
 
   async start(port = 8766): Promise<void> {
@@ -88,7 +89,6 @@ class WebSocketBridge extends EventEmitter {
         acknowledgedAt: client.acknowledgedAt,
         lastSeenAt: client.lastSeenAt,
         protocolVersion: client.protocolVersion,
-        sessionId: client.sessionId,
       }));
     return {
       running: Boolean(this.server),
@@ -97,6 +97,13 @@ class WebSocketBridge extends EventEmitter {
       clients,
       pendingCommands: this.pending.size,
     };
+  }
+
+  registerProjectAuth(projectPath: string, authToken: string): void {
+    if (!authToken) {
+      throw new Error('WebSocket bridge auth token must not be empty.');
+    }
+    this.authTokens.set(normalizeProjectPath(projectPath), authToken);
   }
 
   async sendCommand(projectPath: string, context: BridgeContext, command: string, payload: Record<string, unknown>, timeoutMs = 10000): Promise<BridgeReceipt> {
@@ -114,7 +121,7 @@ class WebSocketBridge extends EventEmitter {
         this.pending.delete(commandId);
         reject(new Error(`Timed out waiting for ${context} WebSocket command ${command}.`));
       }, timeoutMs);
-      this.pending.set(commandId, { resolve, reject, timer });
+      this.pending.set(commandId, { clientId: client.id, resolve, reject, timer });
     });
     this.sendFrame(client.socket, JSON.stringify({
       type: 'command',
@@ -164,6 +171,18 @@ class WebSocketBridge extends EventEmitter {
       const now = new Date().toISOString();
       client.context = message.context === 'runtime' ? 'runtime' : 'editor';
       client.projectPath = String(message.projectPath ?? '');
+      const expectedToken = this.authTokens.get(normalizeProjectPath(client.projectPath));
+      const receivedToken = typeof message.authToken === 'string' ? message.authToken : '';
+      if (!expectedToken || receivedToken !== expectedToken) {
+        this.sendFrame(client.socket, JSON.stringify({
+          type: 'error',
+          code: 'unauthorized',
+          message: 'WebSocket bridge hello rejected.',
+          serverTime: now,
+        }));
+        client.socket.destroy();
+        return;
+      }
       client.protocolVersion = Number.isFinite(Number(message.protocolVersion)) ? Number(message.protocolVersion) : null;
       client.sessionId = typeof message.sessionId === 'string' ? message.sessionId : null;
       client.acknowledgedAt = now;
@@ -194,7 +213,7 @@ class WebSocketBridge extends EventEmitter {
       client.lastSeenAt = new Date().toISOString();
       const commandId = String(message.commandId ?? '');
       const pending = this.pending.get(commandId);
-      if (!pending) return;
+      if (!pending || pending.clientId !== client.id) return;
       clearTimeout(pending.timer);
       this.pending.delete(commandId);
       pending.resolve({
@@ -243,9 +262,17 @@ class WebSocketBridge extends EventEmitter {
 
   private sendFrame(socket: import('node:net').Socket, payload: string): void {
     const data = Buffer.from(payload, 'utf8');
-    const header = data.length < 126
-      ? Buffer.from([0x81, data.length])
-      : Buffer.from([0x81, 126, data.length >> 8, data.length & 0xff]);
+    let header: Buffer;
+    if (data.length < 126) {
+      header = Buffer.from([0x81, data.length]);
+    } else if (data.length <= 0xffff) {
+      header = Buffer.from([0x81, 126, data.length >> 8, data.length & 0xff]);
+    } else {
+      header = Buffer.alloc(10);
+      header[0] = 0x81;
+      header[1] = 127;
+      header.writeBigUInt64BE(BigInt(data.length), 2);
+    }
     socket.write(Buffer.concat([header, data]));
   }
 }

@@ -1,5 +1,5 @@
 import { existsSync } from 'fs';
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, rm, stat, writeFile } from 'fs/promises';
 import { dirname, join, relative, resolve } from 'path';
 
 import { isSafeProjectRelativePath } from './pathValidation.js';
@@ -68,7 +68,7 @@ export async function listProjectDirectory(
   directory = '.'
 ): Promise<ProjectDirectoryList> {
   const safeDirectory = normalizeProjectRelativePath(directory);
-  const absoluteDirectory = resolveProjectPath(projectPath, safeDirectory);
+  const absoluteDirectory = await resolveProjectPath(projectPath, safeDirectory);
   const directoryStat = await stat(absoluteDirectory);
   if (!directoryStat.isDirectory()) {
     throw new Error(`Project-relative path is not a directory: ${directory}`);
@@ -95,7 +95,7 @@ export async function listProjectDirectory(
 
 export async function readProjectFile(projectPath: string, filePath: string): Promise<ProjectFileRead> {
   const safeFilePath = normalizeProjectRelativePath(filePath);
-  const absoluteFilePath = resolveProjectPath(projectPath, safeFilePath);
+  const absoluteFilePath = await resolveProjectPath(projectPath, safeFilePath);
   const fileStat = await stat(absoluteFilePath);
   if (!fileStat.isFile()) {
     throw new Error(`Project-relative path is not a file: ${filePath}`);
@@ -116,7 +116,7 @@ export async function writeProjectFile(
   options: ProjectWriteOptions = {}
 ): Promise<ProjectChangeResult> {
   const safeFilePath = normalizeProjectRelativePath(filePath);
-  const absoluteFilePath = resolveProjectPath(projectPath, safeFilePath);
+  const absoluteFilePath = await resolveProjectPath(projectPath, safeFilePath);
   const diffSummary = await buildDiffSummary(projectPath, {
     operation: 'filesystem_write',
     riskLevel: 'write',
@@ -158,7 +158,7 @@ export async function deleteProjectPath(
     throw new Error(`Deleting ${safeTargetPath} requires confirm=true`);
   }
 
-  const absoluteTargetPath = resolveProjectPath(projectPath, safeTargetPath);
+  const absoluteTargetPath = await resolveProjectPath(projectPath, safeTargetPath);
   const diffSummary = await buildDiffSummary(projectPath, {
     operation: 'filesystem_delete',
     riskLevel: 'dangerous',
@@ -196,7 +196,7 @@ export async function previewProjectDelete(
     throw new Error('Refusing to preview deletion of the project root');
   }
 
-  const absoluteTargetPath = resolveProjectPath(projectPath, safeTargetPath);
+  const absoluteTargetPath = await resolveProjectPath(projectPath, safeTargetPath);
   if (!existsSync(absoluteTargetPath)) {
     const diffSummary = await buildDiffSummary(projectPath, {
       operation: 'filesystem_delete',
@@ -248,15 +248,28 @@ export function normalizeProjectRelativePath(path: string): string {
   return normalized;
 }
 
-function resolveProjectPath(projectPath: string, relativePath: string): string {
-  const projectRoot = resolve(projectPath);
+async function resolveProjectPath(projectPath: string, relativePath: string): Promise<string> {
+  const projectRoot = await realpath(resolve(projectPath));
   const absolutePath = resolve(projectRoot, relativePath);
+  assertPathInsideProject(projectRoot, absolutePath);
+  await assertNoSymlinkComponents(projectRoot, relativePath);
+
+  if (!existsSync(absolutePath)) {
+    const ancestor = await findExistingAncestor(absolutePath);
+    assertPathInsideProject(projectRoot, await realpath(ancestor));
+    return absolutePath;
+  }
+
+  const targetRealPath = await realpath(absolutePath);
+  assertPathInsideProject(projectRoot, targetRealPath);
+  return targetRealPath;
+}
+
+function assertPathInsideProject(projectRoot: string, absolutePath: string): void {
   const relation = relative(projectRoot, absolutePath);
   if (relation.startsWith('..') || relation === '..' || resolve(relation) === relation) {
     throw new Error('Resolved path escapes the Godot project root');
   }
-
-  return absolutePath;
 }
 
 function normalizeSlashes(path: string): string {
@@ -268,6 +281,10 @@ async function listDeletionTargets(
   absolutePath: string,
   recursive: boolean
 ): Promise<string[]> {
+  const targetLinkStat = await lstat(absolutePath);
+  if (targetLinkStat.isSymbolicLink()) {
+    throw new Error('Refusing to delete through a symlink or junction inside the Godot project');
+  }
   const targetStat = await stat(absolutePath);
   if (!targetStat.isDirectory()) {
     return [normalizeSlashes(relative(resolve(projectPath), absolutePath))];
@@ -280,6 +297,10 @@ async function listDeletionTargets(
   const result: string[] = [];
   for (const entry of await readdir(absolutePath, { withFileTypes: true })) {
     const childPath = join(absolutePath, entry.name);
+    const childStat = await lstat(childPath);
+    if (childStat.isSymbolicLink()) {
+      throw new Error('Refusing to delete through a symlink or junction inside the Godot project');
+    }
     if (entry.isDirectory()) {
       result.push(...(await listDeletionTargets(projectPath, childPath, true)));
     } else {
@@ -288,4 +309,33 @@ async function listDeletionTargets(
   }
   result.push(normalizeSlashes(relative(resolve(projectPath), absolutePath)));
   return result.sort();
+}
+
+async function assertNoSymlinkComponents(projectRoot: string, relativePath: string): Promise<void> {
+  const segments = relativePath === '.'
+    ? []
+    : normalizeSlashes(relativePath).split('/').filter((segment) => segment.length > 0);
+  let current = projectRoot;
+  for (const segment of segments) {
+    current = join(current, segment);
+    if (!existsSync(current)) {
+      return;
+    }
+    const linkStat = await lstat(current);
+    if (linkStat.isSymbolicLink()) {
+      throw new Error('Project-relative path resolves through a symlink or junction');
+    }
+  }
+}
+
+async function findExistingAncestor(absolutePath: string): Promise<string> {
+  let current = dirname(absolutePath);
+  while (!existsSync(current)) {
+    const next = dirname(current);
+    if (next === current) {
+      throw new Error('No existing parent directory found for project-relative path');
+    }
+    current = next;
+  }
+  return current;
 }

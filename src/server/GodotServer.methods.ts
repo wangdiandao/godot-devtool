@@ -15,7 +15,7 @@
  */
 
 import { join, basename, normalize, dirname, relative, resolve } from 'path';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'fs';
 import { spawn, execFile } from 'child_process';
 import { promisify } from 'util';
 
@@ -92,6 +92,7 @@ import { getWsBridge } from './transports/wsBridge.js';
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
 const GODOT_DEBUG_MODE: boolean = true; // Always use GODOT DEBUG MODE
+const GODOT_OPERATION_TIMEOUT_MS = Number(process.env.GODOT_DEVTOOL_GODOT_TIMEOUT_MS ?? 120000);
 
 const execFileAsync = promisify(execFile);
 
@@ -465,13 +466,32 @@ class GodotServerMethodMixin {
   }
 
   private safeProjectPath(projectPath: string, filePath: string): string {
-    const root = resolve(projectPath);
+    const root = realpathSync(resolve(projectPath));
     const relativePath = String(filePath ?? '').replace(/^res:\/\//, '').replace(/\\/g, '/');
-    if (!relativePath || relativePath.includes('..') || relativePath.startsWith('/')) throw new Error(`Invalid project-relative path: ${filePath}`);
+    if (!isSafeProjectRelativePath(relativePath)) throw new Error(`Invalid project-relative path: ${filePath}`);
     const absolutePath = resolve(root, relativePath);
-    const relation = relative(root, absolutePath);
-    if (relation.startsWith('..') || resolve(relation) === relation) throw new Error(`Path escapes project root: ${filePath}`);
-    return absolutePath;
+    this.assertPathInsideProject(root, absolutePath, filePath);
+    this.assertNoSymlinkPathComponents(root, relativePath);
+    if (!existsSync(absolutePath)) return absolutePath;
+    const realTarget = realpathSync(absolutePath);
+    this.assertPathInsideProject(root, realTarget, filePath);
+    return realTarget;
+  }
+
+  private assertPathInsideProject(projectRoot: string, absolutePath: string, originalPath: string): void {
+    const relation = relative(projectRoot, absolutePath);
+    if (relation.startsWith('..') || relation === '..' || resolve(relation) === relation) throw new Error(`Path escapes project root: ${originalPath}`);
+  }
+
+  private assertNoSymlinkPathComponents(projectRoot: string, relativePath: string): void {
+    let current = projectRoot;
+    for (const segment of relativePath.split('/').filter((part) => part.length > 0)) {
+      current = join(current, segment);
+      if (!existsSync(current)) return;
+      if (lstatSync(current).isSymbolicLink()) {
+        throw new Error(`Project-relative path resolves through a symlink or junction: ${relativePath}`);
+      }
+    }
   }
 
   private readProjectTextSync(projectPath: string, filePath: string): string {
@@ -480,6 +500,14 @@ class GodotServerMethodMixin {
 
   private toResourcePath(path: string): string {
     return String(path).startsWith('res://') ? String(path) : `res://${String(path).replace(/\\/g, '/')}`;
+  }
+
+  private normalizeScriptPath(scriptPath: string): string {
+    const normalized = String(scriptPath ?? '').replace(/^res:\/\//, '').replace(/\\/g, '/');
+    if (!isSafeProjectRelativePath(normalized) || !normalized.endsWith('.gd')) {
+      throw new Error('Invalid scriptPath. Provide a project-relative .gd script path.');
+    }
+    return normalized;
   }
 
   private searchProjectFiles(args: any) {
@@ -1437,16 +1465,23 @@ class GodotServerMethodMixin {
 
       this.logDebug(`Executing: ${this.godotPath} ${args.join(' ')}`);
 
-      const { stdout, stderr } = await execFileAsync(this.godotPath!, args);
+      const { stdout, stderr } = await execFileAsync(this.godotPath!, args, {
+        timeout: GODOT_OPERATION_TIMEOUT_MS,
+        killSignal: 'SIGTERM',
+        maxBuffer: 20 * 1024 * 1024,
+      });
 
       return { stdout: stdout ?? '', stderr: stderr ?? '' };
     } catch (error: unknown) {
       // If execFileAsync throws, it still contains stdout/stderr
       if (error instanceof Error && 'stdout' in error && 'stderr' in error) {
-        const execError = error as Error & { stdout: string; stderr: string };
+        const execError = error as Error & { stdout: string; stderr: string; killed?: boolean; signal?: string };
+        const timeoutText = execError.killed || execError.signal === 'SIGTERM'
+          ? `\nGodot operation timed out after ${GODOT_OPERATION_TIMEOUT_MS}ms and was terminated.`
+          : '';
         return {
           stdout: execError.stdout ?? '',
-          stderr: execError.stderr ?? '',
+          stderr: `${execError.stderr ?? ''}${timeoutText}`,
         };
       }
 
@@ -1649,12 +1684,27 @@ class GodotServerMethodMixin {
 
       this.logDebug(`Launching Godot editor for project: ${args.projectPath}`);
       const process = spawn(this.godotPath, ['-e', '--path', args.projectPath], {
-        stdio: 'pipe',
+        stdio: 'ignore',
+        detached: true,
       });
-
-      process.on('error', (err: Error) => {
-        console.error('Failed to start Godot editor:', err);
+      const startupError = await new Promise<Error | null>((resolveStartup) => {
+        let settled = false;
+        const finish = (error: Error | null) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolveStartup(error);
+        };
+        const timer = setTimeout(() => finish(null), 500);
+        process.once('error', (err: Error) => finish(err));
+        process.once('exit', (code: number | null, signal: string | null) => {
+          finish(new Error(`Godot editor exited during startup with code ${code ?? 'null'} and signal ${signal ?? 'null'}.`));
+        });
       });
+      if (startupError) {
+        return this.createErrorResponse(`Failed to launch Godot editor: ${startupError.message}`);
+      }
+      process.unref();
 
       return {
         content: [
@@ -3536,15 +3586,13 @@ class GodotServerMethodMixin {
 
     const validationError = this.validateSceneOperationArgs(args, ['projectPath', 'scenePath', 'nodePath', 'scriptPath']);
     if (validationError) return validationError;
-    if (!args.scriptPath.endsWith('.gd')) {
-      return this.createErrorResponse('Invalid scriptPath', ['Provide a .gd script path']);
-    }
 
     try {
+      const scriptPath = this.normalizeScriptPath(args.scriptPath);
       const params = {
         scenePath: args.scenePath,
         nodePath: args.nodePath,
-        scriptPath: args.scriptPath,
+        scriptPath,
       };
       const { stdout, stderr } = await this.executeOperation('script_attach', params, args.projectPath);
       if (stderr && stderr.includes('Failed to')) {
@@ -3557,7 +3605,7 @@ class GodotServerMethodMixin {
         skippedFiles: [],
         details: {
           nodePath: args.nodePath,
-          scriptPath: args.scriptPath,
+          scriptPath,
         },
       });
 

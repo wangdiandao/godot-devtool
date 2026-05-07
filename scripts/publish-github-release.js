@@ -9,6 +9,7 @@ const tag = `v${version}`;
 const repo = process.env.GITHUB_REPOSITORY || 'wangdiandao/godot-devtool';
 const assetName = `godot-devtool-build-${version}.zip`;
 const assetPath = join(process.cwd(), assetName);
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 let uploaded = false;
 
 try {
@@ -17,6 +18,7 @@ try {
   }
 
   rmSync(assetPath, { force: true });
+  runReleaseGuards(tag);
   createZip(assetPath);
 
   if (!releaseExists(repo, tag)) {
@@ -42,7 +44,7 @@ try {
     assetPath,
     '--repo',
     repo,
-    '--clobber',
+    ...(process.env.ALLOW_RELEASE_CLOBBER === 'true' ? ['--clobber'] : []),
   ], { stdio: 'inherit' });
   uploaded = true;
 } finally {
@@ -50,6 +52,32 @@ try {
     rmSync(assetPath, { force: true });
     console.log(`Deleted local release package after upload: ${assetName}`);
   }
+}
+
+function runReleaseGuards(releaseTag) {
+  const dirty = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
+  if (dirty) {
+    throw new Error('Refusing to publish from a dirty worktree. Commit or stash local changes first.');
+  }
+
+  const branch = execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).trim();
+  if (branch !== 'main' && process.env.ALLOW_RELEASE_BRANCH !== 'true') {
+    throw new Error(`Refusing to publish from ${branch || 'detached HEAD'}. Use main or set ALLOW_RELEASE_BRANCH=true intentionally.`);
+  }
+
+  const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  let tagSha = '';
+  try {
+    tagSha = execFileSync('git', ['rev-parse', `refs/tags/${releaseTag}^{}`], { encoding: 'utf8' }).trim();
+  } catch {
+    execFileSync('git', ['tag', releaseTag, headSha], { stdio: 'inherit' });
+    tagSha = headSha;
+  }
+  if (tagSha !== headSha) {
+    throw new Error(`Refusing to publish ${releaseTag}: tag points to ${tagSha}, but HEAD is ${headSha}.`);
+  }
+
+  execFileSync(npmCommand, ['run', 'verify:all'], { stdio: 'inherit' });
 }
 
 function createZip(destination) {

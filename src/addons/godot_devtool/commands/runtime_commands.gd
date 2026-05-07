@@ -175,8 +175,12 @@ func _simulate_sequence(payload: Dictionary) -> Dictionary:
 	return {"ok": not failed, "error": "One or more sequence events failed." if failed else "", "result": {"count": results.size(), "results": results}}
 
 func _recording_command(command_name: String, payload: Dictionary) -> Dictionary:
+	var explicit_path := payload.has("recordingPath") or payload.has("recording_path")
 	var path := str(payload.get("recordingPath", payload.get("recording_path", ".godot-devtool/input-recording.json")))
-	var resource_path := path if path.begins_with("res://") else "res://" + path
+	var path_result := _safe_devtool_output_path(path, ".json")
+	if not bool(path_result.get("ok", false)):
+		return _err(str(path_result.get("error", "Invalid recording path.")))
+	var resource_path := str(path_result.get("path", ""))
 	if command_name == "start_recording":
 		_recording = true
 		_recording_path = resource_path
@@ -184,6 +188,8 @@ func _recording_command(command_name: String, payload: Dictionary) -> Dictionary
 		return _ok({"recordingPath": resource_path, "recording": true})
 	if command_name == "stop_recording":
 		_recording = false
+		if explicit_path and FileAccess.file_exists(resource_path) and not bool(payload.get("overwrite", false)):
+			return _err("Recording file already exists. Pass overwrite=true to replace it: " + resource_path)
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(resource_path.get_base_dir()))
 		var write_file := FileAccess.open(resource_path, FileAccess.WRITE)
 		if not write_file:
@@ -212,12 +218,32 @@ func _recording_command(command_name: String, payload: Dictionary) -> Dictionary
 	return {"ok": not failed, "error": "One or more recorded events failed." if failed else "", "result": {"recordingPath": resource_path, "replayedEvents": events.size(), "results": results}}
 
 func _screenshot(payload: Dictionary) -> Dictionary:
+	var explicit_path := payload.has("outputPath") or payload.has("output_path")
 	var output_path := str(payload.get("outputPath", ".godot-devtool/game-screenshot.png"))
-	var resource_path := output_path if output_path.begins_with("res://") else "res://" + output_path
+	var path_result := _safe_devtool_output_path(output_path, ".png")
+	if not bool(path_result.get("ok", false)):
+		return _err(str(path_result.get("error", "Invalid screenshot path.")))
+	var resource_path := str(path_result.get("path", ""))
+	if explicit_path and FileAccess.file_exists(resource_path) and not bool(payload.get("overwrite", false)):
+		return _err("Screenshot file already exists. Pass overwrite=true to replace it: " + resource_path)
 	var image: Image = Engine.get_main_loop().root.get_texture().get_image()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(resource_path.get_base_dir()))
 	var err: int = image.save_png(resource_path)
 	return _ok({"outputPath": resource_path, "errorCode": err, "width": image.get_width(), "height": image.get_height()}) if err == OK else _err("Failed to save screenshot: " + str(err))
+
+func _safe_devtool_output_path(path_value: String, required_extension: String) -> Dictionary:
+	var normalized := path_value.replace("\\", "/").replace("res://", "")
+	if normalized == "":
+		return {"ok": false, "error": "Output path is required.", "path": ""}
+	var resource_path := "res://" + normalized
+	if not resource_path.begins_with("res://.godot-devtool/"):
+		return {"ok": false, "error": "Runtime output path must stay under res://.godot-devtool/.", "path": ""}
+	for segment in normalized.split("/"):
+		if segment == "" or segment == "." or segment == "..":
+			return {"ok": false, "error": "Runtime output path must not contain empty, current, or parent segments.", "path": ""}
+	if required_extension != "" and not resource_path.ends_with(required_extension):
+		return {"ok": false, "error": "Runtime output path must end with " + required_extension + ".", "path": ""}
+	return {"ok": true, "error": "", "path": resource_path}
 
 func _find_ui_elements() -> Dictionary:
 	var results := []

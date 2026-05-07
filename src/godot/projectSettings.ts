@@ -10,7 +10,9 @@ import {
 } from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 
-type RawProjectSettingValue = { __godotRaw: string };
+const RAW_PROJECT_SETTING_VALUE = Symbol('rawProjectSettingValue');
+
+type RawProjectSettingValue = { readonly [RAW_PROJECT_SETTING_VALUE]: true; readonly __godotRaw: string };
 type SettingValue = string | number | boolean | null | RawProjectSettingValue | Record<string, unknown> | unknown[];
 
 export interface ProjectSettingsReadOptions {
@@ -327,16 +329,26 @@ function removeSetting(lines: string[], sectionName: string, key: string): strin
 }
 
 function formatProjectValue(value: SettingValue): string {
-  if (isRawProjectSettingValue(value)) return value.__godotRaw;
+  if (isRawProjectSettingValue(value)) {
+    assertRawProjectSettingValue(value.__godotRaw);
+    return value.__godotRaw;
+  }
   if (typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (value === null) return 'null';
-  if (Array.isArray(value) || typeof value === 'object') return JSON.stringify(value);
+  if (Array.isArray(value) || typeof value === 'object') {
+    if (hasStructuralRawProjectValue(value)) {
+      throw new Error('Raw project setting values are only allowed through rawProjectSettingValue().');
+    }
+    return JSON.stringify(value);
+  }
+  assertSingleLineProjectValue(value, 'project setting string value');
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 export function rawProjectSettingValue(value: string): RawProjectSettingValue {
-  return { __godotRaw: value };
+  assertRawProjectSettingValue(value);
+  return { [RAW_PROJECT_SETTING_VALUE]: true, __godotRaw: value };
 }
 
 function isRawProjectSettingValue(value: SettingValue): value is RawProjectSettingValue {
@@ -344,8 +356,30 @@ function isRawProjectSettingValue(value: SettingValue): value is RawProjectSetti
     value &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
+    (value as RawProjectSettingValue)[RAW_PROJECT_SETTING_VALUE] === true &&
     typeof (value as RawProjectSettingValue).__godotRaw === 'string'
   );
+}
+
+function hasStructuralRawProjectValue(value: SettingValue): boolean {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.hasOwn(value as object, '__godotRaw')
+  );
+}
+
+function assertSingleLineProjectValue(value: string, label: string): void {
+  if (/[\r\n]/.test(value)) {
+    throw new Error(`${label} must not contain newline, CR, or LF characters.`);
+  }
+}
+
+function assertRawProjectSettingValue(value: string): void {
+  if (/[\r\n]\s*\[[^\]]+\]/.test(value) || /[\r\n][A-Za-z0-9_./-]+\s*=/.test(value)) {
+    throw new Error('raw project setting value must not inject new sections or settings.');
+  }
 }
 
 function normalizeProjectValue(value: string): string {

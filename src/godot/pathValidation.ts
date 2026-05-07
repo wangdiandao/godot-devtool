@@ -1,13 +1,18 @@
 export function isSafeProjectRelativePath(path: string): boolean {
-  if (!path || path.includes('..')) {
+  if (!path) {
     return false;
   }
 
-  if (path.startsWith('/') || path.startsWith('\\')) {
+  const normalized = path.replace(/\\/g, '/');
+  if (normalized.split('/').some((segment) => segment === '..')) {
     return false;
   }
 
-  if (/^[A-Za-z]:[\\/]/.test(path)) {
+  if (normalized.startsWith('/')) {
+    return false;
+  }
+
+  if (/^[A-Za-z]:[\\/]/.test(normalized)) {
     return false;
   }
 

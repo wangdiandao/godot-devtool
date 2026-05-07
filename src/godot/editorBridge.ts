@@ -1,4 +1,5 @@
 import { existsSync } from 'fs';
+import { randomBytes } from 'crypto';
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -46,6 +47,7 @@ export interface EditorBridgeConfig {
   host: string;
   port: number;
   url: string;
+  authToken: string;
 }
 
 export interface EditorBridgeInstallResult {
@@ -60,6 +62,7 @@ export interface EditorBridgeInstallResult {
     host: string;
     port: number;
     url: string;
+    authToken: string;
   };
   plugin: {
     configPath: string;
@@ -213,6 +216,7 @@ export async function installEditorBridge(
       host: bridge.host,
       port: bridge.port,
       url: bridge.url,
+      authToken: bridge.authToken,
     },
     plugin: {
       configPath: PLUGIN_CFG_PATH,
@@ -506,14 +510,17 @@ async function createOrReadBridgeConfig(
   const host = existing?.host ?? '127.0.0.1';
   const port = shouldApplyOptions ? options.websocketPort ?? existing?.port ?? DEFAULT_WEBSOCKET_PORT : existing.port;
 
-  return {
+  const config: EditorBridgeConfig = {
     mode,
     instanceId: existing?.instanceId ?? createInstanceId(projectPath),
     projectPath,
     host,
     port,
     url: `ws://${host}:${port}`,
+    authToken: existing?.authToken ?? createAuthToken(),
   };
+  getWsBridge().registerProjectAuth(config.projectPath, config.authToken);
+  return config;
 }
 
 async function readBridgeConfig(projectPath: string): Promise<EditorBridgeConfig> {
@@ -529,14 +536,20 @@ async function tryReadBridgeConfig(projectPath: string): Promise<EditorBridgeCon
   const parsed = JSON.parse(await readFile(configAbsolutePath, 'utf8')) as Partial<EditorBridgeConfig>;
   const host = parsed.host ?? '127.0.0.1';
   const port = parsed.port ?? DEFAULT_WEBSOCKET_PORT;
-  return {
+  const config: EditorBridgeConfig = {
     mode: 'websocket',
     instanceId: parsed.instanceId ?? createInstanceId(projectPath),
     projectPath: parsed.projectPath ?? projectPath,
     host,
     port,
     url: parsed.url ?? `ws://${host}:${port}`,
+    authToken: parsed.authToken ?? createAuthToken(),
   };
+  if (!parsed.authToken) {
+    await writeFile(configAbsolutePath, JSON.stringify(config, null, 2), 'utf8');
+  }
+  getWsBridge().registerProjectAuth(config.projectPath, config.authToken);
+  return config;
 }
 
 function getBundledAddonRoot(): string {
@@ -607,6 +620,10 @@ async function readJsonFiles<T>(projectPath: string, directory: string, limit?: 
 function createInstanceId(projectPath: string): string {
   const encodedProject = Buffer.from(projectPath).toString('base64url').slice(0, 16);
   return `editor-${encodedProject}-${Date.now().toString(36)}`;
+}
+
+function createAuthToken(): string {
+  return randomBytes(32).toString('base64url');
 }
 
 function normalizeTimeout(timeoutMs: number | undefined): number {

@@ -10,7 +10,7 @@ const { getWsBridge } = await import('../build/server/transports/wsBridge.js');
 const addonRoot = join(process.cwd(), 'build', 'addons', 'godot_devtool');
 const sourceRoot = join(process.cwd(), 'src', 'addons', 'godot_devtool');
 const projectPath = await mkdtemp(join(tmpdir(), 'godot-devtool-plugin-'));
-const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
+const websocketPort = Number(process.env.GODOT_DEVTOOL_VERIFY_PLUGIN_WS_PORT ?? 18767);
 const releaseVersion = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version;
 const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
 
@@ -115,6 +115,7 @@ try {
   const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
   assert.equal(install.bridge.mode, 'websocket');
   assert.equal(install.bridge.port, websocketPort);
+  assert.ok(install.bridge.authToken);
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.cfg'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.gd'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/command_router.gd'));

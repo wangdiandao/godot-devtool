@@ -8,9 +8,26 @@ metadata:
 
 # Godot Devtool MCP
 
+Compatibility: `godot-devtool` 2.6.1.
+
+Tool catalog: All 221 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. 中文：全部 221 个工具以 `get_capabilities` 输出为准。
+
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
 The MCP client starts `godot-devtool` over stdio. Most project edits should use native or headless Godot tools. WebSocket is only for live editor state or a running game.
+
+Typical MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "godot-devtool": {
+      "command": "npx",
+      "args": ["godot-devtool"]
+    }
+  }
+}
+```
 
 ## First Call
 
@@ -50,6 +67,12 @@ Before editor WebSocket tools:
     plugin_install -> install addons/godot_devtool and runtime autoload into the project
     plugin_status  -> confirm plugin files, autoload, port, and bridge clients
     plugin_reload  -> reload the live editor plugin through WebSocket
+
+For a read-only browser status surface:
+
+    browser_visualizer_start -> start the Browser visualizer
+    browser_visualizer_status -> inspect URL, port, and current status
+    browser_visualizer_stop -> stop the visualizer
 
 `editor_ws` needs the Godot editor open with the plugin enabled. `runtime_ws` needs the game running with `DevtoolRuntime` connected.
 

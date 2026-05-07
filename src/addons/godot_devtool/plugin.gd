@@ -13,6 +13,7 @@ const HEARTBEAT_STALE_MS := 15000
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()
 var _bridge_url := "ws://127.0.0.1:8766"
+var _auth_token := ""
 var _connected := false
 var _hello_acknowledged := false
 var _last_connect_attempt_ms := 0
@@ -186,6 +187,7 @@ func _load_config() -> void:
 	if typeof(parsed) == TYPE_DICTIONARY:
 		var port := int(parsed.get("port", parsed.get("websocketPort", 8766)))
 		_bridge_url = str(parsed.get("url", "ws://127.0.0.1:%d" % port))
+		_auth_token = str(parsed.get("authToken", parsed.get("auth_token", "")))
 
 func _try_connect() -> void:
 	var now := Time.get_ticks_msec()
@@ -234,7 +236,8 @@ func _maybe_send_hello() -> void:
 		"projectPath": ProjectSettings.globalize_path("res://"),
 		"pluginVersion": PLUGIN_VERSION,
 		"protocolVersion": HANDSHAKE_PROTOCOL_VERSION,
-		"sessionId": _session_id
+		"sessionId": _session_id,
+		"authToken": _auth_token
 	})
 
 func _maybe_send_heartbeat() -> void:

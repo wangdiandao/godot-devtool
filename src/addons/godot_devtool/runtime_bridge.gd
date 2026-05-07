@@ -8,7 +8,7 @@ const REQUIRED_RUNTIME_PROPERTY_ROUTE := "get_game_node_properties"
 const REQUIRED_RUNTIME_SCREENSHOT_ROUTE := "get_game_screenshot"
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const STATE_PATH := "res://.godot-devtool/runtime-state.json"
-const PLUGIN_VERSION := "2.6.0"
+const PLUGIN_VERSION := "2.6.1"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
@@ -17,6 +17,7 @@ const STATE_WRITE_INTERVAL_MS := 1000
 var _router := CommandRouter.new()
 var _socket := WebSocketPeer.new()
 var _bridge_url := "ws://127.0.0.1:8766"
+var _auth_token := ""
 var _last_connect_attempt_ms := 0
 var _registered := false
 var _hello_acknowledged := false
@@ -78,6 +79,7 @@ func _load_config() -> void:
 	if typeof(parsed) == TYPE_DICTIONARY:
 		var port := int(parsed.get("port", parsed.get("websocketPort", 8766)))
 		_bridge_url = str(parsed.get("url", "ws://127.0.0.1:%d" % port))
+		_auth_token = str(parsed.get("authToken", parsed.get("auth_token", "")))
 
 func _reset_registration_state() -> void:
 	_registered = false
@@ -101,7 +103,8 @@ func _maybe_send_hello() -> void:
 		"projectPath": ProjectSettings.globalize_path("res://"),
 		"pluginVersion": PLUGIN_VERSION,
 		"protocolVersion": HANDSHAKE_PROTOCOL_VERSION,
-		"sessionId": _session_id
+		"sessionId": _session_id,
+		"authToken": _auth_token
 	}))
 
 func _maybe_send_heartbeat() -> void:
@@ -170,5 +173,6 @@ func _write_runtime_state() -> void:
 		"helloAcknowledged": _hello_acknowledged,
 		"helloAttempts": _hello_attempts,
 		"lastHeartbeatMs": _last_heartbeat_ms,
+		"authConfigured": _auth_token != "",
 		"lastError": _last_error
 	}, "\t"))

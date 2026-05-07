@@ -10,7 +10,7 @@ const { getWsBridge } = await import('../build/server/transports/wsBridge.js');
 const dependencies = await import('../build/godot/resourceDependencies.js');
 const filesystem = await import('../build/godot/filesystemTools.js');
 const exportConfig = await import('../build/godot/exportConfig.js');
-const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
+const websocketPort = Number(process.env.GODOT_DEVTOOL_VERIFY_ROADMAP_WS_PORT ?? 18768);
 const safetyRecovery = await import('../build/godot/safetyRecovery.js');
 const toolDefinitions = await import('../build/tools/toolDefinitions.js');
 const { GodotServer } = await import('../build/server/GodotServer.js');
@@ -485,7 +485,8 @@ try {
   assert.equal(packageJson.scripts['verify:visualizer'], 'npm run build && node scripts/verify-browser-visualizer.js');
   assert.equal(packageJson.scripts['verify:plugin'], 'npm run build && node scripts/verify-godot-plugin.js');
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
-  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap');
+  assert.equal(packageJson.scripts['verify:security'], 'npm run build && node scripts/verify-security-hardening.js');
+  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:security');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-plugin.js')));
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-browser-visualizer.js')));
