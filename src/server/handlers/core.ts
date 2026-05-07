@@ -10,5 +10,8 @@ export function createCoreToolHandlers(host: ToolHandlerHost): ToolHandlerMap {
     get_godot_version: () => host.handleGetGodotVersion(),
     get_capabilities: (args) => host.handleGetCapabilities(args),
     list_projects: (args) => host.handleListProjects(args),
+    browser_visualizer_start: (args) => host.handleBrowserVisualizerStart(args),
+    browser_visualizer_status: (args) => host.handleBrowserVisualizerStatus(args),
+    browser_visualizer_stop: (args) => host.handleBrowserVisualizerStop(args),
   };
 }

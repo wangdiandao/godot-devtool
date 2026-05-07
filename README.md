@@ -1,14 +1,14 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.5.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 English | [涓枃](README.zh-CN.md)
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.5.2 completes the E:/test survivor-like validation project, adds runtime handshake diagnostics, and keeps the 2.5.x bridge hardening in place.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.6.0 adds a local Browser visualizer for WebSocket bridge status, connected editor/runtime clients, and live-route guidance.
 
 ## Architecture
 
@@ -26,6 +26,7 @@ MCP client
 - Headless routes call Godot for scene/resource/script operations.
 - Editor routes use the bundled WebSocket plugin for live selection, Inspector writes, UndoRedo, and plugin reload.
 - Runtime routes use the installed autoload bridge for running-game scene tree, properties, input simulation, screenshots, and QA checks.
+- Browser visualizer routes serve a local read-only HTTP dashboard for bridge/client status and live-route orientation.
 
 ## Requirements
 
@@ -38,12 +39,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.5.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.2/godot-devtool-build-2.5.2.zip)
+   [godot-devtool-build-2.6.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.0/godot-devtool-build-2.6.0.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.5.2.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.6.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -171,9 +172,11 @@ Script, filesystem, and resource tools index GDScript files, read/write scripts,
 
 Editor tools install and verify the bundled `godot-devtool` plugin, reload it through the WebSocket bridge, read the live editor selection, select nodes, perform UndoRedo, and read/write Inspector properties. Runtime tools work while the game is running: they can read the live scene tree and node properties, set runtime properties, capture screenshots/frames, simulate input actions, inspect UI text/buttons, wait for nodes, navigate agents, monitor properties, record/replay interactions, and run QA-style assertions and stress checks.
 
+Browser visualizer tools start, inspect, and stop a local read-only dashboard. Use `browser_visualizer_start` to open a `http://127.0.0.1:<port>/` page that refreshes bridge status, connected editor/runtime clients, pending command count, and the existing screenshot/scene/input route names to call from the MCP client.
+
 The table below is generated from the actual tool definitions so the README stays aligned with the MCP server.
 
-## All 217 Tools
+## All 220 Tools
 
 ### Project Tools (18)
 | Tool | Description |
@@ -391,7 +394,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `start_recording` | Runtime WebSocket compatibility route. Executes start_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `stop_recording` | Runtime WebSocket compatibility route. Executes stop_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 
-### Core Tools (37)
+### Core Tools (40)
 | Tool | Description |
 |------|-------------|
 | `add_gridmap` | Exact-name compatibility route for add_gridmap. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
@@ -401,6 +404,9 @@ The table below is generated from the actual tool definitions so the README stay
 | `add_state_machine_transition` | Exact-name compatibility route for add_state_machine_transition. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `batch_get_properties` | Exact-name compatibility route for batch_get_properties. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
 | `batch_set_property` | Exact-name compatibility route for batch_set_property. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `browser_visualizer_start` | Start a local read-only browser dashboard for Godot editor/runtime bridge status and live-route guidance |
+| `browser_visualizer_status` | Read the local Browser visualizer URL, project filter, and connected editor/runtime bridge clients |
+| `browser_visualizer_stop` | Stop the local Browser visualizer HTTP dashboard |
 | `capture_frames` | Runtime WebSocket compatibility route. Executes capture_frames through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `clear_debug_output` | Clear buffered output for the currently running Godot project |
 | `click_button_by_text` | Runtime WebSocket compatibility route. Executes click_button_by_text through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |

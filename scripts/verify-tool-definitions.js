@@ -20,6 +20,7 @@ const requiredFiles = [
   'src/tools/compatibilityTools.ts',
   'src/tools/definitions/index.ts',
   'src/server/handlers/compatibility.ts',
+  'src/server/transports/browserVisualizer.ts',
 ];
 
 const missingFiles = requiredFiles.filter((filePath) => !existsSync(join(process.cwd(), filePath)));
@@ -51,6 +52,12 @@ if (compatibilityAliasDescriptions.length > 0) {
 for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload']) {
   if (!toolsByName.has(requiredName)) {
     console.error(`Missing v2 plugin tool: ${requiredName}`);
+    process.exit(1);
+  }
+}
+for (const requiredName of ['browser_visualizer_start', 'browser_visualizer_status', 'browser_visualizer_stop']) {
+  if (!toolsByName.has(requiredName)) {
+    console.error(`Missing Browser visualizer tool: ${requiredName}`);
     process.exit(1);
   }
 }
@@ -272,6 +279,10 @@ if (!serverSource.includes('GODOT_DEVTOOL_WS_PORT') || !serverSource.includes('g
 }
 if (!serverSource.includes('await getWsBridge().stop()')) {
   console.error('GodotServer.cleanup must stop the WebSocket bridge');
+  process.exit(1);
+}
+if (!serverSource.includes('await getBrowserVisualizer().stop()')) {
+  console.error('GodotServer.cleanup must stop the Browser visualizer');
   process.exit(1);
 }
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');

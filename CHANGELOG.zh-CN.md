@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.0
+
+Browser visualizer 版本。
+
+- 增加 `browser_visualizer_start`、`browser_visualizer_status` 和 `browser_visualizer_stop` 工具，用于启动本地只读 HTTP 仪表盘。
+- 仪表盘会刷新 MCP WebSocket bridge 状态、已连接 editor/runtime client、待处理命令数量，以及截图、场景检查、输入、UI 和编辑器状态相关的实时路由提示。
+- 增加 Browser visualizer 回归验证，并纳入 `verify:all`。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP 和验证 metadata 同步到 `2.6.0`。
+
 ## 2.5.2
 
 运行时握手与验证项目完成版本。

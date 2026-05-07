@@ -214,6 +214,9 @@ const EXACT_ZH = {
   plugin_install: '把 godot-devtool WebSocket 编辑器/运行时插件安装到 Godot 项目。',
   plugin_status: '读取插件安装状态、WebSocket 配置和连接状态。',
   plugin_reload: '通过 WebSocket bridge 重载 godot-devtool 编辑器插件。',
+  browser_visualizer_start: '启动本地只读 Browser visualizer 仪表盘。',
+  browser_visualizer_status: '读取 Browser visualizer URL、项目过滤器和已连接 bridge client。',
+  browser_visualizer_stop: '停止本地 Browser visualizer HTTP 仪表盘。',
   get_capabilities: '列出 MCP 工具能力、路由分组、传输方式和风险等级。',
   get_godot_version: '获取 Godot 可执行文件版本。',
   filesystem_read: '读取项目内 UTF-8 文本文件。',
@@ -297,8 +300,9 @@ function replaceChinese() {
   const headings = [...content.matchAll(/^## .*/gm)].map((match) => ({ index: match.index, text: match[0] }));
   const start = headings.find((entry) => entry.text.includes('全部'));
   const end = headings.find((entry) => start && entry.index > start.index && entry.text.includes('路由'));
-  if (!start || !end) throw new Error('Chinese all-tools block not found');
-  writeFileSync('README.zh-CN.md', `${content.slice(0, start.index)}${renderTables({ zh: true })}\n\n${content.slice(end.index)}`, 'utf8');
+  if (!start) throw new Error('Chinese all-tools block not found');
+  const endIndex = end?.index ?? content.length;
+  writeFileSync('README.zh-CN.md', `${content.slice(0, start.index)}${renderTables({ zh: true })}\n\n${content.slice(endIndex)}`, 'utf8');
 }
 
 replaceEnglish();

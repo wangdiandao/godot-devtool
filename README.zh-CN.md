@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.5.2-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 [English](README.md) | 中文
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.5.2 完成 `E:/test` survivor-like 验证项目，增加 runtime 握手诊断，并保留 2.5.x 的 bridge 加固。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.0 增加本地 Browser visualizer，用于查看 WebSocket bridge 状态、已连接的 editor/runtime client 和实时路由提示。
 
 ## 架构
 
@@ -26,6 +26,7 @@ MCP client
 - headless 路由调用 Godot 完成场景、资源和脚本操作。
 - editor 路由通过内置 WebSocket 插件处理实时选择、Inspector 写入、UndoRedo 和插件重载。
 - runtime 路由通过已安装的 autoload bridge 处理运行中场景树、属性、输入模拟、截图和 QA 检查。
+- Browser visualizer 路由提供本地只读 HTTP 仪表盘，用于查看 bridge/client 状态和实时路由提示。
 
 ## 环境要求
 
@@ -38,12 +39,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.5.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.2/godot-devtool-build-2.5.2.zip)
+   [godot-devtool-build-2.6.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.0/godot-devtool-build-2.6.0.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.5.2.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.6.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
@@ -180,264 +181,304 @@ Do not edit unrelated files.
 
 编辑器工具负责安装和检查内置 `godot-devtool` 插件，通过 WebSocket bridge 重载插件，读取实时编辑器选择，选择节点，执行 UndoRedo，并读写 Inspector 属性。Runtime 工具在游戏运行时工作：可以读取实时场景树和节点属性、写入运行时属性、截图/录帧、模拟输入 action、检查 UI 文本和按钮、等待节点、驱动导航、监控属性、录制/回放交互，并执行 QA 断言和压力检查。
 
+Browser visualizer 工具用于启动、查看和停止本地只读仪表盘。调用 `browser_visualizer_start` 后会得到 `http://127.0.0.1:<port>/` 页面，页面会刷新 bridge 状态、已连接 editor/runtime client、待处理命令数量，以及可继续从 MCP client 调用的截图、场景树和输入路由名称。
+
 更多使用约定见 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)。
 
-## 全部 217 个工具
+## 全部 220 个工具
 
 ### 项目工具 (18)
 | 工具 | 描述 |
 |------|-------------|
-| `add_autoload` | Exact-name compatibility route for add_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `export_project` | Run a controlled Godot export for a configured preset |
-| `get_autoload` | Exact-name compatibility route for get_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_input_actions` | Get input actions using the project_input_action implementation. |
-| `get_project_info` | Retrieve metadata about a Godot project |
-| `get_project_statistics` | Get project statistics using the get_project_info implementation. |
-| `list_projects` | List Godot projects in a directory |
-| `project_get_settings` | Read Godot project.godot settings by section or section/key list |
-| `project_input_action` | List or update project InputMap actions in project.godot |
-| `project_set_setting` | Update Godot project.godot settings with dry-run preview and audit logging |
-| `reload_project` | Exact-name compatibility route for reload_project. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `remove_autoload` | Exact-name compatibility route for remove_autoload. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `run_project` | Run the Godot project and capture output |
-| `run_project_checks` | Run stable project checks for CI, review, and release workflows |
-| `set_input_action` | Set input action using the project_input_action implementation. |
-| `stop_project` | Stop the currently running Godot project |
-| `uid_to_project_path` | Exact-name compatibility route for uid_to_project_path. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `update_project_uids` | Update UID references in a Godot project by resaving resources (for Godot 4.4+) |
+| `add_autoload` | 添加自动加载。 |
+| `export_project` | 导出项目。 |
+| `get_autoload` | 获取自动加载。 |
+| `get_input_actions` | 获取输入操作。 |
+| `get_project_info` | 获取项目元数据、版本、视口和 autoload 信息。 |
+| `get_project_statistics` | 获取项目统计。 |
+| `list_projects` | 列出项目。 |
+| `project_get_settings` | 读取 project.godot 设置。 |
+| `project_input_action` | 列出或更新项目 InputMap 操作。 |
+| `project_set_setting` | 更新 project.godot 设置，并提供 dry-run 预览和审计记录。 |
+| `reload_project` | 重载项目。 |
+| `remove_autoload` | 移除自动加载。 |
+| `run_project` | 运行项目。 |
+| `run_project_checks` | 运行稳定的项目检查，用于 CI、评审和发布流程。 |
+| `set_input_action` | 设置输入操作。 |
+| `stop_project` | 停止项目。 |
+| `uid_to_project_path` | UIDUIDto项目路径。 |
+| `update_project_uids` | 更新项目UID。 |
 
 ### 场景工具 (51)
 | 工具 | 描述 |
 |------|-------------|
-| `add_animation_track` | Add animation track using the animation implementation. |
-| `add_audio_bus` | Exact-name compatibility route for add_audio_bus. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_audio_bus_effect` | Exact-name compatibility route for add_audio_bus_effect. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_audio_player` | Add audio player using the audio implementation. |
-| `add_scene_instance` | Exact-name compatibility route for add_scene_instance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `analyze_scene_complexity` | Exact-name compatibility route for analyze_scene_complexity. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `analyze_signal_flow` | Exact-name compatibility route for analyze_signal_flow. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `animation` | Create, inspect, remove, and edit AnimationPlayer tracks and keyframes |
-| `animation_state_machine` | Create, inspect, and configure AnimationTree state machines |
-| `audio` | Create and list AudioStreamPlayer nodes with basic playback configuration |
-| `bake_navigation_mesh` | Bake navigation mesh using the navigation implementation. |
-| `connect_signal` | Connect signal using the signal implementation. |
-| `create_animation` | Create animation using the animation implementation. |
-| `create_animation_tree` | Create animation tree using the animation_state_machine implementation. |
-| `create_scene` | Create a new Godot scene file |
-| `cross_scene_set_property` | Exact-name compatibility route for cross_scene_set_property. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `disconnect_signal` | Disconnect signal using the signal implementation. |
-| `find_signal_connections` | Exact-name compatibility route for find_signal_connections. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_animation_info` | Get animation info using the animation implementation. |
-| `get_animation_tree_structure` | Exact-name compatibility route for get_animation_tree_structure. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_audio_bus_layout` | Get audio bus layout using the audio implementation. |
-| `get_audio_info` | Get audio info using the audio implementation. |
-| `get_collision_info` | Get collision info using the physics implementation. |
-| `get_navigation_info` | Get navigation info using the navigation implementation. |
-| `get_physics_layers` | Exact-name compatibility route for get_physics_layers. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_scene_dependencies` | Exact-name compatibility route for get_scene_dependencies. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_scene_tree` | Return the node tree for a Godot scene |
-| `get_signals` | Get signals using the signal implementation. |
-| `list_animations` | List animations using the animation implementation. |
-| `navigation` | Create, inspect, configure, bake, query, and debug NavigationRegion and NavigationAgent nodes |
-| `physics` | Create, inspect, configure, template, and analyze physics bodies, areas, collision layers, and shapes |
-| `remove_animation` | Remove animation using the animation implementation. |
-| `save_scene` | Save changes to a scene file |
-| `scene_get_current` | Return the current scene tracked by this MCP session, if one was opened |
-| `scene_open` | Open a scene in the MCP session using headless/file-based scene access |
-| `set_animation_keyframe` | Set animation keyframe using the animation implementation. |
-| `set_audio_bus` | Exact-name compatibility route for set_audio_bus. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_navigation_layers` | Exact-name compatibility route for set_navigation_layers. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_physics_layers` | Set physics layers using the physics implementation. |
-| `setup_collision` | Set up collision using the physics implementation. |
-| `setup_navigation_agent` | Set up navigation agent using the navigation implementation. |
-| `setup_navigation_region` | Set up navigation region using the navigation implementation. |
-| `setup_physics_body` | Set up physics body using the physics implementation. |
-| `signal` | List, connect, or disconnect node signals in a scene |
-| `tilemap` | Create, list, and edit TileMapLayer or legacy TileMap nodes |
-| `tilemap_clear` | Exact-name compatibility route for tilemap_clear. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `tilemap_fill_rect` | Update fill rect using the tilemap implementation. |
-| `tilemap_get_cell` | Exact-name compatibility route for tilemap_get_cell. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `tilemap_get_info` | Update get info using the tilemap implementation. |
-| `tilemap_get_used_cells` | Exact-name compatibility route for tilemap_get_used_cells. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `tilemap_set_cell` | Update set cell using the tilemap implementation. |
+| `add_animation_track` | 添加动画track。 |
+| `add_audio_bus` | 添加音频总线。 |
+| `add_audio_bus_effect` | 添加音频总线效果。 |
+| `add_audio_player` | 添加音频player。 |
+| `add_scene_instance` | 添加场景实例。 |
+| `analyze_scene_complexity` | 分析场景complexity。 |
+| `analyze_signal_flow` | 分析信号flow。 |
+| `animation` | 动画动画。 |
+| `animation_state_machine` | 动画动画状态机。 |
+| `audio` | 音频音频。 |
+| `bake_navigation_mesh` | 烘焙导航网格。 |
+| `connect_signal` | 连接信号。 |
+| `create_animation` | 创建动画。 |
+| `create_animation_tree` | 创建动画树。 |
+| `create_scene` | 创建新的 Godot 场景文件。 |
+| `cross_scene_set_property` | 跨场景场景设置属性。 |
+| `disconnect_signal` | 断开信号。 |
+| `find_signal_connections` | 查找信号connections。 |
+| `get_animation_info` | 获取动画信息。 |
+| `get_animation_tree_structure` | 获取动画树structure。 |
+| `get_audio_bus_layout` | 获取音频总线布局。 |
+| `get_audio_info` | 获取音频信息。 |
+| `get_collision_info` | 获取碰撞信息。 |
+| `get_navigation_info` | 获取导航信息。 |
+| `get_physics_layers` | 获取物理层。 |
+| `get_scene_dependencies` | 获取场景依赖。 |
+| `get_scene_tree` | 获取场景树结构。 |
+| `get_signals` | 获取信号。 |
+| `list_animations` | 列出动画。 |
+| `navigation` | 导航导航。 |
+| `physics` | 物理物理。 |
+| `remove_animation` | 移除动画。 |
+| `save_scene` | 保存场景到磁盘。 |
+| `scene_get_current` | 场景场景获取当前。 |
+| `scene_open` | 场景场景打开。 |
+| `set_animation_keyframe` | 设置动画keyframe。 |
+| `set_audio_bus` | 设置音频总线。 |
+| `set_navigation_layers` | 设置导航层。 |
+| `set_physics_layers` | 设置物理层。 |
+| `setup_collision` | 配置碰撞。 |
+| `setup_navigation_agent` | 配置导航agent。 |
+| `setup_navigation_region` | 配置导航region。 |
+| `setup_physics_body` | 配置物理body。 |
+| `signal` | 信号信号。 |
+| `tilemap` | TileMapTileMap。 |
+| `tilemap_clear` | TileMapTileMap清理。 |
+| `tilemap_fill_rect` | TileMapTileMapfillrect。 |
+| `tilemap_get_cell` | TileMapTileMap获取cell。 |
+| `tilemap_get_info` | TileMapTileMap获取信息。 |
+| `tilemap_get_used_cells` | TileMapTileMap获取usedcells。 |
+| `tilemap_set_cell` | TileMapTileMap设置cell。 |
 
 ### 节点工具 (18)
 | 工具 | 描述 |
 |------|-------------|
-| `add_node` | Add a node to an existing scene |
-| `delete_node` | Delete a non-root node from a Godot scene |
-| `find_nearby_nodes` | Runtime WebSocket compatibility route. Executes find_nearby_nodes through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `find_node_references` | Exact-name compatibility route for find_node_references. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `find_nodes_by_type` | Find nodes by type using the node_find implementation. |
-| `find_nodes_in_group` | Exact-name compatibility route for find_nodes_in_group. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_node_groups` | Exact-name compatibility route for get_node_groups. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_node_properties` | Read selected properties from a node in a Godot scene |
-| `group` | List, add, or remove node groups |
-| `node_duplicate` | Duplicate a node in a Godot scene |
-| `node_find` | Find nodes in a scene by name, type, or path substring |
-| `node_get` | Get node information from a Godot scene |
-| `node_move` | Move a node by setting its position in a Godot scene |
-| `rename_node` | Rename a node in a Godot scene |
-| `set_blend_tree_node` | Exact-name compatibility route for set_blend_tree_node. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_node_groups` | Exact-name compatibility route for set_node_groups. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `update_node_properties` | Update properties on a node in a Godot scene |
-| `wait_for_node` | Runtime WebSocket compatibility route. Executes wait_for_node through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `add_node` | 添加节点。 |
+| `delete_node` | 删除节点。 |
+| `find_nearby_nodes` | 查找附近节点。 |
+| `find_node_references` | 查找节点引用。 |
+| `find_nodes_by_type` | 查找节点by类型。 |
+| `find_nodes_in_group` | 查找节点in分组。 |
+| `get_node_groups` | 获取节点分组。 |
+| `get_node_properties` | 获取节点属性。 |
+| `group` | 分组分组。 |
+| `node_duplicate` | 节点节点复制。 |
+| `node_find` | 节点节点查找。 |
+| `node_get` | 节点节点获取。 |
+| `node_move` | 节点节点移动。 |
+| `rename_node` | 重命名节点。 |
+| `set_blend_tree_node` | 设置混合树节点。 |
+| `set_node_groups` | 设置节点分组。 |
+| `update_node_properties` | 更新节点属性。 |
+| `wait_for_node` | 等待等待for节点。 |
 
 ### 脚本工具 (11)
 | 工具 | 描述 |
 |------|-------------|
-| `analyze_script_references` | Analyze a GDScript file for class, functions, exports, node paths, and resource references |
-| `check_gdscript_syntax` | Run Godot --check-only against a GDScript file and return diagnostics |
-| `edit_script` | Edit script using the script_write implementation. |
-| `execute_editor_script` | Exact-name compatibility route for execute_editor_script. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `find_nodes_by_script` | Exact-name compatibility route for find_nodes_by_script. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `find_script_references` | Exact-name compatibility route for find_script_references. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_open_scripts` | Exact-name compatibility route for get_open_scripts. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_script_index` | Return GDScript files with class, base class, exported variables, and functions |
-| `script_attach` | Attach a GDScript resource to a node in a scene |
-| `script_create` | Create a GDScript file inside a Godot project |
-| `script_write` | Write full GDScript content with overwrite protection |
+| `analyze_script_references` | 分析脚本引用。 |
+| `check_gdscript_syntax` | 执行checkgdscript语法。 |
+| `edit_script` | 编辑脚本。 |
+| `execute_editor_script` | 执行编辑器脚本。 |
+| `find_nodes_by_script` | 查找节点by脚本。 |
+| `find_script_references` | 查找脚本引用。 |
+| `get_open_scripts` | 获取打开脚本。 |
+| `get_script_index` | 列出 GDScript 文件及类、基类、导出变量和函数信息。 |
+| `script_attach` | 脚本脚本挂载。 |
+| `script_create` | 脚本脚本创建。 |
+| `script_write` | 脚本脚本write。 |
 
 ### 编辑器工具 (9)
 | 工具 | 描述 |
 |------|-------------|
-| `editor_get_selection` | Return the current editor selection when a live editor bridge is available |
-| `editor_inspector_get_properties` | Read Inspector properties from the selected or addressed node through the live editor bridge |
-| `editor_inspector_set_properties` | Write Inspector properties on the selected or addressed node through the live editor bridge |
-| `editor_select_node` | Select a node in the live Godot editor when an editor bridge is available |
-| `editor_undo_redo` | Perform undo or redo in the live Godot editor when an editor bridge is available |
-| `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |
-| `plugin_reload` | Reload the godot-devtool v2 editor plugin through the WebSocket bridge |
-| `plugin_status` | Read godot-devtool v2 plugin installation status and WebSocket bridge configuration |
-| `reload_plugin` | Exact-name compatibility route for reload_plugin. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `editor_get_selection` | 编辑器编辑器获取selection。 |
+| `editor_inspector_get_properties` | 编辑器编辑器inspector获取属性。 |
+| `editor_inspector_set_properties` | 编辑器编辑器inspector设置属性。 |
+| `editor_select_node` | 编辑器编辑器select节点。 |
+| `editor_undo_redo` | 编辑器编辑器undoredo。 |
+| `plugin_install` | 把 godot-devtool WebSocket 编辑器/运行时插件安装到 Godot 项目。 |
+| `plugin_reload` | 通过 WebSocket bridge 重载 godot-devtool 编辑器插件。 |
+| `plugin_status` | 读取插件安装状态、WebSocket 配置和连接状态。 |
+| `reload_plugin` | 重载plugin。 |
 
 ### 文件系统工具 (11)
 | 工具 | 描述 |
 |------|-------------|
-| `delete_scene` | Delete scene using the filesystem_delete implementation. |
-| `filesystem_delete` | Delete a project-local file or directory with explicit confirmation |
-| `filesystem_list` | List files and directories inside a Godot project |
-| `filesystem_preview_delete` | Preview a project-local delete operation without deleting files |
-| `filesystem_read` | Read a UTF-8 text file inside a Godot project |
-| `filesystem_write` | Write a UTF-8 text file inside a Godot project |
-| `get_filesystem_tree` | Get filesystem tree using the filesystem_list implementation. |
-| `get_scene_file_content` | Get scene file content using the filesystem_read implementation. |
-| `read_script_file` | Read a GDScript file from a Godot project |
-| `search_files` | Exact-name compatibility route for search_files. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `search_in_files` | Exact-name compatibility route for search_in_files. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `delete_scene` | 删除场景。 |
+| `filesystem_delete` | 文件系统文件系统删除。 |
+| `filesystem_list` | 列出项目内文件和目录。 |
+| `filesystem_preview_delete` | 文件系统文件系统预览删除。 |
+| `filesystem_read` | 读取项目内 UTF-8 文本文件。 |
+| `filesystem_write` | 写入项目内 UTF-8 文本文件。 |
+| `get_filesystem_tree` | 获取文件系统树。 |
+| `get_scene_file_content` | 获取场景文件内容。 |
+| `read_script_file` | 读取脚本文件。 |
+| `search_files` | 搜索文件。 |
+| `search_in_files` | 搜索in文件。 |
 
 ### 资源工具 (16)
 | 工具 | 描述 |
 |------|-------------|
-| `add_resource` | Add resource using the resource_create implementation. |
-| `check_export_presets` | Inspect Godot export presets and report pre-export issues |
-| `edit_resource` | Edit resource using the resource_save implementation. |
-| `export_matrix` | Summarize export targets, platform families, signing/template status, and CI steps |
-| `export_mesh_library` | Export a scene as a MeshLibrary resource |
-| `find_unused_resources` | Find unused resources using the resource_dependency_graph implementation. |
-| `get_export_info` | Get export info using the export_matrix implementation. |
-| `get_export_presets` | Read configured Godot export presets |
-| `get_resource_index` | Return a categorized resource index for a Godot project |
-| `get_resource_preview` | Exact-name compatibility route for get_resource_preview. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_uid` | Get the UID for a specific file in a Godot project (for Godot 4.4+) |
-| `resource_create` | Create a simple structured Godot resource file |
-| `resource_dependency_graph` | Build a resource dependency graph and identify orphan resources |
-| `resource_load` | Load a text-based Godot resource from the project |
-| `resource_save` | Save text-based Godot resource content with overwrite protection |
-| `update_export_preset` | Update fields or options for a configured Godot export preset |
+| `add_resource` | 添加资源。 |
+| `check_export_presets` | 执行check导出预设。 |
+| `edit_resource` | 编辑资源。 |
+| `export_matrix` | 导出matrix。 |
+| `export_mesh_library` | 导出网格library。 |
+| `find_unused_resources` | 查找未使用资源。 |
+| `get_export_info` | 获取导出信息。 |
+| `get_export_presets` | 获取导出预设。 |
+| `get_resource_index` | 获取资源index。 |
+| `get_resource_preview` | 获取资源预览。 |
+| `get_uid` | 获取UID。 |
+| `resource_create` | 资源资源创建。 |
+| `resource_dependency_graph` | 构建资源依赖图并识别孤立资源。 |
+| `resource_load` | 资源资源load。 |
+| `resource_save` | 资源资源保存。 |
+| `update_export_preset` | 更新导出预设。 |
 
 ### 视觉工具 (26)
 | 工具 | 描述 |
 |------|-------------|
-| `apply_particle_preset` | Exact-name compatibility route for apply_particle_preset. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `assign_shader_material` | Assign shader material using the material implementation. |
-| `create_particles` | Create particles using the particle implementation. |
-| `create_shader` | Create shader using the shader implementation. |
-| `create_theme` | Create theme using the ui implementation. |
-| `edit_shader` | Exact-name compatibility route for edit_shader. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `find_ui_elements` | Runtime WebSocket compatibility route. Executes find_ui_elements through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_particle_info` | Exact-name compatibility route for get_particle_info. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_shader_params` | Get shader params using the shader implementation. |
-| `get_theme_info` | Exact-name compatibility route for get_theme_info. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `lighting` | Create and list basic Godot light and environment nodes |
-| `material` | Create, read, update, and apply Godot material resources |
-| `particle` | Create and list basic Godot particle emitter nodes |
-| `read_shader` | Read shader using the shader implementation. |
-| `set_material_3d` | Set material 3d using the material implementation. |
-| `set_particle_color_gradient` | Exact-name compatibility route for set_particle_color_gradient. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_particle_material` | Exact-name compatibility route for set_particle_material. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_shader_param` | Set shader param using the shader implementation. |
-| `set_theme_color` | Exact-name compatibility route for set_theme_color. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_theme_constant` | Exact-name compatibility route for set_theme_constant. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_theme_font_size` | Exact-name compatibility route for set_theme_font_size. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_theme_stylebox` | Exact-name compatibility route for set_theme_stylebox. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `setup_environment` | Set up environment using the lighting implementation. |
-| `setup_lighting` | Set up lighting using the lighting implementation. |
-| `shader` | Create, read, inspect, and configure ShaderMaterial parameters |
-| `ui` | Create Control nodes, reusable UI templates, themes, and automatic signal wiring |
+| `apply_particle_preset` | 应用粒子预设。 |
+| `assign_shader_material` | 分配着色器材质。 |
+| `create_particles` | 创建粒子。 |
+| `create_shader` | 创建着色器。 |
+| `create_theme` | 创建主题。 |
+| `edit_shader` | 编辑着色器。 |
+| `find_ui_elements` | 查找UIelements。 |
+| `get_particle_info` | 获取粒子信息。 |
+| `get_shader_params` | 获取着色器参数。 |
+| `get_theme_info` | 获取主题信息。 |
+| `lighting` | 灯光灯光。 |
+| `material` | 材质材质。 |
+| `particle` | 粒子粒子。 |
+| `read_shader` | 读取着色器。 |
+| `set_material_3d` | 设置材质3d。 |
+| `set_particle_color_gradient` | 设置粒子颜色gradient。 |
+| `set_particle_material` | 设置粒子材质。 |
+| `set_shader_param` | 设置着色器参数。 |
+| `set_theme_color` | 设置主题颜色。 |
+| `set_theme_constant` | 设置主题常量。 |
+| `set_theme_font_size` | 设置主题字体大小。 |
+| `set_theme_stylebox` | 设置主题StyleBox。 |
+| `setup_environment` | 配置环境。 |
+| `setup_lighting` | 配置灯光。 |
+| `shader` | 着色器着色器。 |
+| `ui` | UIUI。 |
 
 ### 运行时工具 (20)
 | 工具 | 描述 |
 |------|-------------|
-| `assert_node_state` | Exact-name compatibility route for assert_node_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `assert_screen_text` | Exact-name compatibility route for assert_screen_text. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `compare_screenshots` | Exact-name compatibility route for compare_screenshots. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `create_workflow_test_scene` | Create a small Godot scene for validating MCP scene/script/check workflows |
-| `execute_game_script` | Runtime WebSocket compatibility route. Executes execute_game_script through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_editor_screenshot` | Exact-name compatibility route for get_editor_screenshot. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_game_node_properties` | Runtime WebSocket compatibility route. Executes get_game_node_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_game_scene_tree` | Runtime WebSocket compatibility route. Executes get_game_scene_tree through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_game_screenshot` | Runtime WebSocket compatibility route. Executes get_game_screenshot through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_test_report` | Exact-name compatibility route for get_test_report. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `replay_recording` | Runtime WebSocket compatibility route. Executes replay_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `run_test_scenario` | Exact-name compatibility route for run_test_scenario. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_game_node_property` | Runtime WebSocket compatibility route. Executes set_game_node_property through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `simulate_action` | Runtime WebSocket compatibility route. Executes simulate_action through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `simulate_key` | Runtime WebSocket compatibility route. Executes simulate_key through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `simulate_mouse_click` | Runtime WebSocket compatibility route. Executes simulate_mouse_click through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `simulate_mouse_move` | Runtime WebSocket compatibility route. Executes simulate_mouse_move through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `simulate_sequence` | Runtime WebSocket compatibility route. Executes simulate_sequence through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `start_recording` | Runtime WebSocket compatibility route. Executes start_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `stop_recording` | Runtime WebSocket compatibility route. Executes stop_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `assert_node_state` | 断言节点状态。 |
+| `assert_screen_text` | 断言屏幕文本。 |
+| `compare_screenshots` | 对比截图。 |
+| `create_workflow_test_scene` | 创建workflowtest场景。 |
+| `execute_game_script` | 执行游戏脚本。 |
+| `get_editor_screenshot` | 截取 Godot 编辑器画面。 |
+| `get_game_node_properties` | 读取运行中游戏节点属性。 |
+| `get_game_scene_tree` | 获取运行中游戏的场景树。 |
+| `get_game_screenshot` | 截取运行中游戏画面。 |
+| `get_test_report` | 获取test报告。 |
+| `replay_recording` | 回放录制。 |
+| `run_test_scenario` | 运行test场景测试。 |
+| `set_game_node_property` | 写入运行中游戏节点属性。 |
+| `simulate_action` | 模拟操作。 |
+| `simulate_key` | 模拟按键。 |
+| `simulate_mouse_click` | 模拟鼠标click。 |
+| `simulate_mouse_move` | 模拟鼠标移动。 |
+| `simulate_sequence` | 模拟序列。 |
+| `start_recording` | 开始录制。 |
+| `stop_recording` | 停止录制。 |
 
-### 核心工具 (37)
+### 核心工具 (40)
 | 工具 | 描述 |
 |------|-------------|
-| `add_gridmap` | Exact-name compatibility route for add_gridmap. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_mesh_instance` | Exact-name compatibility route for add_mesh_instance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_raycast` | Exact-name compatibility route for add_raycast. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_state_machine_state` | Exact-name compatibility route for add_state_machine_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `add_state_machine_transition` | Exact-name compatibility route for add_state_machine_transition. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `batch_get_properties` | Exact-name compatibility route for batch_get_properties. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `batch_set_property` | Exact-name compatibility route for batch_set_property. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `capture_frames` | Runtime WebSocket compatibility route. Executes capture_frames through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `clear_debug_output` | Clear buffered output for the currently running Godot project |
-| `click_button_by_text` | Runtime WebSocket compatibility route. Executes click_button_by_text through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `create_gameplay_prototype` | Create a high-level block-based gameplay prototype scaffold in a Godot project |
-| `detect_circular_dependencies` | Exact-name compatibility route for detect_circular_dependencies. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `generate_ci_snippet` | Generate GitHub Actions or GitLab CI snippets for Godot headless checks, export preflight, release export, and artifact archiving |
-| `geometry` | Create and list basic 2D geometry/debug drawing nodes |
-| `get_audit_log` | Read godot-devtool project audit log entries |
-| `get_audit_replay` | Summarize godot-devtool audit log entries into replay steps, counters, and risk highlights |
-| `get_capabilities` | Return supported godot-devtool MCP tools, run modes, risk levels, bridge requirements, and input schemas |
-| `get_debug_output` | Get the current debug output and errors |
-| `get_editor_errors` | Exact-name compatibility route for get_editor_errors. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_editor_performance` | Exact-name compatibility route for get_editor_performance. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `get_godot_version` | Get the installed Godot version |
-| `get_performance_monitors` | Runtime WebSocket compatibility route. Executes get_performance_monitors through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `get_rollback_suggestions` | Return honest rollback guidance for an operation, audit entry, or changed paths |
-| `get_safety_policy` | Read the project-local godot-devtool safety policy and default enforcement state |
-| `launch_editor` | Launch Godot editor for a specific project |
-| `load_sprite` | Load a sprite into a Sprite2D node |
-| `monitor_properties` | Runtime WebSocket compatibility route. Executes monitor_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `move_to` | Runtime WebSocket compatibility route. Executes move_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `navigate_to` | Runtime WebSocket compatibility route. Executes navigate_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `preview_write_safety` | Preview safety policy and diff summary metadata for proposed writes or deletes |
-| `remove_state_machine_state` | Exact-name compatibility route for remove_state_machine_state. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `remove_state_machine_transition` | Exact-name compatibility route for remove_state_machine_transition. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `run_stress_test` | Exact-name compatibility route for run_stress_test. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_anchor_preset` | Exact-name compatibility route for set_anchor_preset. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `set_safety_policy` | Configure project write allowlists and blocked paths in .godot-devtool/safety.json |
-| `set_tree_parameter` | Exact-name compatibility route for set_tree_parameter. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
-| `setup_camera_3d` | Exact-name compatibility route for setup_camera_3d. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available. |
+| `add_gridmap` | 添加GridMap。 |
+| `add_mesh_instance` | 添加网格实例。 |
+| `add_raycast` | 添加RayCast。 |
+| `add_state_machine_state` | 添加状态机状态。 |
+| `add_state_machine_transition` | 添加状态机transition。 |
+| `batch_get_properties` | 批量获取属性。 |
+| `batch_set_property` | 批量设置属性。 |
+| `browser_visualizer_start` | 启动本地只读 Browser visualizer 仪表盘。 |
+| `browser_visualizer_status` | 读取 Browser visualizer URL、项目过滤器和已连接 bridge client。 |
+| `browser_visualizer_stop` | 停止本地 Browser visualizer HTTP 仪表盘。 |
+| `capture_frames` | 捕获帧。 |
+| `clear_debug_output` | 清理调试输出。 |
+| `click_button_by_text` | 执行click按钮by文本。 |
+| `create_gameplay_prototype` | 创建gameplayprototype。 |
+| `detect_circular_dependencies` | 检测循环依赖。 |
+| `generate_ci_snippet` | 生成 GitHub Actions 或 GitLab CI 片段。 |
+| `geometry` | 执行geometry。 |
+| `get_audit_log` | 获取审计日志。 |
+| `get_audit_replay` | 获取审计回放。 |
+| `get_capabilities` | 列出 MCP 工具能力、路由分组、传输方式和风险等级。 |
+| `get_debug_output` | 获取调试输出。 |
+| `get_editor_errors` | 获取编辑器错误。 |
+| `get_editor_performance` | 获取编辑器性能。 |
+| `get_godot_version` | 获取 Godot 可执行文件版本。 |
+| `get_performance_monitors` | 获取性能监视器。 |
+| `get_rollback_suggestions` | 获取回滚suggestions。 |
+| `get_safety_policy` | 获取安全策略。 |
+| `launch_editor` | 执行launch编辑器。 |
+| `load_sprite` | 执行loadsprite。 |
+| `monitor_properties` | 监控属性。 |
+| `move_to` | 移动to。 |
+| `navigate_to` | 导航导航to。 |
+| `preview_write_safety` | 预览write安全。 |
+| `remove_state_machine_state` | 移除状态机状态。 |
+| `remove_state_machine_transition` | 移除状态机transition。 |
+| `run_stress_test` | 运行压力test。 |
+| `set_anchor_preset` | 设置anchor预设。 |
+| `set_safety_policy` | 设置安全策略。 |
+| `set_tree_parameter` | 设置树参数。 |
+| `setup_camera_3d` | 配置摄像机3d。 |
 
+## 应该用哪种路由？
+
+- 默认使用 `native` 文件系统和项目分析工具。
+- 场景、节点、资源或脚本需要 Godot 解析时，使用 `headless_godot`。
+- 只有当前编辑器状态重要时，才使用 `editor_ws`。
+- 只有游戏正在运行，并且需要实时游戏状态、输入、截图或 QA 断言时，才使用 `runtime_ws`。
+- 不熟悉工作流前，先调用 `get_capabilities`。
+
+## 验证
+
+```bash
+npm.cmd run verify:all
+```
+
+针对连接中的 Godot 项目：
+
+```bash
+npm.cmd run verify:runtime
+npm.cmd run check:project -- "E:/test"
+```
+
+## 故障排查
+
+- 找不到 Godot：在 MCP client env 中设置 `GODOT_PATH`，然后调用 `get_godot_version`。
+- 编辑器路由超时：打开 Godot 项目并启用插件。
+- Runtime 路由超时：运行游戏，让 `DevtoolRuntime` autoload 连接。
+- Browser visualizer 页面没有 client：先启动 MCP server，再打开 Godot 编辑器或运行项目。
+- 端口冲突：修改 `GODOT_DEVTOOL_WS_PORT`，并用同一个 `websocketPort` 重新安装插件。
+- MCP client 无法启动 server：确认 `node` 可用，并且 `build/index.js` 存在。
+
+## Skill
+
+本包包含 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)，供 Codex、ChatGPT、Claude、Cursor、Gemini、Qwen、VS Code、Cline、Continue、Roo Code、LM Studio、Windsurf、Zed 等支持 MCP 的客户端读取。
+
+该 Skill 会提醒助手先检查项目状态、选择正确的 route group、只在需要实时 editor/runtime 状态时安装和使用 WebSocket 插件，并在结束前验证变更。

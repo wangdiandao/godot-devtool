@@ -1,8 +1,8 @@
 ﻿---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.5.2 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.6.0 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
 metadata:
-  version: "2.5.2"
+  version: "2.6.0"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill when an MCP client or connected AI assistant is working with a Godot 4 project through `godot-devtool`.
 
-Compatibility: `godot-devtool` 2.5.2.
+Compatibility: `godot-devtool` 2.6.0.
 
 ## Tool Coverage
 
@@ -62,7 +62,7 @@ Do not edit blindly. Read the relevant scene, node, script, resource, or runtime
 
 `get_capabilities` reports `routeGroup`, `transport`, `riskLevel`, `requiresEditor`, and `requiresRuntime`.
 
-- `core`: Godot version, run/stop project, debug output, tool discovery.
+- `core`: Godot version, run/stop project, debug output, tool discovery, Browser visualizer.
 - `project`: `project.godot`, InputMap, autoloads, project metadata.
 - `filesystem`: project-local list/read/write/delete preview.
 - `resource`: resource index, dependency graph, export presets, CI snippets.
@@ -99,6 +99,12 @@ Project > Project Settings > Plugins > godot-devtool
 For runtime routes, run the project so the `DevtoolRuntime` autoload can connect to the WebSocket bridge.
 
 ## Common Workflows
+
+### Use The Browser Visualizer
+
+Use `browser_visualizer_start` when a human wants to inspect bridge state in a browser.
+It serves a local read-only dashboard showing the WebSocket listener, connected editor/runtime clients, pending command count, and live-route hints.
+Use `browser_visualizer_status` to read the URL again, and `browser_visualizer_stop` when the dashboard is no longer needed.
 
 ### Inspect A Project
 

@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.0
+
+Browser visualizer release.
+
+- Added `browser_visualizer_start`, `browser_visualizer_status`, and `browser_visualizer_stop` tools for a local read-only HTTP dashboard.
+- The dashboard refreshes MCP WebSocket bridge state, connected editor/runtime clients, pending command count, and live-route guidance for screenshots, scene inspection, input, UI, and editor state.
+- Added Browser visualizer regression coverage and included it in `verify:all`.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, and verification metadata to `2.6.0`.
+
 ## Version 2.5.2
 
 Runtime handshake and validation project completion release.

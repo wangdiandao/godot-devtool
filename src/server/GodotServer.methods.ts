@@ -86,6 +86,7 @@ import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools
 import { GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from './packageMetadata.js';
+import { getBrowserVisualizer } from './transports/browserVisualizer.js';
 import { getWsBridge } from './transports/wsBridge.js';
 
 // Check if debug mode is enabled
@@ -765,6 +766,24 @@ class GodotServerMethodMixin {
     const error = receipt.error ? `: ${receipt.error}` : '';
     throw new Error(`${toolName} failed through the WebSocket bridge${error}`);
   }
+  private async handleBrowserVisualizerStart(args: any) {
+    args = this.normalizeParameters(args || {});
+    const result = await getBrowserVisualizer().start({
+      port: args.port,
+      projectPath: args.projectPath,
+    });
+    return this.createJsonResponse(result);
+  }
+  private handleBrowserVisualizerStatus(args: any) {
+    args = this.normalizeParameters(args || {});
+    void args;
+    return this.createJsonResponse(getBrowserVisualizer().status());
+  }
+  private async handleBrowserVisualizerStop(args: any) {
+    args = this.normalizeParameters(args || {});
+    void args;
+    return this.createJsonResponse(await getBrowserVisualizer().stop());
+  }
   private escapeRegExp(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   private getToolRiskLevel(toolName: string): string {
@@ -1287,6 +1306,7 @@ class GodotServerMethodMixin {
       this.activeProcess.process.kill();
       this.activeProcess = null;
     }
+    await getBrowserVisualizer().stop();
     await getWsBridge().stop();
     await this.server.close();
   }

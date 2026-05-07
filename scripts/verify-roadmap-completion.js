@@ -273,7 +273,7 @@ try {
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
   const latestReleaseZipVersion = releaseVersion;
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.5.2');
+  assert.equal(releaseVersion, '2.6.0');
   const capabilitiesResponse = server.handleGetCapabilities({});
   const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
   assert.equal(capabilities.version, releaseVersion);
@@ -294,6 +294,9 @@ try {
   const previewWriteSafetyTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'preview_write_safety');
   const auditReplayTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'get_audit_replay');
   const rollbackSuggestionsTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'get_rollback_suggestions');
+  const browserVisualizerStartTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'browser_visualizer_start');
+  const browserVisualizerStatusTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'browser_visualizer_status');
+  const browserVisualizerStopTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'browser_visualizer_stop');
   assert.ok(shaderTool);
   assert.ok(materialTool);
   assert.ok(animationTool);
@@ -307,6 +310,11 @@ try {
   assert.ok(previewWriteSafetyTool);
   assert.ok(auditReplayTool);
   assert.ok(rollbackSuggestionsTool);
+  assert.ok(browserVisualizerStartTool);
+  assert.ok(browserVisualizerStatusTool);
+  assert.ok(browserVisualizerStopTool);
+  assert.equal(browserVisualizerStartTool.transport, 'process_control');
+  assert.equal(browserVisualizerStartTool.routeGroup, 'core');
   for (const action of ['create', 'read', 'inspect', 'set_parameters']) {
     assert.ok(shaderTool.inputSchema.properties.action.enum.includes(action), `shader action missing: ${action}`);
   }
@@ -435,6 +443,10 @@ try {
   assert.match(readmeZh, /Expand-Archive/);
   assert.match(readme, /assert_node_state/);
   assert.match(readmeZh, /assert_node_state/);
+  assert.match(readme, /browser_visualizer_start/);
+  assert.match(readmeZh, /browser_visualizer_start/);
+  assert.match(readme, /Browser visualizer/);
+  assert.match(readmeZh, /Browser visualizer/);
   assert.match(readme, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /## 能做什么/);
@@ -455,11 +467,13 @@ try {
   assert.match(skillRaw, /runtime_ws/);
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:tools'], 'npm run build && node scripts/verify-tool-definitions.js');
+  assert.equal(packageJson.scripts['verify:visualizer'], 'npm run build && node scripts/verify-browser-visualizer.js');
   assert.equal(packageJson.scripts['verify:plugin'], 'npm run build && node scripts/verify-godot-plugin.js');
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node scripts/verify-godot-runtime.js');
-  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:plugin && npm run verify:roadmap');
+  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-plugin.js')));
+  assert.ok(existsSync(join(process.cwd(), 'scripts/verify-browser-visualizer.js')));
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
   assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-capabilities.js')), false);
   assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-plugin-router.js')), false);

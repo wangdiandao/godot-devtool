@@ -17,6 +17,9 @@ const PROCESS_TOOLS = new Set([
   'get_debug_output',
   'clear_debug_output',
   'get_godot_version',
+  'browser_visualizer_start',
+  'browser_visualizer_status',
+  'browser_visualizer_stop',
 ]);
 
 const EDITOR_WS_TOOLS = new Set([

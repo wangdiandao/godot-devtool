@@ -122,4 +122,40 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
       required: [],
     },
   },
+  {
+    name: 'browser_visualizer_start',
+    description: 'Start a local read-only browser dashboard for Godot editor/runtime bridge status and live-route guidance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        port: {
+          type: 'number',
+          description: 'Optional local HTTP port. Use 0 to choose an available port. Defaults to 8767.',
+        },
+        projectPath: {
+          type: 'string',
+          description: 'Optional Godot project path used to filter connected bridge clients.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'browser_visualizer_status',
+    description: 'Read the local Browser visualizer URL, project filter, and connected editor/runtime bridge clients',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'browser_visualizer_stop',
+    description: 'Stop the local Browser visualizer HTTP dashboard',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ];
