@@ -6,7 +6,7 @@
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
-English | [涓枃](README.zh-CN.md)
+English | [中文](README.zh-CN.md)
 
 `godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.6.0 adds a local Browser visualizer for WebSocket bridge status, connected editor/runtime clients, and live-route guidance.
 
