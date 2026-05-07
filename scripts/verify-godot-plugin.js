@@ -46,8 +46,8 @@ try {
   }
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, /PLUGIN_VERSION := "2\.5\.1"/, 'plugin.gd must report plugin version 2.5.1');
-  assert.match(pluginConfigSource, /version="2\.5\.1"/, 'plugin.cfg must report plugin version 2.5.1');
+  assert.match(pluginSource, /PLUGIN_VERSION := "2\.5\.2"/, 'plugin.gd must report plugin version 2.5.2');
+  assert.match(pluginConfigSource, /version="2\.5\.2"/, 'plugin.cfg must report plugin version 2.5.2');
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
   assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
@@ -76,6 +76,11 @@ try {
   assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
   assert.match(runtimeSource, /"type": "hello"/, 'runtime bridge must send a hello registration message');
   assert.match(runtimeSource, /"context": "runtime"/, 'runtime bridge must register with context runtime');
+  assert.match(runtimeSource, /CONFIG_PATH := "res:\/\/\.godot-devtool\/bridge-config\.json"/, 'runtime bridge must read the installed WebSocket bridge config');
+  assert.match(runtimeSource, /STATE_PATH := "res:\/\/\.godot-devtool\/runtime-state\.json"/, 'runtime bridge must write diagnostic runtime state');
+  assert.match(runtimeSource, /_load_config/, 'runtime bridge must load the active bridge URL instead of hard-coding the development port');
+  assert.match(runtimeSource, /_write_runtime_state/, 'runtime bridge must expose connection and handshake diagnostics while the game runs');
+  assert.match(runtimeSource, /helloAttempts/, 'runtime bridge state must include hello attempt diagnostics');
   assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
   assertNoUntypedInferenceHazards(sourceRoot);
 

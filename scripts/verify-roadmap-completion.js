@@ -273,7 +273,7 @@ try {
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
   const latestReleaseZipVersion = releaseVersion;
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.5.1');
+  assert.equal(releaseVersion, '2.5.2');
   const capabilitiesResponse = server.handleGetCapabilities({});
   const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
   assert.equal(capabilities.version, releaseVersion);

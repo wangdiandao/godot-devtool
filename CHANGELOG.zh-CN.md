@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.5.2
+
+运行时握手与验证项目完成版本。
+
+- 让 runtime autoload bridge 读取 `.godot-devtool/bridge-config.json`，跟随安装时写入的 MCP WebSocket URL，不再依赖硬编码开发端口。
+- 在 `.godot-devtool/runtime-state.json` 增加 runtime bridge 诊断状态，包含 socket 状态、hello ack、hello 尝试次数、bridge URL、session id 和最近连接错误。
+- 完成 `E:/test` 方块 survivor-like 验证项目，补齐升级选择、新攻击方式、投射物升级、重开流程、HUD 状态、导出 metadata 和 Windows 导出产物。
+- 增加回归验证，要求 runtime bridge 读取配置并暴露握手状态诊断。
+- 将 package、插件、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.5.2`。
+
 ## 2.5.1
 
 公开工具面清理版本。

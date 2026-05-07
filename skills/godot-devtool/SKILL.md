@@ -1,8 +1,8 @@
----
+﻿---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.5.1 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
+description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.5.2 MCP server for Godot 4 projects: inspect first, choose the right route group, use the WebSocket plugin only for live editor/runtime state, and verify changes."
 metadata:
-  version: "2.5.1"
+  version: "2.5.2"
   mcp_server: "godot-devtool"
 ---
 
@@ -10,7 +10,7 @@ metadata:
 
 Use this skill when an MCP client or connected AI assistant is working with a Godot 4 project through `godot-devtool`.
 
-Compatibility: `godot-devtool` 2.5.1.
+Compatibility: `godot-devtool` 2.5.2.
 
 ## Tool Coverage
 
@@ -171,3 +171,4 @@ npm.cmd run verify:all
 ```
 
 Summarize actual check results, including failures and skipped Godot-dependent checks.
+

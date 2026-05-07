@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.5.2
+
+Runtime handshake and validation project completion release.
+
+- Made the runtime autoload bridge read `.godot-devtool/bridge-config.json` so it follows the installed MCP WebSocket URL instead of relying on a hard-coded development port.
+- Added runtime bridge diagnostics in `.godot-devtool/runtime-state.json`, including socket state, hello acknowledgement, hello attempt count, bridge URL, session id, and last connection error.
+- Completed `E:/test` as a playable block-based survivor-like validation project with level-up choices, new attack modes, projectile upgrades, restart flow, HUD state, export metadata, and Windows export artifacts.
+- Added regression coverage requiring runtime bridge config loading and handshake-state diagnostics.
+- Synchronized package, plugin, README, changelog, roadmap, verification metadata, and release zip links to `2.5.2`.
+
 ## Version 2.5.1
 
 Public tool surface cleanup release.
