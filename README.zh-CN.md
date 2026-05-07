@@ -482,4 +482,6 @@ npm.cmd run check:project -- "E:/test"
 
 本包包含 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)，供 Codex、ChatGPT、Claude、Cursor、Gemini、Qwen、VS Code、Cline、Continue、Roo Code、LM Studio、Windsurf、Zed 等支持 MCP 的客户端读取。
 
-该 Skill 会提醒助手先检查项目状态、选择正确的 route group、只在需要实时 editor/runtime 状态时安装和使用 WebSocket 插件，并在结束前验证变更。
+在让 AI 操作 Godot 项目前，先把这个 `SKILL.md` 喂给 AI。支持文件上下文的客户端可以直接附加或引用该文件；不支持时，把文件内容粘贴到对话里，并要求 AI 按照它使用 `godot-devtool` MCP server。
+
+该 Skill 会把常见 Godot 操作对应到正确的 MCP 工具，提醒助手先检查项目状态，默认使用 stdio/headless 路由完成可重复编辑，只在需要实时 editor/runtime 状态时安装和使用 WebSocket 插件，并在结束前验证变更。

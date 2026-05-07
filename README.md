@@ -490,5 +490,7 @@ Agent operating guidance is bundled at:
 
 [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md)
 
-The skill teaches assistants to inspect project state first, choose the right route group, install/use the WebSocket plugin only when live editor or runtime state is required, and validate changes before finishing.
+Feed this `SKILL.md` to your AI assistant before asking it to operate on a Godot project. In clients that support file context, attach or reference the file directly; otherwise paste its contents into the chat and tell the AI to follow it when using the `godot-devtool` MCP server.
+
+The skill maps common Godot operations to the correct MCP tools, teaches assistants to inspect project state first, use stdio/headless routes for repeatable edits, install/use the WebSocket plugin only when live editor or runtime state is required, and validate changes before finishing.
 
