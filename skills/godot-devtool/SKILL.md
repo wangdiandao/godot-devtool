@@ -16,10 +16,10 @@ Compatibility: `godot-devtool` 2.6.0.
 
 This skill lists the recommended operating flow and common entry-point tools. It is not the full tool catalog.
 
-Use `get_capabilities` as the live source of truth for the server's complete tool list, schemas, route groups, transports, risk levels, and compatibility aliases. The generated README tool table is the packaged reference list:
+Use `get_capabilities` as the live source of truth for the server's complete tool list, schemas, route groups, transports, risk levels, and canonical routing metadata. The generated README tool table is the packaged reference list:
 
-- `README.md` -> generated `## All ... Tools` table
-- `README.zh-CN.md` -> generated localized full tool table
+- `README.md` -> generated `## All 220 Tools` table
+- `README.zh-CN.md` -> generated `## 全部 220 个工具` table
 
 Do not treat a tool as unsupported just because it is not named in this skill. Check `get_capabilities` or the README table first.
 
@@ -84,11 +84,7 @@ Install the Godot plugin only when live editor or runtime state is needed:
 - `plugin_status` to confirm installation and WebSocket connection state.
 - `plugin_reload` to ask the live plugin to reload.
 
-Compatibility names remain available:
-
-- `install_editor_bridge` -> `plugin_install`
-- `editor_bridge_status` -> `plugin_status`
-- `reload_plugin` -> `plugin_reload`
+Use the modern plugin tool names above. `reload_plugin` remains available as a compatibility route for `plugin_reload`; older editor-bridge install/status names are not part of the 2.6.0 public tool list.
 
 After `plugin_install`, enable the plugin in Godot:
 
@@ -116,7 +112,7 @@ Prefer structured scene/node tools over raw `.tscn` edits:
 
 - `create_scene`, `scene_open`, `get_scene_tree`, `save_scene`
 - `add_node`, `delete_node`, `rename_node`, `node_get`, `node_find`
-- `node_get_property`, `node_set_property`, `node_move`, `node_duplicate`
+- `get_node_properties`, `update_node_properties`, `node_move`, `node_duplicate`
 
 Save scenes when changes should persist.
 
@@ -172,6 +168,7 @@ For this MCP package itself, use:
 npm.cmd run build
 npm.cmd run verify:tools
 npm.cmd run verify:gdscripts
+npm.cmd run verify:visualizer
 npm.cmd run verify:plugin
 npm.cmd run verify:all
 ```

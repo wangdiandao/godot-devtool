@@ -465,6 +465,17 @@ try {
   assert.match(skillRaw, /"mcpServers"/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
+  assert.match(skillRaw, /All 220 Tools/);
+  assert.match(skillRaw, /全部 220 个工具/);
+  assert.match(skillRaw, /browser_visualizer_start/);
+  assert.match(skillRaw, /get_node_properties/);
+  assert.match(skillRaw, /update_node_properties/);
+  assert.match(skillRaw, /verify:visualizer/);
+  assert.doesNotMatch(skillRaw, /compatibility aliases/);
+  assert.doesNotMatch(skillRaw, /install_editor_bridge/);
+  assert.doesNotMatch(skillRaw, /editor_bridge_status/);
+  assert.doesNotMatch(skillRaw, /node_get_property/);
+  assert.doesNotMatch(skillRaw, /node_set_property/);
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['verify:tools'], 'npm run build && node scripts/verify-tool-definitions.js');
   assert.equal(packageJson.scripts['verify:visualizer'], 'npm run build && node scripts/verify-browser-visualizer.js');
