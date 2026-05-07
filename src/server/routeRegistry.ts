@@ -13,20 +13,14 @@ export interface RouteMetadata {
 const PROCESS_TOOLS = new Set([
   'launch_editor',
   'run_project',
-  'play_scene',
   'stop_project',
-  'stop_scene',
   'get_debug_output',
   'clear_debug_output',
-  'clear_output',
-  'get_output_log',
   'get_godot_version',
 ]);
 
 const EDITOR_WS_TOOLS = new Set([
   'plugin_reload',
-  'install_editor_bridge',
-  'editor_bridge_status',
   'editor_get_selection',
   'editor_select_node',
   'editor_undo_redo',
@@ -86,7 +80,7 @@ export function routeMetadataForTool(toolName: string): RouteMetadata {
 }
 
 function inferTransport(toolName: string, routeGroup: string): ToolTransport {
-  if (toolName === 'plugin_install' || toolName === 'plugin_status' || toolName === 'install_editor_bridge' || toolName === 'editor_bridge_status') return 'native';
+  if (toolName === 'plugin_install' || toolName === 'plugin_status') return 'native';
   if (RUNTIME_WS_TOOLS.has(toolName)) return 'runtime_ws';
   if (EDITOR_WS_TOOLS.has(toolName)) return 'editor_ws';
   if (PROCESS_TOOLS.has(toolName)) return 'process_control';
@@ -104,7 +98,7 @@ function inferRiskLevel(toolName: string, configured?: string): RouteMetadata['r
 
 function inferRouteGroup(canonical: string, toolName: string): string {
   const name = canonical === 'compatibility_native' ? toolName : canonical;
-  if (name.startsWith('plugin_') || name.startsWith('editor_') || name === 'install_editor_bridge' || name === 'reload_plugin') return 'editor';
+  if (name.startsWith('plugin_') || name.startsWith('editor_') || name === 'reload_plugin') return 'editor';
   if (name.includes('runtime') || name.includes('game_') || name.startsWith('simulate_') || name.includes('screenshot') || name.includes('recording') || name.includes('test_') || name.startsWith('assert_')) return 'runtime';
   if (name.includes('project') || name.includes('autoload') || name.includes('input_action')) return 'project';
   if (name.includes('filesystem') || name.includes('file') || name.includes('search')) return 'filesystem';

@@ -110,14 +110,10 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'get_capabilities',
-    description: 'Return supported godot-devtool MCP tools, compatibility aliases, run modes, risk levels, and input schemas',
+    description: 'Return supported godot-devtool MCP tools, run modes, risk levels, bridge requirements, and input schemas',
     inputSchema: {
       type: 'object',
       properties: {
-        includeAliases: {
-          type: 'boolean',
-          description: 'Include compatibility alias entries. Defaults to true.',
-        },
         includeSchemas: {
           type: 'boolean',
           description: 'Include input schemas for tools. Defaults to true.',

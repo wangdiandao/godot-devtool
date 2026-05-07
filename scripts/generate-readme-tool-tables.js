@@ -260,10 +260,8 @@ function translateName(name) {
 function translateDescription(tool) {
   if (EXACT_ZH[tool.name]) return EXACT_ZH[tool.name];
   const description = String(tool.description || '');
-  const alias = description.match(/^Compatibility alias for ([^.]+)\./);
-  if (alias) return `兼容别名，等同于 \`${alias[1]}\`。`;
   const wrapper = description.match(/^Executable compatibility wrapper for ([^.]+)\./);
-  if (wrapper) return `可执行兼容封装，转接到 \`${wrapper[1]}\` 路由并返回完成回执。`;
+  if (wrapper) return `使用 \`${wrapper[1]}\` 实现执行同名 Godot 工作流，并返回结构化结果。`;
   const verb = TOKEN_ZH[tool.name.split('_')[0]] || '执行';
   return `${verb}${translateName(tool.name)}。`;
 }

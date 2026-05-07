@@ -70,34 +70,6 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     },
   },
   {
-    name: 'install_editor_bridge',
-    canonicalName: 'plugin_install',
-    description: 'Compatibility alias for plugin_install. Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        overwrite: { type: 'boolean', description: 'Overwrite existing bridge plugin files' },
-        mode: { type: 'string', enum: ['websocket'], description: 'Bridge mode. v2 only supports websocket.' },
-        httpPort: { type: 'number', description: 'HTTP bridge port when mode is http. Defaults to 8765.' },
-        websocketPort: { type: 'number', description: 'WebSocket bridge port when mode is websocket. Defaults to 8766.' },
-      },
-      required: ['projectPath'],
-    },
-  },
-  {
-    name: 'editor_bridge_status',
-    canonicalName: 'plugin_status',
-    description: 'Compatibility alias for plugin_status. Read live editor bridge installation and WebSocket connection status',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-      },
-      required: ['projectPath'],
-    },
-  },
-  {
     name: 'editor_get_selection',
     description: 'Return the current editor selection when a live editor bridge is available',
     inputSchema: {

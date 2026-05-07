@@ -36,6 +36,18 @@ if (duplicateNames.length > 0) {
 }
 
 const toolsByName = new Map(GODOT_TOOL_DEFINITIONS.map((tool) => [tool.name, tool]));
+if (Object.keys(GODOT_TOOL_ALIASES).length !== 0) {
+  console.error(`Pure compatibility aliases must not be published in 2.5.0+: ${Object.keys(GODOT_TOOL_ALIASES).join(', ')}`);
+  process.exit(1);
+}
+const compatibilityAliasDescriptions = GODOT_TOOL_DEFINITIONS.filter((tool) =>
+  /^Compatibility alias for\b/.test(String(tool.description || '')) ||
+  /^Compatibility alias\b/.test(String(tool.description || ''))
+);
+if (compatibilityAliasDescriptions.length > 0) {
+  console.error(`Compatibility alias tool definitions remain: ${compatibilityAliasDescriptions.map((tool) => tool.name).join(', ')}`);
+  process.exit(1);
+}
 for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload']) {
   if (!toolsByName.has(requiredName)) {
     console.error(`Missing v2 plugin tool: ${requiredName}`);
@@ -71,28 +83,9 @@ if (pluginInstall.transport !== 'native' || pluginInstall.routeGroup !== 'editor
   process.exit(1);
 }
 
-const editorStatus = toolsByName.get('editor_bridge_status');
-if (!editorStatus || (editorStatus.canonicalName ?? 'plugin_status') !== 'plugin_status') {
-  console.error('editor_bridge_status compatibility tool must resolve to plugin_status');
-  process.exit(1);
-}
-
 const requiredCompatibilityTools17 = [
-  'get_project_settings',
-  'set_project_setting',
-  'open_scene',
-  'play_scene',
-  'stop_scene',
-  'duplicate_node',
-  'move_node',
-  'update_property',
   'connect_signal',
   'disconnect_signal',
-  'list_scripts',
-  'read_script',
-  'create_script',
-  'attach_script',
-  'validate_script',
   'get_input_actions',
   'set_input_action',
   'list_animations',
@@ -104,9 +97,6 @@ const requiredCompatibilityTools17 = [
   'assign_shader_material',
   'set_shader_param',
   'get_shader_params',
-  'list_export_presets',
-  'read_resource',
-  'create_resource',
   'setup_lighting',
   'create_particles',
   'setup_navigation_region',
@@ -117,7 +107,6 @@ const requiredCompatibilityTools17 = [
   'get_filesystem_tree',
   'search_files',
   'uid_to_project_path',
-  'project_path_to_uid',
   'get_scene_file_content',
   'delete_scene',
   'add_scene_instance',
@@ -133,11 +122,9 @@ const requiredCompatibilityTools17 = [
   'get_editor_screenshot',
   'get_game_screenshot',
   'execute_editor_script',
-  'clear_output',
   'get_signals',
   'reload_plugin',
   'reload_project',
-  'get_output_log',
   'simulate_key',
   'simulate_mouse_click',
   'simulate_mouse_move',

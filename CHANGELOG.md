@@ -4,6 +4,17 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.5.1
+
+Public tool surface cleanup release.
+
+- Removed pure legacy compatibility aliases from the published MCP tool list and tool-call dispatch path.
+- Reduced the public tool catalog from 249 tools plus 28 aliases to 217 canonical and explicitly implemented tools with 0 aliases.
+- Updated `get_capabilities` so it reports the modern tool surface without `aliasCount` or `aliases` payloads.
+- Expanded the English and Chinese README capability guide with concrete project, scene, script, filesystem, resource, visual, editor, and runtime workflows.
+- Regenerated README tool tables so compatibility wrappers describe the implemented workflow instead of advertising "transfer" or alias-style wording.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.5.1`.
+
 ## Version 2.5.0
 
 MCP validation hardening release.

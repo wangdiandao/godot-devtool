@@ -83,7 +83,7 @@ import {
 } from '../godot/safetyRecovery.js';
 import { getOperationsScriptPath } from '../godot/paths.js';
 import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
-import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
+import { GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from './packageMetadata.js';
 import { getWsBridge } from './transports/wsBridge.js';
@@ -737,7 +737,7 @@ class GodotServerMethodMixin {
   private async queueRuntimeCompatibilityCommand(toolName: string, args: any) {
     const status = await readRuntimeBridgeStatus(args.projectPath);
     if (!status.installed) {
-      throw new Error('Runtime bridge is not installed. Run install_editor_bridge with overwrite=true, then start the Godot project so the DevtoolRuntime autoload can process commands.');
+      throw new Error('Runtime bridge is not installed. Run plugin_install with overwrite=true, then start the Godot project so the DevtoolRuntime autoload can process commands.');
     }
     if (status.stale) {
       throw new Error(`Runtime bridge is not active. State path ${status.statePath} is ${status.ageMs === null ? 'missing' : `${status.ageMs}ms old`}; start or focus the running Godot project and retry.`);
@@ -812,7 +812,6 @@ class GodotServerMethodMixin {
         'load_sprite',
         'project_set_setting',
         'project_input_action',
-        'install_editor_bridge',
         'editor_inspector_set_properties',
       ].includes(toolName)
     ) {
@@ -844,8 +843,6 @@ class GodotServerMethodMixin {
         'editor_get_selection',
         'editor_select_node',
         'editor_undo_redo',
-        'editor_bridge_status',
-        'install_editor_bridge',
         'editor_inspector_get_properties',
         'editor_inspector_set_properties',
       ].includes(toolName)
@@ -1567,8 +1564,8 @@ class GodotServerMethodMixin {
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const requestedToolName = request.params.name;
-      const toolName = GODOT_TOOL_ALIASES[requestedToolName] ?? requestedToolName;
-      this.logDebug(`Handling tool request: ${requestedToolName} as ${toolName}`);
+      const toolName = requestedToolName;
+      this.logDebug(`Handling tool request: ${toolName}`);
 
       const handler = toolHandlers[toolName];
       if (!handler) {
@@ -1663,12 +1660,9 @@ class GodotServerMethodMixin {
    */
   private handleGetCapabilities(args: any) {
     args = this.normalizeParameters(args || {});
-    const includeAliases = args.includeAliases !== false;
     const includeSchemas = args.includeSchemas !== false;
-    const aliasNames = new Set(Object.keys(GODOT_TOOL_ALIASES));
-    const canonicalTools = GODOT_TOOL_DEFINITIONS.filter((tool) => !aliasNames.has(tool.name));
 
-    const tools = canonicalTools.map((tool) => {
+    const tools = GODOT_TOOL_DEFINITIONS.map((tool) => {
       const entry: any = {
         name: tool.name,
         description: tool.description,
@@ -1696,21 +1690,8 @@ class GodotServerMethodMixin {
       godotPathGuidance: godotPathGuidance(),
       strictPathValidation: this.strictPathValidation,
       toolCount: tools.length,
-      aliasCount: Object.keys(GODOT_TOOL_ALIASES).length,
       tools,
     };
-
-    if (includeAliases) {
-      result.aliases = Object.entries(GODOT_TOOL_ALIASES).map(([aliasName, canonicalName]) => ({
-        name: aliasName,
-        canonicalName,
-        runMode: GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.transport ?? this.getToolRunMode(canonicalName),
-        riskLevel: GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.riskLevel ?? this.getToolRiskLevel(canonicalName),
-        inputSchema: includeSchemas
-          ? GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === canonicalName)?.inputSchema
-          : undefined,
-      }));
-    }
 
     return this.createJsonResponse(result);
   }

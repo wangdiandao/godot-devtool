@@ -69,7 +69,38 @@ function compatibilityDescription(route: (typeof COMPATIBILITY_TOOL_ROUTES)[stri
     return `Runtime WebSocket compatibility route. Executes ${route.toolName} through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected.`;
   }
   if (route.implementationStatus === 'canonical_route') {
-    return `Executable compatibility wrapper for ${route.canonicalTool}. Routes exact-name client calls through the canonical godot-devtool implementation.`;
+    return `${humanizeCompatibilityToolName(route.toolName)} using the ${route.canonicalTool} implementation.`;
   }
   return `Exact-name compatibility route for ${route.toolName}. Uses native, headless Godot, editor bridge, or runtime bridge support when that execution path is available.`;
+}
+
+function humanizeCompatibilityToolName(toolName: string): string {
+  const words = toolName.split('_').filter(Boolean);
+  if (words.length === 0) return 'Run the requested Godot workflow';
+
+  const verbMap: Record<string, string> = {
+    add: 'Add',
+    assign: 'Assign',
+    bake: 'Bake',
+    connect: 'Connect',
+    create: 'Create',
+    delete: 'Delete',
+    disconnect: 'Disconnect',
+    edit: 'Edit',
+    find: 'Find',
+    get: 'Get',
+    list: 'List',
+    read: 'Read',
+    remove: 'Remove',
+    set: 'Set',
+    setup: 'Set up',
+    tilemap: 'Update',
+  };
+  const subject = words
+    .slice(1)
+    .map((word) => (word === 'ui' ? 'UI' : word))
+    .join(' ')
+    .trim();
+  const verb = verbMap[words[0]] ?? 'Run';
+  return subject ? `${verb} ${subject}` : `${verb} Godot workflow`;
 }

@@ -145,7 +145,7 @@ export async function installEditorBridge(
   const changedFiles: string[] = [];
   const skippedFiles: string[] = [];
   const diffSummary = await buildDiffSummary(projectPath, {
-    operation: 'install_editor_bridge',
+    operation: 'plugin_install',
     riskLevel: 'write',
     changes: Object.entries(files).map(([relativePath, content]) => ({
       path: relativePath,
@@ -154,7 +154,7 @@ export async function installEditorBridge(
     })),
   });
   const safety = await assertWriteAllowed(projectPath, {
-    operation: 'install_editor_bridge',
+    operation: 'plugin_install',
     riskLevel: 'write',
     paths: Object.keys(files),
   });

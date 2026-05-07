@@ -15,38 +15,6 @@ export const NODE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     },
   },
   {
-    name: 'node_get_property',
-    description: 'Compatibility alias for reading selected node properties',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scenePath: { type: 'string', description: 'Project-relative scene path' },
-        nodePath: { type: 'string', description: 'Path to the target node' },
-        propertyNames: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional property names to read',
-        },
-      },
-      required: ['projectPath', 'scenePath', 'nodePath'],
-    },
-  },
-  {
-    name: 'node_set_property',
-    description: 'Compatibility alias for updating node properties',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        projectPath: { type: 'string', description: 'Path to the Godot project directory' },
-        scenePath: { type: 'string', description: 'Project-relative scene path' },
-        nodePath: { type: 'string', description: 'Path to the target node' },
-        properties: { type: 'object', description: 'Properties to update' },
-      },
-      required: ['projectPath', 'scenePath', 'nodePath', 'properties'],
-    },
-  },
-  {
     name: 'node_move',
     description: 'Move a node by setting its position in a Godot scene',
     inputSchema: {

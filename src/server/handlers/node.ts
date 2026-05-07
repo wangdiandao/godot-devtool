@@ -3,8 +3,6 @@ import type { ToolHandlerHost, ToolHandlerMap } from './types.js';
 export function createNodeToolHandlers(host: ToolHandlerHost): ToolHandlerMap {
   return {
     node_get: (args) => host.handleNodeGet(args),
-    node_get_property: (args) => host.handleGetNodeProperties(args),
-    node_set_property: (args) => host.handleUpdateNodeProperties(args),
     node_move: (args) => host.handleNodeMove(args),
     node_duplicate: (args) => host.handleNodeDuplicate(args),
     node_find: (args) => host.handleNodeFind(args),

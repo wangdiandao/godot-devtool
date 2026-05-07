@@ -8,28 +8,6 @@ export type CompatibilityToolRoute = {
   implementationStatus?: 'canonical_route' | 'runtime_bridge' | 'native_or_bridge';
 };
 
-export const DIRECT_COMPATIBILITY_ALIASES: Record<string, string> = {
-  get_project_settings: 'project_get_settings',
-  set_project_setting: 'project_set_setting',
-  open_scene: 'scene_open',
-  play_scene: 'run_project',
-  stop_scene: 'stop_project',
-  duplicate_node: 'node_duplicate',
-  move_node: 'node_move',
-  update_property: 'node_set_property',
-  list_scripts: 'get_script_index',
-  read_script: 'read_script_file',
-  create_script: 'script_create',
-  attach_script: 'script_attach',
-  validate_script: 'check_gdscript_syntax',
-  list_export_presets: 'get_export_presets',
-  read_resource: 'resource_load',
-  create_resource: 'resource_create',
-  clear_output: 'clear_debug_output',
-  get_output_log: 'get_debug_output',
-  project_path_to_uid: 'get_uid',
-};
-
 const ROUTED_COMPATIBILITY_TOOLS: CompatibilityToolRoute[] = [
   { toolName: 'connect_signal', canonicalTool: 'signal', fixedArgs: { action: 'connect' } },
   { toolName: 'disconnect_signal', canonicalTool: 'signal', fixedArgs: { action: 'disconnect' } },
@@ -166,6 +144,5 @@ export const COMPATIBILITY_TOOL_ROUTES: Record<string, CompatibilityToolRoute> =
 );
 
 export const REQUIRED_COMPATIBILITY_TOOL_NAMES_17 = [
-  ...Object.keys(DIRECT_COMPATIBILITY_ALIASES),
   ...Object.keys(COMPATIBILITY_TOOL_ROUTES),
 ];

@@ -72,9 +72,6 @@ import {
   writeSafetyPolicy,
 } from '../godot/safetyRecovery.js';
 import { getOperationsScriptPath } from '../godot/paths.js';
-import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../tools/compatibilityTools.js';
-import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../tools/toolDefinitions.js';
-import { createToolHandlers, createUnknownToolError } from './handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION } from './packageMetadata.js';
 import { getWsBridge } from './transports/wsBridge.js';
 import { registerGodotServerMethods } from './GodotServer.methods.js';

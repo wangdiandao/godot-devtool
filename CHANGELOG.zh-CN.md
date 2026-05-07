@@ -4,6 +4,17 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.5.1
+
+公开工具面清理版本。
+
+- 从已发布 MCP 工具列表和工具调用分发路径中移除纯旧版兼容别名。
+- 将公开工具目录从 249 个工具加 28 个别名收敛为 217 个 canonical 或明确实现的工具，别名数为 0。
+- 更新 `get_capabilities`，不再返回 `aliasCount` 或 `aliases` payload。
+- 扩写英文和中文 README 的能力说明，具体覆盖项目、场景、脚本、文件系统、资源、视觉、编辑器和 runtime 工作流。
+- 重新生成 README 工具表，让兼容封装描述实际执行的工作流，不再宣传“转接”或别名式文案。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.5.1`。
+
 ## 2.5.0
 
 MCP 验证加固版本。

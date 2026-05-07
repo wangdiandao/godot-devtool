@@ -1,14 +1,14 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.5.1-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 
 [English](README.md) | 中文
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.3 版本继续采用 stdio/headless MCP server + 可选 localhost WebSocket bridge 架构，并把 README 扩展为更实用的安装和功能指南。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.5.1 从公开工具面移除旧兼容别名，扩写 README 能力说明，并保留 2.5.x 的 bridge 加固。
 
 ## 架构
 
@@ -38,12 +38,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.5.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.0/godot-devtool-build-2.5.0.zip)
+   [godot-devtool-build-2.5.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.5.1/godot-devtool-build-2.5.1.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.5.0.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.5.1.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
@@ -132,12 +132,6 @@ autoload/DevtoolRuntime = *res://addons/godot_devtool/runtime_bridge.gd
 
 使用 `runtime_ws` 工具前，需要先从 Godot 运行项目。编辑器插件在编辑器打开时连接；runtime bridge 在游戏运行时连接。
 
-兼容名称仍然可用：
-
-- `install_editor_bridge` -> `plugin_install`
-- `editor_bridge_status` -> `plugin_status`
-- `reload_plugin` -> `plugin_reload`
-
 ## 让 AI 协助安装
 
 把 MCP server 加入客户端后，可以直接把这段提示词发给 AI：
@@ -178,25 +172,28 @@ Do not edit unrelated files.
 
 ## 能做什么
 
-请把 `get_capabilities` 当作真实能力来源。每个工具都会返回 `routeGroup`、`transport`、`riskLevel`、`requiresEditor`、`requiresRuntime` 和 `canonicalName`。
+请把 `get_capabilities` 当作真实能力来源。每个工具都会返回 `routeGroup`、`transport`、`riskLevel`、`requiresEditor`、`requiresRuntime`；当某个工具复用共享能力实现时，也会返回 `canonicalName`。
 
-功能展示仅在呈现方式上参考公开的 [godot-mcp-pro README](https://github.com/youichi-uda/godot-mcp-pro/tree/master)：按表格展示功能分类，并让每个分类与说明一一对应。
+项目工具可以检查 `project.godot`、列出项目、读取和修改项目设置、用 Godot 原生格式配置 InputMap、运行/停止项目、按 export preset 导出、更新 Godot 4.4+ UID，并执行适合 CI、审查和发布流程的项目检查。场景和节点工具可以创建/打开/保存场景，读取场景树，添加、删除、重命名、复制和移动节点，用结构化 Variant 写入属性，管理节点分组，检查依赖，并执行跨场景属性修改。
 
-## 全部 249 个工具
+脚本、文件系统和资源工具可以索引 GDScript、读写脚本、创建并挂载脚本、运行语法检查、读写/列出/搜索/删除项目文件、加载和保存资源、生成依赖图、检查导出预设，并预览资源内容。视觉工作流覆盖 shader、material、particle、UI theme/template、physics body、collision layer、navigation region/agent/mesh、lighting/environment、TileMap、animation track/keyframe 和 AnimationTree 状态机。
 
-### 项目工具 (23)
+编辑器工具负责安装和检查内置 `godot-devtool` 插件，通过 WebSocket bridge 重载插件，读取实时编辑器选择，选择节点，执行 UndoRedo，并读写 Inspector 属性。Runtime 工具在游戏运行时工作：可以读取实时场景树和节点属性、写入运行时属性、截图/录帧、模拟输入 action、检查 UI 文本和按钮、等待节点、驱动导航、监控属性、录制/回放交互，并执行 QA 断言和压力检查。
+
+下面的工具表由实际工具定义生成，用来保证 README 与 MCP server 保持一致。
+
+## 全部 217 个工具
+
+### 项目工具 (18)
 | 工具 | 描述 |
 |------|-------------|
 | `add_autoload` | 添加自动加载。 |
 | `export_project` | 导出项目。 |
 | `get_autoload` | 获取自动加载。 |
-| `get_input_actions` | 可执行兼容封装，转接到 `project_input_action` 路由并返回完成回执。 |
+| `get_input_actions` | 获取输入操作。 |
 | `get_project_info` | 获取项目元数据、版本、视口和 autoload 信息。 |
-| `get_project_settings` | 兼容别名，等同于 `project_get_settings`。 |
-| `get_project_statistics` | 可执行兼容封装，转接到 `get_project_info` 路由并返回完成回执。 |
+| `get_project_statistics` | 获取项目统计。 |
 | `list_projects` | 列出项目。 |
-| `play_scene` | 兼容别名，等同于 `run_project`。 |
-| `project_get_info` | 兼容别名，等同于 `get_project_info`。 |
 | `project_get_settings` | 读取 project.godot 设置。 |
 | `project_input_action` | 列出或更新项目 InputMap 操作。 |
 | `project_set_setting` | 更新 project.godot 设置，并提供 dry-run 预览和审计记录。 |
@@ -204,171 +201,145 @@ Do not edit unrelated files.
 | `remove_autoload` | 移除自动加载。 |
 | `run_project` | 运行项目。 |
 | `run_project_checks` | 运行稳定的项目检查，用于 CI、评审和发布流程。 |
-| `set_input_action` | 可执行兼容封装，转接到 `project_input_action` 路由并返回完成回执。 |
-| `set_project_setting` | 兼容别名，等同于 `project_set_setting`。 |
+| `set_input_action` | 设置输入操作。 |
 | `stop_project` | 停止项目。 |
-| `stop_scene` | 兼容别名，等同于 `stop_project`。 |
 | `uid_to_project_path` | UIDUIDto项目路径。 |
 | `update_project_uids` | 更新项目UID。 |
 
-### 场景工具 (55)
+### 场景工具 (51)
 | 工具 | 描述 |
 |------|-------------|
-| `add_animation_track` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `add_animation_track` | 添加动画track。 |
 | `add_audio_bus` | 添加音频总线。 |
 | `add_audio_bus_effect` | 添加音频总线效果。 |
-| `add_audio_player` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
+| `add_audio_player` | 添加音频player。 |
 | `add_scene_instance` | 添加场景实例。 |
 | `analyze_scene_complexity` | 分析场景complexity。 |
 | `analyze_signal_flow` | 分析信号flow。 |
 | `animation` | 动画动画。 |
 | `animation_state_machine` | 动画动画状态机。 |
 | `audio` | 音频音频。 |
-| `bake_navigation_mesh` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
-| `connect_signal` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
-| `create_animation` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
-| `create_animation_tree` | 可执行兼容封装，转接到 `animation_state_machine` 路由并返回完成回执。 |
+| `bake_navigation_mesh` | 烘焙导航网格。 |
+| `connect_signal` | 连接信号。 |
+| `create_animation` | 创建动画。 |
+| `create_animation_tree` | 创建动画树。 |
 | `create_scene` | 创建新的 Godot 场景文件。 |
 | `cross_scene_set_property` | 跨场景场景设置属性。 |
-| `disconnect_signal` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
+| `disconnect_signal` | 断开信号。 |
 | `find_signal_connections` | 查找信号connections。 |
-| `get_animation_info` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `get_animation_info` | 获取动画信息。 |
 | `get_animation_tree_structure` | 获取动画树structure。 |
-| `get_audio_bus_layout` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
-| `get_audio_info` | 可执行兼容封装，转接到 `audio` 路由并返回完成回执。 |
-| `get_collision_info` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
-| `get_navigation_info` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
+| `get_audio_bus_layout` | 获取音频总线布局。 |
+| `get_audio_info` | 获取音频信息。 |
+| `get_collision_info` | 获取碰撞信息。 |
+| `get_navigation_info` | 获取导航信息。 |
 | `get_physics_layers` | 获取物理层。 |
 | `get_scene_dependencies` | 获取场景依赖。 |
 | `get_scene_tree` | 获取场景树结构。 |
-| `get_signals` | 可执行兼容封装，转接到 `signal` 路由并返回完成回执。 |
-| `list_animations` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `get_signals` | 获取信号。 |
+| `list_animations` | 列出动画。 |
 | `navigation` | 导航导航。 |
-| `open_scene` | 兼容别名，等同于 `scene_open`。 |
 | `physics` | 物理物理。 |
-| `remove_animation` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `remove_animation` | 移除动画。 |
 | `save_scene` | 保存场景到磁盘。 |
-| `scene_create` | 兼容别名，等同于 `create_scene`。 |
 | `scene_get_current` | 场景场景获取当前。 |
-| `scene_get_tree` | 兼容别名，等同于 `get_scene_tree`。 |
 | `scene_open` | 场景场景打开。 |
-| `scene_save` | 兼容别名，等同于 `save_scene`。 |
-| `set_animation_keyframe` | 可执行兼容封装，转接到 `animation` 路由并返回完成回执。 |
+| `set_animation_keyframe` | 设置动画keyframe。 |
 | `set_audio_bus` | 设置音频总线。 |
 | `set_navigation_layers` | 设置导航层。 |
-| `set_physics_layers` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
-| `setup_collision` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
-| `setup_navigation_agent` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
-| `setup_navigation_region` | 可执行兼容封装，转接到 `navigation` 路由并返回完成回执。 |
-| `setup_physics_body` | 可执行兼容封装，转接到 `physics` 路由并返回完成回执。 |
+| `set_physics_layers` | 设置物理层。 |
+| `setup_collision` | 配置碰撞。 |
+| `setup_navigation_agent` | 配置导航agent。 |
+| `setup_navigation_region` | 配置导航region。 |
+| `setup_physics_body` | 配置物理body。 |
 | `signal` | 信号信号。 |
 | `tilemap` | TileMapTileMap。 |
 | `tilemap_clear` | TileMapTileMap清理。 |
-| `tilemap_fill_rect` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+| `tilemap_fill_rect` | TileMapTileMapfillrect。 |
 | `tilemap_get_cell` | TileMapTileMap获取cell。 |
-| `tilemap_get_info` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+| `tilemap_get_info` | TileMapTileMap获取信息。 |
 | `tilemap_get_used_cells` | TileMapTileMap获取usedcells。 |
-| `tilemap_set_cell` | 可执行兼容封装，转接到 `tilemap` 路由并返回完成回执。 |
+| `tilemap_set_cell` | TileMapTileMap设置cell。 |
 
-### 节点工具 (26)
+### 节点工具 (18)
 | 工具 | 描述 |
 |------|-------------|
 | `add_node` | 添加节点。 |
 | `delete_node` | 删除节点。 |
-| `duplicate_node` | 兼容别名，等同于 `node_duplicate`。 |
 | `find_nearby_nodes` | 查找附近节点。 |
 | `find_node_references` | 查找节点引用。 |
-| `find_nodes_by_type` | 可执行兼容封装，转接到 `node_find` 路由并返回完成回执。 |
+| `find_nodes_by_type` | 查找节点by类型。 |
 | `find_nodes_in_group` | 查找节点in分组。 |
 | `get_node_groups` | 获取节点分组。 |
 | `get_node_properties` | 获取节点属性。 |
 | `group` | 分组分组。 |
-| `move_node` | 兼容别名，等同于 `node_move`。 |
-| `node_add` | 兼容别名，等同于 `add_node`。 |
-| `node_delete` | 兼容别名，等同于 `delete_node`。 |
 | `node_duplicate` | 节点节点复制。 |
 | `node_find` | 节点节点查找。 |
 | `node_get` | 节点节点获取。 |
-| `node_get_property` | 节点节点获取属性。 |
 | `node_move` | 节点节点移动。 |
-| `node_rename` | 兼容别名，等同于 `rename_node`。 |
-| `node_set_property` | 节点节点设置属性。 |
 | `rename_node` | 重命名节点。 |
 | `set_blend_tree_node` | 设置混合树节点。 |
 | `set_node_groups` | 设置节点分组。 |
 | `update_node_properties` | 更新节点属性。 |
-| `update_property` | 兼容别名，等同于 `node_set_property`。 |
 | `wait_for_node` | 等待等待for节点。 |
 
-### 脚本工具 (15)
+### 脚本工具 (11)
 | 工具 | 描述 |
 |------|-------------|
 | `analyze_script_references` | 分析脚本引用。 |
-| `attach_script` | 兼容别名，等同于 `script_attach`。 |
 | `check_gdscript_syntax` | 执行checkgdscript语法。 |
-| `create_script` | 兼容别名，等同于 `script_create`。 |
-| `edit_script` | 可执行兼容封装，转接到 `script_write` 路由并返回完成回执。 |
+| `edit_script` | 编辑脚本。 |
 | `execute_editor_script` | 执行编辑器脚本。 |
 | `find_nodes_by_script` | 查找节点by脚本。 |
 | `find_script_references` | 查找脚本引用。 |
 | `get_open_scripts` | 获取打开脚本。 |
 | `get_script_index` | 列出 GDScript 文件及类、基类、导出变量和函数信息。 |
-| `list_scripts` | 兼容别名，等同于 `get_script_index`。 |
 | `script_attach` | 脚本脚本挂载。 |
 | `script_create` | 脚本脚本创建。 |
 | `script_write` | 脚本脚本write。 |
-| `validate_script` | 兼容别名，等同于 `check_gdscript_syntax`。 |
 
-### 编辑器工具 (11)
+### 编辑器工具 (9)
 | 工具 | 描述 |
 |------|-------------|
-| `editor_bridge_status` | 兼容别名，等同于 `plugin_status`。 |
 | `editor_get_selection` | 编辑器编辑器获取selection。 |
 | `editor_inspector_get_properties` | 编辑器编辑器inspector获取属性。 |
 | `editor_inspector_set_properties` | 编辑器编辑器inspector设置属性。 |
 | `editor_select_node` | 编辑器编辑器select节点。 |
 | `editor_undo_redo` | 编辑器编辑器undoredo。 |
-| `install_editor_bridge` | 兼容别名，等同于 `plugin_install`。 |
 | `plugin_install` | 把 godot-devtool WebSocket 编辑器/运行时插件安装到 Godot 项目。 |
 | `plugin_reload` | 通过 WebSocket bridge 重载 godot-devtool 编辑器插件。 |
 | `plugin_status` | 读取插件安装状态、WebSocket 配置和连接状态。 |
 | `reload_plugin` | 重载plugin。 |
 
-### 文件系统工具 (13)
+### 文件系统工具 (11)
 | 工具 | 描述 |
 |------|-------------|
-| `delete_scene` | 可执行兼容封装，转接到 `filesystem_delete` 路由并返回完成回执。 |
+| `delete_scene` | 删除场景。 |
 | `filesystem_delete` | 文件系统文件系统删除。 |
 | `filesystem_list` | 列出项目内文件和目录。 |
 | `filesystem_preview_delete` | 文件系统文件系统预览删除。 |
 | `filesystem_read` | 读取项目内 UTF-8 文本文件。 |
 | `filesystem_write` | 写入项目内 UTF-8 文本文件。 |
-| `get_filesystem_tree` | 可执行兼容封装，转接到 `filesystem_list` 路由并返回完成回执。 |
-| `get_scene_file_content` | 可执行兼容封装，转接到 `filesystem_read` 路由并返回完成回执。 |
-| `read_script` | 兼容别名，等同于 `read_script_file`。 |
+| `get_filesystem_tree` | 获取文件系统树。 |
+| `get_scene_file_content` | 获取场景文件内容。 |
 | `read_script_file` | 读取脚本文件。 |
-| `script_read` | 兼容别名，等同于 `read_script_file`。 |
 | `search_files` | 搜索文件。 |
 | `search_in_files` | 搜索in文件。 |
 
-### 资源工具 (20)
+### 资源工具 (16)
 | 工具 | 描述 |
 |------|-------------|
-| `add_resource` | 可执行兼容封装，转接到 `resource_create` 路由并返回完成回执。 |
+| `add_resource` | 添加资源。 |
 | `check_export_presets` | 执行check导出预设。 |
-| `create_resource` | 兼容别名，等同于 `resource_create`。 |
-| `edit_resource` | 可执行兼容封装，转接到 `resource_save` 路由并返回完成回执。 |
+| `edit_resource` | 编辑资源。 |
 | `export_matrix` | 导出matrix。 |
 | `export_mesh_library` | 导出网格library。 |
-| `find_unused_resources` | 可执行兼容封装，转接到 `resource_dependency_graph` 路由并返回完成回执。 |
-| `get_export_info` | 可执行兼容封装，转接到 `export_matrix` 路由并返回完成回执。 |
+| `find_unused_resources` | 查找未使用资源。 |
+| `get_export_info` | 获取导出信息。 |
 | `get_export_presets` | 获取导出预设。 |
 | `get_resource_index` | 获取资源index。 |
 | `get_resource_preview` | 获取资源预览。 |
 | `get_uid` | 获取UID。 |
-| `list_export_presets` | 兼容别名，等同于 `get_export_presets`。 |
-| `project_path_to_uid` | 兼容别名，等同于 `get_uid`。 |
-| `read_resource` | 兼容别名，等同于 `resource_load`。 |
 | `resource_create` | 资源资源创建。 |
 | `resource_dependency_graph` | 构建资源依赖图并识别孤立资源。 |
 | `resource_load` | 资源资源load。 |
@@ -379,29 +350,29 @@ Do not edit unrelated files.
 | 工具 | 描述 |
 |------|-------------|
 | `apply_particle_preset` | 应用粒子预设。 |
-| `assign_shader_material` | 可执行兼容封装，转接到 `material` 路由并返回完成回执。 |
-| `create_particles` | 可执行兼容封装，转接到 `particle` 路由并返回完成回执。 |
-| `create_shader` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
-| `create_theme` | 可执行兼容封装，转接到 `ui` 路由并返回完成回执。 |
+| `assign_shader_material` | 分配着色器材质。 |
+| `create_particles` | 创建粒子。 |
+| `create_shader` | 创建着色器。 |
+| `create_theme` | 创建主题。 |
 | `edit_shader` | 编辑着色器。 |
 | `find_ui_elements` | 查找UIelements。 |
 | `get_particle_info` | 获取粒子信息。 |
-| `get_shader_params` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `get_shader_params` | 获取着色器参数。 |
 | `get_theme_info` | 获取主题信息。 |
 | `lighting` | 灯光灯光。 |
 | `material` | 材质材质。 |
 | `particle` | 粒子粒子。 |
-| `read_shader` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
-| `set_material_3d` | 可执行兼容封装，转接到 `material` 路由并返回完成回执。 |
+| `read_shader` | 读取着色器。 |
+| `set_material_3d` | 设置材质3d。 |
 | `set_particle_color_gradient` | 设置粒子颜色gradient。 |
 | `set_particle_material` | 设置粒子材质。 |
-| `set_shader_param` | 可执行兼容封装，转接到 `shader` 路由并返回完成回执。 |
+| `set_shader_param` | 设置着色器参数。 |
 | `set_theme_color` | 设置主题颜色。 |
 | `set_theme_constant` | 设置主题常量。 |
 | `set_theme_font_size` | 设置主题字体大小。 |
 | `set_theme_stylebox` | 设置主题StyleBox。 |
-| `setup_environment` | 可执行兼容封装，转接到 `lighting` 路由并返回完成回执。 |
-| `setup_lighting` | 可执行兼容封装，转接到 `lighting` 路由并返回完成回执。 |
+| `setup_environment` | 配置环境。 |
+| `setup_lighting` | 配置灯光。 |
 | `shader` | 着色器着色器。 |
 | `ui` | UIUI。 |
 
@@ -429,7 +400,7 @@ Do not edit unrelated files.
 | `start_recording` | 开始录制。 |
 | `stop_recording` | 停止录制。 |
 
-### 核心工具 (40)
+### 核心工具 (37)
 | 工具 | 描述 |
 |------|-------------|
 | `add_gridmap` | 添加GridMap。 |
@@ -441,10 +412,8 @@ Do not edit unrelated files.
 | `batch_set_property` | 批量设置属性。 |
 | `capture_frames` | 捕获帧。 |
 | `clear_debug_output` | 清理调试输出。 |
-| `clear_output` | 兼容别名，等同于 `clear_debug_output`。 |
 | `click_button_by_text` | 执行click按钮by文本。 |
 | `create_gameplay_prototype` | 创建gameplayprototype。 |
-| `debug_get_logs` | 兼容别名，等同于 `get_debug_output`。 |
 | `detect_circular_dependencies` | 检测循环依赖。 |
 | `generate_ci_snippet` | 生成 GitHub Actions 或 GitLab CI 片段。 |
 | `geometry` | 执行geometry。 |
@@ -455,7 +424,6 @@ Do not edit unrelated files.
 | `get_editor_errors` | 获取编辑器错误。 |
 | `get_editor_performance` | 获取编辑器性能。 |
 | `get_godot_version` | 获取 Godot 可执行文件版本。 |
-| `get_output_log` | 兼容别名，等同于 `get_debug_output`。 |
 | `get_performance_monitors` | 获取性能监视器。 |
 | `get_rollback_suggestions` | 获取回滚suggestions。 |
 | `get_safety_policy` | 获取安全策略。 |

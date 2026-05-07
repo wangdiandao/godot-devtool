@@ -6,7 +6,7 @@ const REQUIRED_RUNTIME_ROUTE := "get_game_scene_tree"
 const REQUIRED_RUNTIME_INPUT_ROUTE := "simulate_action"
 const REQUIRED_RUNTIME_PROPERTY_ROUTE := "get_game_node_properties"
 const REQUIRED_RUNTIME_SCREENSHOT_ROUTE := "get_game_screenshot"
-const PLUGIN_VERSION := "2.5.0"
+const PLUGIN_VERSION := "2.5.1"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 
 var _router := CommandRouter.new()

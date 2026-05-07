@@ -273,7 +273,7 @@ try {
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
   const latestReleaseZipVersion = releaseVersion;
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
-  assert.equal(releaseVersion, '2.5.0');
+  assert.equal(releaseVersion, '2.5.1');
   const capabilitiesResponse = server.handleGetCapabilities({});
   const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
   assert.equal(capabilities.version, releaseVersion);
@@ -431,8 +431,6 @@ try {
   assert.match(readmeZh, /让 AI 协助安装/);
   assert.match(readme, /What It Can Do/);
   assert.match(readmeZh, /能做什么/);
-  assert.match(readme, /godot-mcp-pro/);
-  assert.match(readmeZh, /godot-mcp-pro/);
   assert.match(readme, /Expand-Archive/);
   assert.match(readmeZh, /Expand-Archive/);
   assert.match(readme, /assert_node_state/);
@@ -440,6 +438,8 @@ try {
   assert.match(readme, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /## 能做什么/);
+  assert.doesNotMatch(readmeZh, /转接到/);
+  assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
 
@@ -469,7 +469,7 @@ try {
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
-  for (const version of [releaseVersion, '2.1.0', '2.0.0', '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
+  for (const version of [releaseVersion, '2.5.0', '2.1.0', '2.0.0', '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
     assert.match(changelog, new RegExp(`## Version ${version}`));
     assert.match(changelogZh, new RegExp(`## ${version}`));
   }
