@@ -53,6 +53,20 @@ If the dock shows `Unregistered` or runtime state stops updating, check the list
 
 Do not start a short-lived hello probe and then treat its `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; the dock will return to `Unregistered` after the listening process exits.
 
+Distinguish the two live pieces:
+
+    MCP stdio server -> the real tool server launched by the MCP client
+    WebSocket bridge -> the editor/runtime listener owned by that running MCP server
+
+A detached WebSocket keepalive can keep the dock registered for diagnosis, but it is not a replacement for an MCP client holding `node E:/godot-devtool/build/index.js` open over stdio. Use real MCP calls to prove tool availability.
+
+If `GODOT_DEVTOOL_WS_PORT` is busy, identify the owner before changing code:
+
+    PowerShell: Get-NetTCPConnection -LocalPort 8766 | Select-Object LocalAddress,LocalPort,State,OwningProcess
+    fallback:   netstat -ano | Select-String ':8766'
+
+Stop only a listener you started, or reinstall the plugin with a different `websocketPort` and keep that same port in the MCP client env.
+
 ## Context Budget Rules
 
 - Start with `get_capabilities`; ask it for the categories, schemas, and bridge requirements needed for the current task.
@@ -105,6 +119,37 @@ For a read-only browser status surface:
     browser_visualizer_stop   -> stop the visualizer
 
 `editor_ws` needs the Godot editor open with the plugin enabled. `runtime_ws` needs the game running with `DevtoolRuntime` connected.
+
+## Fresh Install Connection Smoke
+
+When validating an install, upgrade, bridge bug, dock state, or runtime input issue, use a fresh temporary Godot project when possible. This separates install bugs from target-project state.
+
+Run the chain through an actual MCP stdio client, not only a raw WebSocket probe:
+
+1. `get_godot_version` -> confirms the MCP process can see Godot.
+2. `get_capabilities` -> confirms the current tool catalog and bridge requirements.
+3. `plugin_install` with `{ "projectPath": "...", "overwrite": true, "websocketPort": 8766 }`.
+4. `plugin_status` -> require `installed: true`, matching bridge port, runtime autoload, and no unexpected stale state.
+5. `run_project` with `{ "projectPath": "...", "headless": true }` for runtime validation.
+6. Poll `plugin_status` until `lastState.websocket.clients` contains a `runtime` client.
+7. Prove runtime commands with `get_game_node_properties`, `simulate_action`, then `get_game_node_properties` again.
+8. `stop_project`.
+
+For input proof, read a property before and after the input instead of relying only on screenshots. A minimal fixture can increment an exported counter in `_process()` while `Input.is_action_pressed("ui_accept")`; `simulate_action` should make that counter increase.
+
+For an existing target project such as `E:/test`, verify the installed copy directly after sync:
+
+    plugin_status
+    npm.cmd run check:project -- "E:/test"
+    Select-String -Path E:\test\addons\godot_devtool\plugin.gd,E:\test\addons\godot_devtool\runtime_bridge.gd -Pattern 'PLUGIN_VERSION'
+
+If the dock still shows `Unregistered`, check the current listener and project bridge config before editing plugin code:
+
+    Get-Content E:\test\.godot-devtool\bridge-config.json
+    Get-Content E:\test\.godot-devtool\runtime-state.json
+    netstat -ano | Select-String ':8766'
+
+`hello_ack` plus `heartbeat_ack` proves auth and the bridge listener. It does not prove the MCP tool server is usable unless the same run also completed MCP tool calls.
 
 ## Workflow Router
 
@@ -174,6 +219,8 @@ Proof loop:
 6. Stop the run, fix, and repeat.
 
 Do not claim live editor/runtime behavior worked unless the WebSocket route returned a real result or receipt.
+
+For runtime input specifically, capture a before/after state change. A successful command receipt is necessary, but the stronger proof is that the game state changed as expected after the input.
 
 ### UI, Animation, TileMap, Audio, 3D
 
