@@ -1,6 +1,6 @@
 ---
 name: godot-devtool
-description: "Teach MCP clients and connected AI assistants how to use the godot-devtool 2.6.4 MCP server for Godot 4 projects: map each common Godot operation to the right tool, use stdio/headless for repeatable edits, use WebSocket only for live editor/runtime state, and verify changes."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.6.4 MCP server."
 metadata:
   version: "2.6.4"
   mcp_server: "godot-devtool"
@@ -10,11 +10,9 @@ metadata:
 
 Compatibility: `godot-devtool` 2.6.4.
 
-Tool catalog: All 221 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. 中文：全部 221 个工具以 `get_capabilities` 输出为准。
+Tool catalog: All 221 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat. 中文：全部 221 个工具以 `get_capabilities` 输出为准，不要把完整工具清单长期放进上下文。
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
-
-The MCP client starts `godot-devtool` over stdio. Most project edits should use native or headless Godot tools. WebSocket is only for live editor state or a running game.
 
 Typical MCP client configuration:
 
@@ -29,333 +27,170 @@ Typical MCP client configuration:
 }
 ```
 
-## First Call
+## Context Budget Rules
+
+- Start with `get_capabilities`; ask it for the categories, schemas, and bridge requirements needed for the current task.
+- Keep only the active workflow in context. Do not paste the complete tool catalog, generated README tables, or Godot source unless the task needs internal Godot behavior.
+- Prefer primary operation tools. Use older route names only when an existing client, prompt, or project already depends on them.
+- When the task changes domains, call `get_capabilities` again for that domain instead of carrying unrelated tool details forward.
+
+## First Calls
 
 Always begin with:
 
-    get_godot_version   -> confirm Godot is visible to the MCP server
-    get_capabilities    -> list available tools, schemas, transports, and bridge requirements
+    get_godot_version -> confirm Godot is visible to the MCP server
+    get_capabilities  -> discover current tools, schemas, transports, and bridge requirements
 
 Then inspect the project before editing:
 
-    get_project_info          -> project name, Godot version, renderer, main scene, project paths
-    filesystem_list          -> directory tree or a specific folder
-    get_resource_index       -> scenes, resources, scripts, textures, audio, and other assets
-    get_script_index         -> GDScript classes, base classes, exported vars, and functions
-    project_get_settings     -> project.godot settings by section or key
-    resource_dependency_graph -> resource dependencies and orphan resources
+    get_project_info          -> project metadata and paths
+    filesystem_list          -> focused folder tree
+    get_resource_index       -> scenes, resources, textures, audio
+    get_script_index         -> GDScript classes, exports, functions
+    project_get_settings     -> project.godot sections or keys
+    resource_dependency_graph -> dependencies and orphan resources
 
 If the project path is unknown:
 
     list_projects -> find Godot projects under a directory
 
-## Transport Rules
+## Transport Choice
 
-Use these rules before choosing a tool:
+The MCP client talks to `godot-devtool` over stdio. Choose the operation transport by state needed:
 
-    stdio             -> always the MCP client/server transport
-    native            -> file, project, index, dependency, safety, and audit operations
-    headless_godot    -> scene/resource/script operations that Godot must parse or serialize
-    process_control   -> launch, stop, export, project checks, debug output
-    editor_ws         -> live editor selection, Inspector, UndoRedo, plugin reload
-    runtime_ws        -> running-game scene tree, input, screenshots, runtime properties, QA
+    native          -> file, project, index, dependency, safety, audit
+    headless_godot  -> scene/resource/script operations Godot must parse or serialize
+    process_control -> launch, stop, export, project checks, debug output
+    editor_ws       -> live editor selection, Inspector, UndoRedo, plugin reload
+    runtime_ws      -> running-game scene tree, input, screenshots, runtime properties, QA
 
-Default to native/headless. Use WebSocket only when the current editor or running game state is required.
+Default to native/headless. Use WebSocket only when current editor or running game state is required.
 
-Before editor WebSocket tools:
+Before editor or runtime WebSocket work:
 
     plugin_install -> install addons/godot_devtool and runtime autoload into the project
     plugin_status  -> confirm plugin files, autoload, port, and bridge clients
-    plugin_reload  -> reload the live editor plugin through WebSocket
+    plugin_reload  -> reload the live editor plugin when the editor is open
 
 For a read-only browser status surface:
 
-    browser_visualizer_start -> start the Browser visualizer
+    browser_visualizer_start  -> start the Browser visualizer
     browser_visualizer_status -> inspect URL, port, and current status
-    browser_visualizer_stop -> stop the visualizer
+    browser_visualizer_stop   -> stop the visualizer
 
 `editor_ws` needs the Godot editor open with the plugin enabled. `runtime_ws` needs the game running with `DevtoolRuntime` connected.
 
-## Essential Workflows
+## Workflow Router
 
-### 1. Explore A Project
+Use one workflow group at a time. If a needed operation is not listed here, query `get_capabilities` for that category and load only that schema.
 
-    get_project_info      -> project metadata and main scene
-    filesystem_list       -> project folders and files
-    filesystem_read       -> read project text files
-    get_resource_index    -> asset inventory
-    get_script_index      -> script inventory
-    read_script_file      -> read one GDScript file
-    project_get_settings  -> read project.godot settings
-    scene_open            -> set a scene as the current MCP session scene
-    get_scene_tree        -> inspect a saved scene's node hierarchy
-    node_find             -> find nodes by name, type, or path substring
-    node_get              -> inspect one node
-    get_node_properties   -> inspect selected node properties
+### Explore A Project
 
-### 2. Build A 2D Scene
+Use this before planning or editing:
 
-    create_scene           -> create a .tscn file with rootNodeType such as Node2D or CharacterBody2D
-    add_node               -> add Sprite2D, CollisionShape2D, Camera2D, Area2D, Control, etc.
-    resource_create        -> create .tres resources such as shapes or materials
-    load_sprite            -> assign a texture to a Sprite2D
-    update_node_properties -> set position, scale, modulate, visibility, exported values, collision data
-    node_move              -> move or reparent a node
-    rename_node            -> rename a node
-    node_duplicate         -> duplicate a node
-    delete_node            -> delete a non-root node
-    script_create          -> create GDScript for behavior
-    script_attach          -> attach GDScript to a node
-    save_scene             -> persist the scene
+    get_project_info, filesystem_list, filesystem_read
+    get_resource_index, get_script_index, project_get_settings
+    scene_open, get_scene_tree, node_find, node_get, get_node_properties
 
-Player scene pattern:
+### Build Or Edit Scenes
 
-1. `create_scene` with `rootNodeType: "CharacterBody2D"`.
-2. `add_node` Sprite2D.
-3. `add_node` CollisionShape2D.
-4. `resource_create` a RectangleShape2D/CircleShape2D resource when a reusable shape is needed.
-5. `script_create` movement logic.
-6. `script_attach` to the root node.
-7. `save_scene`.
+Use headless scene tools for saved scene authoring:
 
-### 3. Build A 3D Scene
+    create_scene, scene_open, add_node, update_node_properties
+    node_move, rename_node, node_duplicate, delete_node, save_scene
+    resource_create, load_sprite, material, shader
 
-    create_scene        -> create a Node3D scene
-    add_node            -> add Node3D, MeshInstance3D, Camera3D, lights, bodies, areas
-    add_mesh_instance   -> compatibility route for adding primitive/imported mesh instances
-    lighting            -> create/list DirectionalLight3D, PointLight3D, SpotLight3D, WorldEnvironment
-    setup_lighting      -> compatibility route for lighting create
-    material            -> create/read/update/apply Godot material resources
-    set_material_3d     -> compatibility route for applying 3D material
-    physics             -> create/list/configure physics bodies, areas, collision layers, shapes
-    setup_physics_body  -> compatibility route for physics body creation
-    setup_collision     -> compatibility route for collision setup
-    navigation          -> create/list/configure/bake/query/debug navigation nodes
-    setup_camera_3d     -> compatibility route for camera setup
-    save_scene          -> persist the scene
+Prefer Inspector-visible node/resource properties for visual values, tuning values, materials, collision masks, anchors, margins, visibility, and exported values.
 
-Use headless tools for authoring saved 3D scenes. Use runtime tools only to test a running instance.
+### Write Scripts
 
-### 4. Write And Edit Scripts
+Read first, edit the smallest safe region, then validate:
 
-    get_script_index        -> find scripts and classes
-    read_script_file        -> read current script content
-    script_create           -> create a new .gd file
-    script_write            -> replace full GDScript content with overwrite protection
-    edit_script             -> compatibility route for script_write / targeted script edits
-    script_attach           -> attach a script to a scene node
-    analyze_script_references -> inspect class, exports, node paths, and resource references
-    check_gdscript_syntax   -> run Godot --check-only diagnostics
-    reload_project          -> compatibility route to refresh Godot after broad script changes
+    get_script_index, read_script_file, script_create, script_write
+    script_attach, analyze_script_references, check_gdscript_syntax
+    reload_project
 
-For targeted script edits, read first, edit the smallest safe region, then run `check_gdscript_syntax`.
+Use GDScript for behavior. Move hardcoded visual/tuning values into scene or resource properties when possible.
 
-### 5. Playtest And Debug
+### Configure The Project
 
-    run_project              -> launch main scene, current scene, or a specified scene
-    get_game_screenshot      -> runtime_ws screenshot of the running game
-    capture_frames           -> runtime_ws frame capture for motion/animation
-    get_game_scene_tree      -> runtime_ws live scene tree
-    get_game_node_properties -> runtime_ws live node values
-    set_game_node_property   -> runtime_ws live property mutation
-    simulate_key             -> runtime_ws key press with duration
-    simulate_mouse_click     -> runtime_ws mouse click
-    simulate_mouse_move      -> runtime_ws mouse movement
-    simulate_action          -> runtime_ws InputMap action
-    simulate_sequence        -> runtime_ws sequence of inputs
-    get_debug_output         -> stdout/stderr/debug buffer from the running project
-    get_editor_errors        -> compatibility route for editor/runtime errors
-    stop_project             -> stop the current run
+Use project tools instead of hand-editing `project.godot`:
 
-Playtesting loop:
+    project_get_settings, project_set_setting, project_input_action
+    get_autoload, add_autoload, remove_autoload
+    get_export_presets, check_export_presets, update_export_preset
+    export_matrix, generate_ci_snippet, export_project
+
+### Playtest And Debug
+
+Use process control plus runtime WebSocket tools:
+
+    run_project, plugin_status, get_game_scene_tree, get_game_screenshot
+    get_game_node_properties, set_game_node_property
+    simulate_action, simulate_key, simulate_mouse_click, simulate_sequence
+    get_debug_output, get_editor_errors, stop_project
+
+Proof loop:
 
 1. `run_project`.
-2. `plugin_status` and confirm runtime bridge connection if using runtime tools.
-3. `get_game_screenshot`.
-4. `simulate_action` or `simulate_key`.
-5. `capture_frames`.
-6. `get_game_node_properties`.
-7. `get_debug_output` / `get_editor_errors`.
-8. `stop_project`.
-9. Fix scripts/scenes and repeat.
+2. Confirm runtime bridge with `plugin_status` if using runtime tools.
+3. Capture the relevant state: screenshot, scene tree, node properties, or debug output.
+4. Simulate input with `simulate_action` when InputMap actions exist.
+5. Read state again with `get_game_node_properties` or assertions.
+6. Stop the run, fix, and repeat.
 
-### 6. Animations
+Do not claim live editor/runtime behavior worked unless the WebSocket route returned a real result or receipt.
 
-    animation                     -> list/create/add_track/set_keyframe/get_info/remove AnimationPlayer data
-    create_animation              -> compatibility route for animation create
-    add_animation_track           -> compatibility route for animation add_track
-    set_animation_keyframe        -> compatibility route for animation set_keyframe
-    get_animation_info            -> compatibility route for animation get_info
-    animation_state_machine       -> create/list/configure AnimationTree state machines
-    create_animation_tree         -> compatibility route for AnimationTree creation
-    get_animation_tree_structure  -> compatibility route for AnimationTree inspection
-    add_state_machine_state       -> compatibility route for adding states
-    add_state_machine_transition  -> compatibility route for adding transitions
-    set_tree_parameter            -> compatibility route for blend/tree parameters
-    set_blend_tree_node           -> compatibility route for blend tree node setup
+### UI, Animation, TileMap, Audio, 3D
 
-Bouncing sprite pattern:
+Use the domain tool first, then query `get_capabilities` for that domain's full schema:
 
-1. `animation` action `create`, name `bounce`, length `1.0`.
-2. `animation` action `add_track`, track path such as `Sprite2D:position`.
-3. `animation` action `set_keyframe` at `0.0`, `0.5`, `1.0`.
-4. `save_scene`.
+    ui        -> Control nodes, themes, templates, signal wiring, screen text checks
+    animation -> AnimationPlayer tracks, keyframes, AnimationTree state machines
+    tilemap   -> TileSet sources, cells, batch painting, fill rectangles, templates
+    audio     -> players, buses, volume/mute/solo, bus effects
+    lighting  -> lights and WorldEnvironment
+    physics   -> bodies, areas, collision layers, shapes
+    navigation -> nav regions, agents, bake/query/debug operations
 
-### 7. UI And HUD
+For TileMap work, inspect tile sources before painting and prefer batch operations for large regions.
 
-    ui                    -> create Control nodes, themes, templates, and signal wiring
-    add_node              -> add Control, Label, Button, TextureRect, Panel, etc.
-    set_anchor_preset     -> compatibility route for Control anchors
-    set_theme_color       -> compatibility route for theme colors
-    set_theme_constant    -> compatibility route for theme constants
-    set_theme_font_size   -> compatibility route for font sizes
-    set_theme_stylebox    -> compatibility route for backgrounds, borders, and styleboxes
-    create_theme          -> compatibility route for UI theme creation
-    get_theme_info        -> compatibility route for UI theme inspection
-    signal                -> list/connect/disconnect signals
-    connect_signal        -> compatibility route for connecting signals
-    disconnect_signal     -> compatibility route for disconnecting signals
-    click_button_by_text  -> runtime_ws click a visible UI button by text
-    assert_screen_text    -> runtime_ws verify text on screen
+### Analysis And QA
 
-Prefer Inspector-visible node properties and theme tools for layout/visual values. Write GDScript only for behavior.
+Use focused diagnostics before broad changes:
 
-### 8. TileMap
+    run_project_checks, get_debug_output, clear_debug_output
+    get_editor_errors, get_performance_monitors
+    analyze_scene_complexity, analyze_signal_flow
+    detect_circular_dependencies, find_unused_resources
+    find_node_references, find_script_references, get_scene_dependencies
+    run_test_scenario, assert_node_state, assert_screen_text
+    wait_for_node, monitor_properties, compare_screenshots
 
-    tilemap                -> create/list/create_tileset/add_atlas_source/set_cell/batch_set_cells/fill_rect/paint_random/apply_template
-    tilemap_get_info       -> compatibility route for TileMap info
-    tilemap_set_cell       -> compatibility route for setting one tile
-    tilemap_fill_rect      -> compatibility route for rectangular fill
-    tilemap_get_used_cells -> compatibility route for used-cell inspection
-    tilemap_clear          -> compatibility route for clearing cells
+## Common Build Order
 
-Inspect tile sources before painting. Prefer batch operations for large regions.
+For a new game or prototype:
 
-### 9. Audio
-
-    audio                -> create/list/list_buses AudioStreamPlayer nodes and buses
-    add_audio_player     -> compatibility route for adding AudioStreamPlayer, AudioStreamPlayer2D, AudioStreamPlayer3D
-    get_audio_info       -> compatibility route for audio node info
-    get_audio_bus_layout -> compatibility route for bus layout
-    add_audio_bus        -> compatibility route for creating buses
-    set_audio_bus        -> compatibility route for volume/mute/solo changes
-    add_audio_bus_effect -> compatibility route for reverb, delay, compressor, etc.
-
-### 10. Project Configuration
-
-    project_get_settings -> read project.godot sections or keys
-    project_set_setting  -> update project.godot with dry-run and audit support
-    project_input_action -> list/create/update/delete InputMap actions
-    set_project_setting  -> compatibility route for project_set_setting
-    set_input_action     -> compatibility route for project_input_action
-    get_autoload         -> compatibility route for reading autoloads
-    add_autoload         -> compatibility route for registering autoload singletons
-    remove_autoload      -> compatibility route for removing autoloads
-    get_physics_layers   -> compatibility route for layer inspection
-    set_physics_layers   -> compatibility route for collision layer names/masks
-    get_export_presets   -> read export presets
-    check_export_presets -> report export preset issues
-    update_export_preset -> edit an export preset
-    export_matrix        -> summarize export targets and CI steps
-    generate_ci_snippet  -> generate CI config
-    export_project       -> run Godot export
-
-Never hand-edit `project.godot` when a project tool can make the change.
-
-## Analysis And Debugging
-
-    get_debug_output             -> print output, warnings, and errors from a run
-    clear_debug_output           -> clear buffered run output
-    get_editor_errors            -> compatibility route for editor/runtime errors
-    get_editor_performance       -> compatibility route for editor performance
-    get_performance_monitors     -> runtime_ws FPS, memory, draw calls, physics stats
-    analyze_scene_complexity     -> compatibility route for scene complexity
-    analyze_signal_flow          -> compatibility route for signal flow
-    detect_circular_dependencies -> compatibility route for circular dependencies
-    find_unused_resources        -> compatibility route using dependency graph/orphans
-    find_node_references         -> compatibility route for node reference search
-    find_script_references       -> compatibility route for script reference search
-    get_scene_dependencies       -> compatibility route for scene dependencies
-    search_in_files              -> compatibility route for text search
-
-## Testing And QA
-
-    run_project_checks  -> CI/review-friendly project checks
-    run_test_scenario   -> compatibility route for runtime QA scenarios
-    assert_node_state   -> compatibility route for runtime node property assertions
-    assert_screen_text  -> compatibility route for runtime text assertions
-    compare_screenshots -> compatibility route for visual comparison
-    run_stress_test     -> compatibility route for stress checks
-    get_test_report     -> compatibility route for test summaries
-    wait_for_node       -> runtime_ws wait for node existence/state
-    monitor_properties  -> runtime_ws watch properties over time
-    start_recording     -> runtime_ws start interaction recording
-    stop_recording      -> runtime_ws stop interaction recording
-    replay_recording    -> runtime_ws replay recorded interactions
-
-## Advanced Patterns
-
-### Cross-Scene Operations
-
-    cross_scene_set_property -> compatibility route for changing nodes in other scenes
-    batch_get_properties     -> compatibility route for reading many nodes
-    batch_set_property       -> compatibility route for writing many nodes
-    find_nodes_by_type       -> compatibility route for node_find by type
-    find_nodes_in_group      -> compatibility route for group lookup
-    get_node_groups          -> compatibility route for group inspection
-    set_node_groups          -> compatibility route for group assignment
-
-### Shader And Material
-
-    shader                 -> create/read/inspect/set_parameters for shaders
-    create_shader          -> compatibility route for shader create
-    read_shader            -> compatibility route for shader read
-    edit_shader            -> compatibility route for shader edits
-    get_shader_params      -> compatibility route for shader inspection
-    set_shader_param       -> compatibility route for shader parameter writes
-    material               -> create/read/update/apply/list_templates/create_from_template
-    assign_shader_material -> compatibility route for applying ShaderMaterial
-    set_material_3d        -> compatibility route for applying 3D material
-
-### Navigation
-
-    navigation                -> create/list/set_polygon/configure_bake/bake_navigation_mesh/query_path/create_debug_geometry
-    setup_navigation_region   -> compatibility route for NavigationRegion creation
-    setup_navigation_agent    -> compatibility route for NavigationAgent creation
-    bake_navigation_mesh      -> compatibility route for navmesh bake
-    get_navigation_info       -> compatibility route for navigation inspection
-    set_navigation_layers     -> compatibility route for navigation layer configuration
-    navigate_to               -> runtime_ws navigation command
-    move_to                   -> runtime_ws movement command
-    find_nearby_nodes         -> runtime_ws proximity search
-
-### Code-To-Inspector Migration
-
-Move hardcoded visual values from GDScript to scene/resource properties:
-
-    read_script_file        -> find hardcoded assignments
-    get_node_properties     -> inspect current Inspector values
-    update_node_properties  -> set scene node values
-    script_write/edit_script -> remove hardcoded script assignments
-    save_scene              -> persist Inspector values
-    check_gdscript_syntax   -> validate script after removal
-
-Use this for colors, positions, sizes, theme overrides, material properties, visibility, anchors, margins, collision masks, and exported values that do not need runtime logic.
+1. Project setup: settings, InputMap, main scene.
+2. Player: scene, collision, script, camera.
+3. World: TileMap or 3D geometry, lighting, physics, navigation.
+4. UI: Control nodes, theme, signals.
+5. Game logic: scripts, autoloads, groups, signals.
+6. Audio and feedback: audio, animation, particles, shaders/materials.
+7. Playtest: run, simulate input, inspect state, read debug output.
+8. Export: presets, export matrix, export command.
 
 ## Important Rules
 
 - Read state before writing.
 - Prefer structured tools over raw file edits.
-- Prefer node/resource/Inspector properties over GDScript for visual and tuning values.
-- Use `project_set_setting` / `project_input_action` instead of hand-editing `project.godot`.
-- Use `filesystem_preview_delete` before delete operations unless the user explicitly named the exact path and asked to delete it.
 - Save scenes after meaningful scene changes.
 - Run `check_gdscript_syntax` after script changes.
+- Run `run_project_checks` for project-level validation.
+- Use `filesystem_preview_delete` before delete operations unless the user explicitly named the exact path and asked to delete it.
 - Runtime tools require an active running game and connected `DevtoolRuntime`.
 - Editor WebSocket tools require the editor plugin to be enabled and connected.
-- Do not claim live editor/runtime behavior worked unless the WebSocket route returned a real result or receipt.
 - For runtime movement, prefer `simulate_action` over raw keys when InputMap actions exist.
-- Use short key durations for precise movement.
 - UI buttons usually need press and release; use click helpers or `simulate_mouse_click` with release behavior.
 
 ## Property Values
@@ -369,24 +204,11 @@ Use structured Godot Variant values when schemas accept them:
     number  -> 42 / 3.14
     enum    -> integer value expected by Godot
 
-If using compatibility routes that accept strings, Godot-style strings such as `Vector2(100, 200)`, `Vector3(1, 2, 3)`, and `Color(1, 0, 0, 1)` are acceptable.
-
-## Recommended Build Order
-
-When building a new game or prototype:
-
-1. Project setup: `get_project_info`, `project_set_setting`, `project_input_action`.
-2. Main scene: `create_scene`, set main scene with `project_set_setting`.
-3. Player: `create_scene`, `add_node`, `resource_create`, `script_create`, `script_attach`.
-4. World: `tilemap`, `geometry`, `add_mesh_instance`, `lighting`, `navigation`, `physics`.
-5. UI: `ui`, theme tools, `signal`.
-6. Game logic: scripts, autoloads, groups, signals.
-7. Audio: `audio`, audio bus compatibility routes.
-8. Playtest: `run_project`, runtime WebSocket tools, debug output.
-9. Polish: `animation`, particles, shader/material, UI themes.
-10. Export: `check_export_presets`, `export_matrix`, `export_project`.
+If a string-only route is required, Godot-style strings such as `Vector2(100, 200)`, `Vector3(1, 2, 3)`, and `Color(1, 0, 0, 1)` are acceptable.
 
 ## Validate Before Finishing
+
+For a Godot project change, choose the smallest validation set that proves the changed behavior:
 
     check_gdscript_syntax -> changed scripts
     run_project_checks    -> project-level checks
@@ -395,7 +217,7 @@ When building a new game or prototype:
     plugin_status         -> editor/runtime bridge status
     get_game_screenshot   -> visual runtime evidence when runtime bridge is connected
 
-For this MCP package itself:
+For this MCP package itself, run build-heavy verifiers sequentially because they write the same build output:
 
     npm.cmd run build
     npm.cmd run verify:tools
@@ -403,5 +225,3 @@ For this MCP package itself:
     npm.cmd run verify:visualizer
     npm.cmd run verify:plugin
     npm.cmd run verify:all
-
-Run build-heavy verifiers sequentially because they write the same build output.
