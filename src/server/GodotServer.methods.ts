@@ -169,7 +169,7 @@ class GodotServerMethodMixin {
     }
   }
 
-  private createHeadlessLogArgs(purpose: string): string[] {
+  private createGodotLogArgs(purpose: string): string[] {
     const logDirectory = resolve(process.env.GODOT_DEVTOOL_HEADLESS_LOG_DIR ?? join(tmpdir(), 'godot-devtool-headless-logs'));
     mkdirSync(logDirectory, { recursive: true });
 
@@ -1107,7 +1107,7 @@ class GodotServerMethodMixin {
    * Run Godot's built-in GDScript parser check.
    */
   private async runGodotSyntaxCheck(projectPath: string, scriptPath: string): Promise<any> {
-    const args = ['--headless', ...this.createHeadlessLogArgs('syntax-check'), '--path', projectPath, '--check-only', '--script', scriptPath];
+    const args = ['--headless', ...this.createGodotLogArgs('syntax-check'), '--path', projectPath, '--check-only', '--script', scriptPath];
 
     try {
       const { stdout, stderr } = await execFileAsync(this.godotPath!, args, { timeout: 30000 });
@@ -1461,7 +1461,7 @@ class GodotServerMethodMixin {
       // Using execFile with argument arrays avoids shell interpretation entirely
       const args = [
         '--headless',
-        ...this.createHeadlessLogArgs(operation),
+        ...this.createGodotLogArgs(operation),
         '--path',
         projectPath,  // Safe: passed as argument, not interpolated into shell command
         '--script',
@@ -1695,7 +1695,7 @@ class GodotServerMethodMixin {
       }
 
       this.logDebug(`Launching Godot editor for project: ${args.projectPath}`);
-      const process = spawn(this.godotPath, ['-e', '--path', args.projectPath], {
+      const process = spawn(this.godotPath, ['-e', ...this.createGodotLogArgs('launch-editor'), '--path', args.projectPath], {
         stdio: 'ignore',
         detached: true,
       });
@@ -1824,8 +1824,8 @@ class GodotServerMethodMixin {
       const cmdArgs = ['-d'];
       if (args.headless === true) {
         cmdArgs.push('--headless');
-        cmdArgs.push(...this.createHeadlessLogArgs('run-project'));
       }
+      cmdArgs.push(...this.createGodotLogArgs('run-project'));
       if (Number.isInteger(args.quitAfter) && args.quitAfter >= 0) {
         cmdArgs.push('--quit-after', String(args.quitAfter));
       }
@@ -2735,7 +2735,7 @@ class GodotServerMethodMixin {
       }
 
       const exportFlag = mode === 'release' ? '--export-release' : mode === 'pack' ? '--export-pack' : '--export-debug';
-      const godotArgs = ['--headless', ...this.createHeadlessLogArgs(`export-${mode}`), '--path', args.projectPath, exportFlag, args.presetName, args.outputPath];
+      const godotArgs = ['--headless', ...this.createGodotLogArgs(`export-${mode}`), '--path', args.projectPath, exportFlag, args.presetName, args.outputPath];
 
       try {
         const { stdout, stderr } = await execFileAsync(this.godotPath!, godotArgs, { timeout: 120000 });

@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.4
+
+Steam Godot 启动兼容版本。
+
+- 将显式可写 `--log-file` 规避逻辑扩展到 `launch_editor` 和非 headless `run_project`，不再只覆盖 headless 操作。
+- 重命名内部日志参数 helper，让 editor、run、headless 和 export 启动共享同一套 Godot 日志路径行为。
+- 增加回归检查，要求 `launch_editor` 和 `run_project` 在 `--path` 前插入 `--log-file`。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP 和 release zip 链接同步到 `2.6.4`。
+
 ## 2.6.3
 
 Steam headless Godot 兼容版本。

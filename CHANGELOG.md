@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.4
+
+Steam Godot launch compatibility release.
+
+- Extended the explicit writable `--log-file` workaround to `launch_editor` and non-headless `run_project`, not only headless operations.
+- Renamed the internal log argument helper so editor, run, headless, and export launches share the same Godot log path behavior.
+- Added regression checks requiring `launch_editor` and `run_project` to insert `--log-file` before `--path`.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, and release zip links to `2.6.4`.
+
 ## Version 2.6.3
 
 Steam headless Godot compatibility release.
