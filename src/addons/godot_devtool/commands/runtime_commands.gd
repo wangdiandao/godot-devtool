@@ -226,7 +226,11 @@ func _screenshot(payload: Dictionary) -> Dictionary:
 	var resource_path := str(path_result.get("path", ""))
 	if explicit_path and FileAccess.file_exists(resource_path) and not bool(payload.get("overwrite", false)):
 		return _err("Screenshot file already exists. Pass overwrite=true to replace it: " + resource_path)
+	if DisplayServer.get_name() == "headless":
+		return _err("Screenshot capture is unavailable in headless display mode.")
 	var image: Image = Engine.get_main_loop().root.get_texture().get_image()
+	if image == null:
+		return _err("Screenshot capture is unavailable in the current rendering backend.")
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(resource_path.get_base_dir()))
 	var err: int = image.save_png(resource_path)
 	return _ok({"outputPath": resource_path, "errorCode": err, "width": image.get_width(), "height": image.get_height()}) if err == OK else _err("Failed to save screenshot: " + str(err))

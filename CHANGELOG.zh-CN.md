@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.7.1
+
+Runtime bridge bugfix 版本。
+
+- 修复 runtime autoload bridge：`_ready()` 会先加载 bridge config，并在写 runtime state 前立即发起首次 WebSocket 连接。
+- 修复 headless 环境下的 `get_game_screenshot` 处理：viewport image 不可用时返回结构化 runtime 错误，不再超时或打断到 Godot debugger。
+- 增加插件验证覆盖，检查 runtime bridge 启动顺序，以及源插件和安装副本中的截图 unavailable-image 防护。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.7.1`。
+
 ## 2.7.0
 
 实时编辑器场景修改与 dock 架构版本。

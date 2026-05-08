@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.7.1
+
+Runtime bridge bugfix release.
+
+- Fixed the runtime autoload bridge so `_ready()` immediately loads the bridge config and starts the first WebSocket connection before writing runtime state.
+- Fixed headless `get_game_screenshot` handling so unavailable viewport images return a structured runtime error instead of timing out or breaking in Godot's debugger.
+- Added plugin verification coverage for the runtime bridge startup order and screenshot unavailable-image guards in both source and installed plugin copies.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.7.1`.
+
 ## Version 2.7.0
 
 Live editor scene mutation and dock architecture release.

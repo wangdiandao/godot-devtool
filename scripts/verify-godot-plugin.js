@@ -119,6 +119,7 @@ try {
     );
   }
   const editorCommandSource = readFileSync(join(sourceRoot, 'commands', 'editor_commands.gd'), 'utf8');
+  const runtimeCommandSource = readFileSync(join(sourceRoot, 'commands', 'runtime_commands.gd'), 'utf8');
   assert.match(editorCommandSource, /create_action\("godot-devtool add node"\)/, 'live editor add node must use UndoRedo');
   assert.match(editorCommandSource, /create_action\("godot-devtool delete node"\)/, 'live editor delete node must use UndoRedo');
   assert.match(editorCommandSource, /save_scene\(\)/, 'live editor save must call the editor save_scene API');
@@ -131,6 +132,8 @@ try {
   assert.match(runtimeSource, /_load_config/, 'runtime bridge must load the active bridge URL instead of hard-coding the development port');
   assert.match(runtimeSource, /_write_runtime_state/, 'runtime bridge must expose connection and handshake diagnostics while the game runs');
   assert.match(runtimeSource, /helloAttempts/, 'runtime bridge state must include hello attempt diagnostics');
+  assertRuntimeReadyConnectsBeforeStateWrite(runtimeSource);
+  assertRuntimeScreenshotHandlesUnavailableImage(runtimeCommandSource);
   assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
   assertNoUntypedInferenceHazards(sourceRoot);
 
@@ -166,11 +169,14 @@ try {
 
   const installedPluginSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'plugin.gd'), 'utf8');
   const installedRuntimeSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'runtime_bridge.gd'), 'utf8');
+  const installedRuntimeCommandSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'commands', 'runtime_commands.gd'), 'utf8');
   assert.match(installedPluginSource, /dispatch_command/);
   assert.match(installedRuntimeSource, /simulate_action/);
   assert.match(installedRuntimeSource, /get_game_node_properties/);
   assert.match(installedRuntimeSource, /get_game_screenshot/);
   assert.match(installedRuntimeSource, /"context": "runtime"/);
+  assertRuntimeReadyConnectsBeforeStateWrite(installedRuntimeSource);
+  assertRuntimeScreenshotHandlesUnavailableImage(installedRuntimeCommandSource);
 
   console.log('Verified Godot plugin router source, build output, and project installation.');
 } finally {
@@ -200,4 +206,45 @@ function assertNoUntypedInferenceHazards(root) {
       );
     }
   }
+}
+
+function assertRuntimeReadyConnectsBeforeStateWrite(source) {
+  const readyBody = extractGdscriptFunctionBody(source, '_ready');
+  assert.ok(readyBody.includes('_load_config()'), 'runtime bridge _ready must load bridge config before connecting');
+  assert.ok(readyBody.includes('_try_connect()'), 'runtime bridge _ready must initiate the first WebSocket connection');
+  assert.ok(
+    readyBody.indexOf('_load_config()') < readyBody.indexOf('_try_connect()'),
+    'runtime bridge _ready must load config before initiating the first connection'
+  );
+  assert.ok(
+    readyBody.indexOf('_try_connect()') < readyBody.indexOf('_write_runtime_state()'),
+    'runtime bridge _ready must attempt the first connection before writing runtime state'
+  );
+}
+
+function assertRuntimeScreenshotHandlesUnavailableImage(source) {
+  const screenshotBody = extractGdscriptFunctionBody(source, '_screenshot');
+  assert.ok(screenshotBody.includes('DisplayServer.get_name()'), 'runtime screenshot must detect headless display mode before reading the viewport texture');
+  assert.ok(
+    screenshotBody.indexOf('DisplayServer.get_name()') < screenshotBody.indexOf('get_texture().get_image()'),
+    'runtime screenshot must reject headless display mode before get_image'
+  );
+  assert.ok(screenshotBody.includes('get_texture().get_image()'), 'runtime screenshot must capture the viewport image');
+  assert.ok(screenshotBody.includes('image == null'), 'runtime screenshot must handle unavailable headless viewport images');
+  assert.ok(
+    screenshotBody.indexOf('image == null') > screenshotBody.indexOf('get_texture().get_image()'),
+    'runtime screenshot must check the captured image after get_image'
+  );
+  assert.ok(
+    screenshotBody.indexOf('image == null') < screenshotBody.indexOf('image.save_png'),
+    'runtime screenshot must reject unavailable images before save_png'
+  );
+}
+
+function extractGdscriptFunctionBody(source, functionName) {
+  const signature = `func ${functionName}(`;
+  const start = source.indexOf(signature);
+  assert.notEqual(start, -1, `Missing ${functionName} function`);
+  const nextFunction = source.indexOf('\nfunc ', start + signature.length);
+  return source.slice(start, nextFunction === -1 ? undefined : nextFunction);
 }
