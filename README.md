@@ -474,7 +474,7 @@ Godot-backed checks require `GODOT_PATH`:
 
 ```bash
 npm.cmd run verify:runtime
-npm.cmd run check:project -- "E:/test"
+npm.cmd run check:project -- "C:/path/to/your-godot-project"
 ```
 
 ## Troubleshooting

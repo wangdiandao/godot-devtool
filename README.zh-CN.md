@@ -468,7 +468,7 @@ npm.cmd run verify:all
 
 ```bash
 npm.cmd run verify:runtime
-npm.cmd run check:project -- "E:/test"
+npm.cmd run check:project -- "C:/path/to/your-godot-project"
 ```
 
 ## 故障排查

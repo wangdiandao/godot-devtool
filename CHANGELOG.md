@@ -37,11 +37,10 @@ Browser visualizer release.
 
 ## Version 2.5.2
 
-Runtime handshake and validation project completion release.
+Runtime handshake diagnostics release.
 
 - Made the runtime autoload bridge read `.godot-devtool/bridge-config.json` so it follows the installed MCP WebSocket URL instead of relying on a hard-coded development port.
 - Added runtime bridge diagnostics in `.godot-devtool/runtime-state.json`, including socket state, hello acknowledgement, hello attempt count, bridge URL, session id, and last connection error.
-- Completed `E:/test` as a playable block-based survivor-like validation project with level-up choices, new attack modes, projectile upgrades, restart flow, HUD state, export metadata, and Windows export artifacts.
 - Added regression coverage requiring runtime bridge config loading and handshake-state diagnostics.
 - Synchronized package, plugin, README, changelog, roadmap, verification metadata, and release zip links to `2.5.2`.
 
@@ -66,7 +65,7 @@ MCP validation hardening release.
 - Fixed `project_input_action` writes to preserve Godot project-setting literals and native `InputEvent*` syntax.
 - Added runtime `hello` registration with `context: "runtime"` and a versioned editor `hello` -> `hello_ack` handshake with session id, retry, heartbeat, and dock status.
 - Made WebSocket wrappers surface failed editor/runtime receipts as MCP errors and aligned advertised editor routes with installed plugin implementations.
-- Added regression coverage for 2.5.0 validation hardening across plugin, tool, roadmap, and `E:/test`-style project checks.
+- Added regression coverage for 2.5.0 validation hardening across plugin, tool, roadmap, and project checks.
 
 ## Version 2.4.1
 

@@ -37,11 +37,10 @@ Browser visualizer 版本。
 
 ## 2.5.2
 
-运行时握手与验证项目完成版本。
+运行时握手诊断版本。
 
 - 让 runtime autoload bridge 读取 `.godot-devtool/bridge-config.json`，跟随安装时写入的 MCP WebSocket URL，不再依赖硬编码开发端口。
 - 在 `.godot-devtool/runtime-state.json` 增加 runtime bridge 诊断状态，包含 socket 状态、hello ack、hello 尝试次数、bridge URL、session id 和最近连接错误。
-- 完成 `E:/test` 方块 survivor-like 验证项目，补齐升级选择、新攻击方式、投射物升级、重开流程、HUD 状态、导出 metadata 和 Windows 导出产物。
 - 增加回归验证，要求 runtime bridge 读取配置并暴露握手状态诊断。
 - 将 package、插件、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.5.2`。
 
@@ -66,7 +65,7 @@ MCP 验证加固版本。
 - 修复 `project_input_action` 写入逻辑，保留 Godot project-setting 字面量和原生 `InputEvent*` 语法。
 - 增加带 `context: "runtime"` 的 runtime `hello` 注册，并为 editor bridge 增加带 session id、重试、heartbeat 和 dock 状态的 `hello` -> `hello_ack` 握手。
 - 让 WebSocket 封装器把失败的 editor/runtime 回执暴露为 MCP 错误，并让已公开 editor 路由与已安装插件实现对齐。
-- 增加覆盖插件、工具、roadmap 和 `E:/test` 风格项目检查的 2.5.0 回归验证。
+- 增加覆盖插件、工具、roadmap 和项目检查的 2.5.0 回归验证。
 
 ## 2.4.1
 
