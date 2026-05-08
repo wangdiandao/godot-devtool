@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.7.2
+
+Dock 状态稳定性版本。
+
+- 修复 `GDT` dock：状态刷新改为节流，Label、按钮和状态点只在值变化时更新，避免 Godot editor dock 持续闪烁。
+- 修复 editor bridge 启动路径：`_enter_tree()` 会在创建状态 dock 前主动发起首次 WebSocket 连接。
+- 修复 editor 和 runtime bridge 的重试节流逻辑，避免 Godot 快速启动时首次连接被跳过。
+- 增加插件验证覆盖，检查 dock 刷新稳定性、editor 启动连接顺序，以及源插件和安装副本中的首次连接节流防护。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.7.2`。
+
 ## 2.7.1
 
 Runtime bridge bugfix 版本。

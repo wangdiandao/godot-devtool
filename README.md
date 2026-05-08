@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.7.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.7.2-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.7.1 keeps the 2.7 live editor workflow and fixes runtime bridge startup plus headless screenshot failure handling.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.7.2 stabilizes the 2.7 dock status panel, restores first editor bridge connection, and keeps the runtime bridge startup plus headless screenshot fixes.
 
 ## Architecture
 
@@ -41,12 +41,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.7.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.7.1/godot-devtool-build-2.7.1.zip)
+   [godot-devtool-build-2.7.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.7.2/godot-devtool-build-2.7.2.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.7.1.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.7.2.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:

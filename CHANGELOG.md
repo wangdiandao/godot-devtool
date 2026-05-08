@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.7.2
+
+Dock status stability release.
+
+- Fixed the `GDT` dock so status refresh is throttled and labels, buttons, and status dots are updated only when values change, preventing continuous dock flicker in the Godot editor.
+- Fixed the editor bridge startup path so `_enter_tree()` initiates the first WebSocket connection before building the status dock.
+- Fixed editor and runtime bridge retry throttling so the first connection attempt is never skipped during fast Godot startup.
+- Added plugin verification coverage for dock refresh stability, editor startup connection order, and first-attempt throttle guards in both source and installed plugin copies.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.7.2`.
+
 ## Version 2.7.1
 
 Runtime bridge bugfix release.

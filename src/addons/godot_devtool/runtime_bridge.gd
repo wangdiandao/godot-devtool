@@ -8,7 +8,7 @@ const REQUIRED_RUNTIME_PROPERTY_ROUTE := "get_game_node_properties"
 const REQUIRED_RUNTIME_SCREENSHOT_ROUTE := "get_game_screenshot"
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const STATE_PATH := "res://.godot-devtool/runtime-state.json"
-const PLUGIN_VERSION := "2.7.1"
+const PLUGIN_VERSION := "2.7.2"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
@@ -61,7 +61,7 @@ func _process(_delta: float) -> void:
 
 func _try_connect() -> void:
 	var now := Time.get_ticks_msec()
-	if now - _last_connect_attempt_ms < 1000:
+	if _last_connect_attempt_ms > 0 and now - _last_connect_attempt_ms < 1000:
 		return
 	_last_connect_attempt_ms = now
 	_reset_registration_state()

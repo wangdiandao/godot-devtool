@@ -1,14 +1,14 @@
 ---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.7.1 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.7.2 MCP server."
 metadata:
-  version: "2.7.1"
+  version: "2.7.2"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.7.1.
+Compatibility: `godot-devtool` 2.7.2.
 
 Tool catalog: All 227 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat.
 

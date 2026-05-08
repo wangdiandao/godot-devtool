@@ -4,11 +4,12 @@ extends EditorPlugin
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const RUNTIME_STATE_PATH := "res://.godot-devtool/runtime-state.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.7.1"
+const PLUGIN_VERSION := "2.7.2"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
 const HEARTBEAT_STALE_MS := 15000
+const STATUS_REFRESH_INTERVAL_MS := 500
 
 var _socket := WebSocketPeer.new()
 var _router := CommandRouter.new()
@@ -47,10 +48,12 @@ var _refresh_button: Button
 var _last_command := ""
 var _last_receipt_key := "none"
 var _last_error := ""
+var _last_status_update_ms := 0
 
 func _enter_tree() -> void:
 	_session_id = "editor-%s-%d" % [str(OS.get_process_id()), Time.get_ticks_msec()]
 	_load_config()
+	_try_connect()
 	_create_status_dock()
 	set_process(true)
 
@@ -82,7 +85,7 @@ func _process(_delta: float) -> void:
 	_maybe_send_heartbeat()
 	while _socket.get_available_packet_count() > 0:
 		_handle_packet(_socket.get_packet().get_string_from_utf8())
-	_update_status_panel()
+	_update_status_panel_if_due()
 
 func _create_status_dock() -> void:
 	_dock = VBoxContainer.new()
@@ -210,7 +213,7 @@ func _load_config() -> void:
 
 func _try_connect() -> void:
 	var now := Time.get_ticks_msec()
-	if now - _last_connect_attempt_ms < 1000:
+	if _last_connect_attempt_ms > 0 and now - _last_connect_attempt_ms < 1000:
 		return
 	_last_connect_attempt_ms = now
 	_socket = WebSocketPeer.new()
@@ -318,9 +321,16 @@ func _send(message: Dictionary) -> void:
 		return
 	_socket.send_text(JSON.stringify(message))
 
+func _update_status_panel_if_due() -> void:
+	var now := Time.get_ticks_msec()
+	if _last_status_update_ms > 0 and now - _last_status_update_ms < STATUS_REFRESH_INTERVAL_MS:
+		return
+	_update_status_panel()
+
 func _update_status_panel() -> void:
 	if not _primary_status_label:
 		return
+	_last_status_update_ms = Time.get_ticks_msec()
 	var runtime_state := _read_runtime_state()
 	_set_primary_status()
 	_set_status_dot(_server_status_dot, "ok")
@@ -340,12 +350,8 @@ func _update_status_panel() -> void:
 	_set_status_text(_last_command_label, "last_command_label", _last_command if _last_command != "" else _ui_text("none"))
 	_set_status_text(_last_receipt_label, "last_receipt_label", _ui_text(_last_receipt_key))
 	_set_status_text(_last_error_label, "last_error_label", _last_error if _last_error != "" else _ui_text("none"))
-	if _reconnect_button:
-		_reconnect_button.text = _ui_text("reconnect")
-		_reconnect_button.tooltip_text = _ui_text("reconnect_tooltip")
-	if _refresh_button:
-		_refresh_button.text = _ui_text("refresh")
-		_refresh_button.tooltip_text = _ui_text("refresh_tooltip")
+	_set_button_text(_reconnect_button, _ui_text("reconnect"), _ui_text("reconnect_tooltip"))
+	_set_button_text(_refresh_button, _ui_text("refresh"), _ui_text("refresh_tooltip"))
 
 func _handshake_status_text() -> String:
 	if not _connected:
@@ -377,7 +383,7 @@ func _set_primary_status() -> void:
 	elif state == WebSocketPeer.STATE_CLOSING:
 		primary_text = _ui_text("primary_closing")
 		level = "warn"
-	_primary_status_label.text = primary_text
+	_set_label_text(_primary_status_label, primary_text)
 	_set_status_dot(_primary_status_dot, level)
 
 func _editor_status_level() -> String:
@@ -477,18 +483,35 @@ func _read_runtime_state() -> Dictionary:
 func _set_status_dot(dot: ColorRect, level: String) -> void:
 	if not dot:
 		return
+	var next_color := Color(0.55, 0.62, 0.72)
 	match level:
 		"ok":
-			dot.color = Color(0.39, 0.82, 0.56)
+			next_color = Color(0.39, 0.82, 0.56)
 		"warn":
-			dot.color = Color(0.94, 0.78, 0.36)
+			next_color = Color(0.94, 0.78, 0.36)
 		"error":
-			dot.color = Color(1.0, 0.48, 0.45)
-		_:
-			dot.color = Color(0.55, 0.62, 0.72)
+			next_color = Color(1.0, 0.48, 0.45)
+	if dot.color == next_color:
+		return
+	dot.color = next_color
 
 func _set_status_text(label: Label, label_key: String, value: String) -> void:
-	label.text = "%s: %s" % [_ui_text(label_key), value]
+	_set_label_text(label, "%s: %s" % [_ui_text(label_key), value])
+
+func _set_label_text(label: Label, next_text: String) -> void:
+	if not label:
+		return
+	if label.text == next_text:
+		return
+	label.text = next_text
+
+func _set_button_text(button: Button, next_text: String, next_tooltip: String) -> void:
+	if not button:
+		return
+	if button.text != next_text:
+		button.text = next_text
+	if button.tooltip_text != next_tooltip:
+		button.tooltip_text = next_tooltip
 
 func _ui_text(key: String) -> String:
 	var zh := _uses_simplified_chinese()

@@ -102,6 +102,9 @@ try {
   assert.match(pluginSource, /(刷新状态|\\u5237\\u65b0\\u72b6\\u6001)/, 'plugin.gd status dock must include Simplified Chinese refresh action');
   assert.match(pluginSource, /Last Command/, 'plugin.gd status dock must show the most recent command');
   assert.match(pluginSource, /(最近命令|\\u6700\\u8fd1\\u547d\\u4ee4)/, 'plugin.gd status dock must include Simplified Chinese command label');
+  assertEditorEnterTreeInitiatesConnection(pluginSource);
+  assertConnectThrottleAllowsFirstAttempt(pluginSource, 'editor plugin');
+  assertDockStatusUpdatesAreStable(pluginSource);
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
   for (const liveEditorCommand of [
@@ -133,6 +136,7 @@ try {
   assert.match(runtimeSource, /_write_runtime_state/, 'runtime bridge must expose connection and handshake diagnostics while the game runs');
   assert.match(runtimeSource, /helloAttempts/, 'runtime bridge state must include hello attempt diagnostics');
   assertRuntimeReadyConnectsBeforeStateWrite(runtimeSource);
+  assertConnectThrottleAllowsFirstAttempt(runtimeSource, 'runtime bridge');
   assertRuntimeScreenshotHandlesUnavailableImage(runtimeCommandSource);
   assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
   assertNoUntypedInferenceHazards(sourceRoot);
@@ -175,7 +179,11 @@ try {
   assert.match(installedRuntimeSource, /get_game_node_properties/);
   assert.match(installedRuntimeSource, /get_game_screenshot/);
   assert.match(installedRuntimeSource, /"context": "runtime"/);
+  assertEditorEnterTreeInitiatesConnection(installedPluginSource);
+  assertConnectThrottleAllowsFirstAttempt(installedPluginSource, 'installed editor plugin');
+  assertDockStatusUpdatesAreStable(installedPluginSource);
   assertRuntimeReadyConnectsBeforeStateWrite(installedRuntimeSource);
+  assertConnectThrottleAllowsFirstAttempt(installedRuntimeSource, 'installed runtime bridge');
   assertRuntimeScreenshotHandlesUnavailableImage(installedRuntimeCommandSource);
 
   console.log('Verified Godot plugin router source, build output, and project installation.');
@@ -220,6 +228,67 @@ function assertRuntimeReadyConnectsBeforeStateWrite(source) {
     readyBody.indexOf('_try_connect()') < readyBody.indexOf('_write_runtime_state()'),
     'runtime bridge _ready must attempt the first connection before writing runtime state'
   );
+}
+
+function assertEditorEnterTreeInitiatesConnection(source) {
+  const enterTreeBody = extractGdscriptFunctionBody(source, '_enter_tree');
+  assert.ok(enterTreeBody.includes('_load_config()'), 'plugin.gd _enter_tree must load bridge config before connecting');
+  assert.ok(enterTreeBody.includes('_try_connect()'), 'plugin.gd _enter_tree must initiate the first WebSocket connection');
+  assert.ok(
+    enterTreeBody.indexOf('_load_config()') < enterTreeBody.indexOf('_try_connect()'),
+    'plugin.gd _enter_tree must load config before initiating the first connection'
+  );
+  assert.ok(
+    enterTreeBody.indexOf('_try_connect()') < enterTreeBody.indexOf('_create_status_dock()'),
+    'plugin.gd _enter_tree must start connecting before building the status dock'
+  );
+}
+
+function assertConnectThrottleAllowsFirstAttempt(source, label) {
+  const tryConnectBody = extractGdscriptFunctionBody(source, '_try_connect');
+  assert.ok(
+    tryConnectBody.includes('_last_connect_attempt_ms > 0'),
+    `${label} _try_connect must not throttle the first connection attempt after startup`
+  );
+  assert.ok(
+    tryConnectBody.indexOf('_last_connect_attempt_ms > 0') < tryConnectBody.indexOf('now - _last_connect_attempt_ms < 1000'),
+    `${label} _try_connect must check for a previous attempt before applying retry throttling`
+  );
+}
+
+function assertDockStatusUpdatesAreStable(source) {
+  assert.match(source, /STATUS_REFRESH_INTERVAL_MS := \d+/, 'plugin.gd dock status refresh must be throttled');
+  const processBody = extractGdscriptFunctionBody(source, '_process');
+  assert.ok(
+    processBody.trimEnd().endsWith('_update_status_panel_if_due()'),
+    'plugin.gd _process must use a throttled status-panel refresh instead of rewriting the dock every frame'
+  );
+
+  const throttledBody = extractGdscriptFunctionBody(source, '_update_status_panel_if_due');
+  assert.ok(throttledBody.includes('Time.get_ticks_msec()'), 'plugin.gd throttled status refresh must use monotonic time');
+  assert.ok(throttledBody.includes('STATUS_REFRESH_INTERVAL_MS'), 'plugin.gd throttled status refresh must honor STATUS_REFRESH_INTERVAL_MS');
+  assert.ok(throttledBody.includes('_update_status_panel()'), 'plugin.gd throttled status refresh must still update the dock when due');
+
+  const labelBody = extractGdscriptFunctionBody(source, '_set_label_text');
+  assert.ok(labelBody.includes('label.text == next_text'), 'plugin.gd dock label updates must be idempotent');
+  assert.ok(
+    labelBody.indexOf('label.text == next_text') < labelBody.indexOf('label.text = next_text'),
+    'plugin.gd dock labels must avoid assigning unchanged text'
+  );
+
+  const statusTextBody = extractGdscriptFunctionBody(source, '_set_status_text');
+  assert.ok(statusTextBody.includes('_set_label_text'), 'plugin.gd status rows must use the idempotent label setter');
+
+  const dotBody = extractGdscriptFunctionBody(source, '_set_status_dot');
+  assert.ok(dotBody.includes('next_color'), 'plugin.gd dock status dots must compute the next color before assignment');
+  assert.ok(dotBody.includes('dot.color == next_color'), 'plugin.gd dock status dots must avoid assigning unchanged colors');
+
+  const updateBody = extractGdscriptFunctionBody(source, '_update_status_panel');
+  assert.ok(updateBody.includes('_set_button_text'), 'plugin.gd dock buttons must use idempotent text/tooltip updates');
+
+  const buttonBody = extractGdscriptFunctionBody(source, '_set_button_text');
+  assert.ok(buttonBody.includes('button.text != next_text'), 'plugin.gd dock buttons must avoid assigning unchanged text');
+  assert.ok(buttonBody.includes('button.tooltip_text != next_tooltip'), 'plugin.gd dock buttons must avoid assigning unchanged tooltips');
 }
 
 function assertRuntimeScreenshotHandlesUnavailableImage(source) {
