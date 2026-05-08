@@ -1,6 +1,8 @@
 import { createServer, type Server as HttpServer } from 'node:http';
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 type BridgeContext = 'editor' | 'runtime';
 
@@ -106,6 +108,24 @@ class WebSocketBridge extends EventEmitter {
     this.authTokens.set(normalizeProjectPath(projectPath), authToken);
   }
 
+  private resolveProjectAuthToken(projectPath: string): string | undefined {
+    const normalizedProjectPath = normalizeProjectPath(projectPath);
+    const cachedToken = this.authTokens.get(normalizedProjectPath);
+    if (cachedToken) return cachedToken;
+
+    try {
+      const configPath = join(projectPath, '.godot-devtool', 'bridge-config.json');
+      if (!existsSync(configPath)) return undefined;
+      const parsed = JSON.parse(readFileSync(configPath, 'utf8')) as { authToken?: unknown };
+      const authToken = typeof parsed.authToken === 'string' ? parsed.authToken : '';
+      if (!authToken) return undefined;
+      this.authTokens.set(normalizedProjectPath, authToken);
+      return authToken;
+    } catch {
+      return undefined;
+    }
+  }
+
   async sendCommand(projectPath: string, context: BridgeContext, command: string, payload: Record<string, unknown>, timeoutMs = 10000): Promise<BridgeReceipt> {
     await this.start(this.port);
     const client = [...this.clients.values()].find((candidate) => (
@@ -171,7 +191,7 @@ class WebSocketBridge extends EventEmitter {
       const now = new Date().toISOString();
       client.context = message.context === 'runtime' ? 'runtime' : 'editor';
       client.projectPath = String(message.projectPath ?? '');
-      const expectedToken = this.authTokens.get(normalizeProjectPath(client.projectPath));
+      const expectedToken = this.resolveProjectAuthToken(client.projectPath);
       const receivedToken = typeof message.authToken === 'string' ? message.authToken : '';
       if (!expectedToken || receivedToken !== expectedToken) {
         this.sendFrame(client.socket, JSON.stringify({

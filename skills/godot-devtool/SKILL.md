@@ -1,14 +1,14 @@
 ---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.7.2 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.7.3 MCP server."
 metadata:
-  version: "2.7.2"
+  version: "2.7.3"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.7.2.
+Compatibility: `godot-devtool` 2.7.3.
 
 Tool catalog: All 227 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat.
 
@@ -39,6 +39,19 @@ command = "node"
 args = ["E:/godot-devtool/build/index.js"]
 env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_PORT = "8766" }
 ```
+
+## MCP Server Lifetime
+
+Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-devtool/build/index.js` MCP process running for the whole Godot editor or game-runtime session.
+
+The MCP process owns the local WebSocket bridge on `GODOT_DEVTOOL_WS_PORT` (default `8766`). The `GDT` dock can show `Registered`, and `editor_ws` / `runtime_ws` tools can work, only while that process is still listening.
+
+If the dock shows `Unregistered` or runtime state stops updating, check the listener before changing project code:
+
+    plugin_status -> confirms installed plugin files, WebSocket port, and active bridge clients
+    PowerShell: Get-NetTCPConnection -LocalPort 8766
+
+Do not start a short-lived hello probe and then treat its `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; the dock will return to `Unregistered` after the listening process exits.
 
 ## Context Budget Rules
 

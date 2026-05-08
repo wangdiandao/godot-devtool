@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.7.3
+
+Stable MCP bridge lifecycle release.
+
+- Fixed long-running MCP WebSocket bridge sessions so editor/runtime `hello` authentication can lazily load the installed project's `.godot-devtool/bridge-config.json` token instead of requiring a prior `plugin_status` call in the same process.
+- Added security regression coverage for the lazy project-auth hello path to prevent installed projects from staying unauthorized after a fresh MCP server start.
+- Updated the bundled Skill to state that `node E:/godot-devtool/build/index.js` must keep running for dock `Registered`, `editor_ws`, and `runtime_ws` routes to remain available.
+- Verified the install-to-runtime chain with a fresh temporary Godot project, including MCP stdio initialization, plugin install/status, WebSocket bridge handshake, project run, and runtime route smoke checks.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.7.3`.
+
 ## Version 2.7.2
 
 Dock status stability release.

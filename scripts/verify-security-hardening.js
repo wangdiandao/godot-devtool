@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { connect } from 'node:net';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -64,6 +64,36 @@ try {
     'unauthenticated bridge hello must not register a client'
   );
   unauthorizedSocket.destroy();
+
+  const lazyProjectPath = await mkdtemp(join(tmpdir(), 'godot-devtool-security-lazy-auth-'));
+  await mkdir(join(lazyProjectPath, '.godot-devtool'), { recursive: true });
+  await writeFile(join(lazyProjectPath, 'project.godot'), '[application]\nconfig/name="Lazy Auth Fixture"\n', 'utf8');
+  await writeFile(join(lazyProjectPath, '.godot-devtool', 'bridge-config.json'), JSON.stringify({
+    mode: 'websocket',
+    instanceId: 'lazy-auth-fixture',
+    projectPath: lazyProjectPath,
+    host: '127.0.0.1',
+    port: bridgePort,
+    url: `ws://127.0.0.1:${bridgePort}`,
+    authToken: 'lazy-auth-token-with-enough-entropy',
+  }, null, 2), 'utf8');
+  const lazySocket = await openWebSocket(bridgePort);
+  sendMaskedTextFrame(lazySocket, JSON.stringify({
+    type: 'hello',
+    context: 'editor',
+    projectPath: lazyProjectPath,
+    protocolVersion: 1,
+    sessionId: 'lazy-auth-editor',
+    authToken: 'lazy-auth-token-with-enough-entropy',
+  }));
+  await delay(150);
+  assert.equal(
+    bridge.status(lazyProjectPath).clients.length,
+    1,
+    'WebSocket bridge must lazily load project auth from .godot-devtool/bridge-config.json during hello'
+  );
+  lazySocket.destroy();
+  await rm(lazyProjectPath, { recursive: true, force: true });
 
   const packageJson = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
   assert.match(packageJson.scripts['verify:all'], /verify:runtime/, 'verify:all must include verify:runtime');

@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.7.3
+
+稳定 MCP bridge 生命周期版本。
+
+- 修复长时间运行的 MCP WebSocket bridge：editor/runtime `hello` 鉴权会按需读取已安装项目的 `.godot-devtool/bridge-config.json` token，不再要求同一进程里先调用过 `plugin_status`。
+- 增加 security 回归覆盖，验证 lazy project-auth hello 路径，避免 fresh MCP server 启动后已安装项目一直处于 unauthorized。
+- 更新内置 Skill，明确 `node E:/godot-devtool/build/index.js` 必须持续运行，dock `Registered`、`editor_ws` 和 `runtime_ws` 路由才能保持可用。
+- 使用全新临时 Godot 项目验证 install-to-runtime 全链路，包括 MCP stdio 初始化、插件安装/status、WebSocket bridge 握手、项目运行和 runtime 路由 smoke checks。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.7.3`。
+
 ## 2.7.2
 
 Dock 状态稳定性版本。
