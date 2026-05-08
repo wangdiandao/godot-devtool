@@ -5,14 +5,23 @@ import { fileURLToPath } from 'url';
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const buildDir = path.join(__dirname, '..', 'build');
 
 // Make the build/index.js file executable
-fs.chmodSync(path.join(__dirname, '..', 'build', 'index.js'), '755');
+fs.chmodSync(path.join(buildDir, 'index.js'), '755');
+
+for (const staleBuildArtifact of [
+  'survivors_behavior_test.log',
+  'visual_probe.gd',
+]) {
+  fs.removeSync(path.join(buildDir, staleBuildArtifact));
+}
 
 // Copy the scripts directory to the build directory
 try {
   // Ensure the build/scripts directory exists
-  fs.ensureDirSync(path.join(__dirname, '..', 'build', 'scripts'));
+  fs.removeSync(path.join(buildDir, 'scripts'));
+  fs.ensureDirSync(path.join(buildDir, 'scripts'));
 
   const operationFragments = [
     '00_entry_common.gd',
@@ -33,20 +42,20 @@ try {
     .join('');
 
   fs.writeFileSync(
-    path.join(__dirname, '..', 'build', 'scripts', 'godot_operations.gd'),
+    path.join(buildDir, 'scripts', 'godot_operations.gd'),
     operationsSource
   );
 
   console.log('Successfully generated godot_operations.gd from source fragments');
 
   const sourceAddonDir = path.join(__dirname, '..', 'src', 'addons', 'godot_devtool');
-  const buildAddonDir = path.join(__dirname, '..', 'build', 'addons', 'godot_devtool');
+  const buildAddonDir = path.join(buildDir, 'addons', 'godot_devtool');
   fs.removeSync(buildAddonDir);
   fs.copySync(sourceAddonDir, buildAddonDir);
   console.log('Successfully copied godot-devtool Godot addon into build output');
 
   const sourceSkillDir = path.join(__dirname, '..', 'skills', 'godot-devtool');
-  const buildSkillDir = path.join(__dirname, '..', 'build', 'skills', 'godot-devtool');
+  const buildSkillDir = path.join(buildDir, 'skills', 'godot-devtool');
   fs.removeSync(buildSkillDir);
   fs.ensureDirSync(buildSkillDir);
   fs.copyFileSync(

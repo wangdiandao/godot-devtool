@@ -247,6 +247,33 @@ if (!moveNode || moveNode.canonicalName !== 'node_move') {
   process.exit(1);
 }
 
+const requiredLiveEditorSceneTools = [
+  'editor_add_node',
+  'editor_delete_node',
+  'editor_rename_node',
+  'editor_move_node',
+  'editor_duplicate_node',
+  'editor_save_scene',
+];
+for (const toolName of requiredLiveEditorSceneTools) {
+  const tool = toolsByName.get(toolName);
+  if (!tool || tool.transport !== 'editor_ws' || tool.riskLevel !== 'write' || !tool.requiresEditor || tool.requiresRuntime) {
+    console.error(`${toolName} must be an editor_ws write route that requires the live editor and not the runtime`);
+    process.exit(1);
+  }
+}
+if (!toolsByName.get('editor_inspector_set_properties')?.inputSchema?.properties?.autoSave) {
+  console.error('editor_inspector_set_properties must expose autoSave for live editor property writes');
+  process.exit(1);
+}
+for (const toolName of ['add_node', 'delete_node', 'rename_node', 'node_move', 'node_duplicate', 'update_node_properties']) {
+  const tool = toolsByName.get(toolName);
+  if (!tool?.inputSchema?.properties?.mode || !tool.inputSchema.properties.mode.enum?.includes('editor_live')) {
+    console.error(`${toolName} must expose mode=editor_live for realtime editor updates`);
+    process.exit(1);
+  }
+}
+
 for (const [toolName, expectedRisk] of Object.entries({
   tilemap_set_cell: 'write',
   tilemap_fill_rect: 'write',
@@ -384,6 +411,12 @@ const editorRouteAliases = {
   editor_undo_redo: ['undo', 'redo'],
   editor_inspector_get_properties: ['inspector_get_properties'],
   editor_inspector_set_properties: ['inspector_set_properties'],
+  editor_add_node: ['editor_add_node'],
+  editor_delete_node: ['editor_delete_node'],
+  editor_rename_node: ['editor_rename_node'],
+  editor_move_node: ['editor_move_node'],
+  editor_duplicate_node: ['editor_duplicate_node'],
+  editor_save_scene: ['editor_save_scene'],
 };
 for (const toolName of advertisedEditorWsTools) {
   const acceptedRouteNames = editorRouteAliases[toolName] ?? [toolName];

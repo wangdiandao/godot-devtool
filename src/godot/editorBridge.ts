@@ -38,6 +38,12 @@ export type EditorBridgeCommandType =
   | 'redo'
   | 'inspector_get_properties'
   | 'inspector_set_properties'
+  | 'editor_add_node'
+  | 'editor_delete_node'
+  | 'editor_rename_node'
+  | 'editor_move_node'
+  | 'editor_duplicate_node'
+  | 'editor_save_scene'
   | string;
 
 export interface EditorBridgeConfig {

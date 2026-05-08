@@ -4,7 +4,7 @@ extends EditorPlugin
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const RUNTIME_STATE_PATH := "res://.godot-devtool/runtime-state.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.6.5"
+const PLUGIN_VERSION := "2.7.0"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
@@ -32,6 +32,13 @@ var _runtime_status_label: Label
 var _runtime_status_dot: ColorRect
 var _transport_label: Label
 var _bridge_url_label: Label
+var _live_editor_scene_label: Label
+var _live_editor_selection_label: Label
+var _live_editor_status_label: Label
+var _live_editor_save_mode_label: Label
+var _runtime_game_label: Label
+var _runtime_session_label: Label
+var _runtime_last_seen_label: Label
 var _last_command_label: Label
 var _last_receipt_label: Label
 var _last_error_label: Label
@@ -80,7 +87,8 @@ func _process(_delta: float) -> void:
 func _create_status_dock() -> void:
 	_dock = VBoxContainer.new()
 	_dock.name = "GDT"
-	_dock.custom_minimum_size = Vector2(280, 0)
+	_dock.custom_minimum_size = Vector2(320, 0)
+	_dock.add_theme_constant_override("separation", 10)
 
 	var title_row := HBoxContainer.new()
 	_dock.add_child(title_row)
@@ -115,6 +123,17 @@ func _create_status_dock() -> void:
 
 	_transport_label = _create_status_label(connection_section, "transport_label")
 	_bridge_url_label = _transport_label
+
+	var live_editor_section := _create_status_section("live_editor_section")
+	_live_editor_scene_label = _create_status_label(live_editor_section, "current_scene_label")
+	_live_editor_selection_label = _create_status_label(live_editor_section, "selection_label")
+	_live_editor_status_label = _create_status_label(live_editor_section, "live_edits_label")
+	_live_editor_save_mode_label = _create_status_label(live_editor_section, "save_mode_label")
+
+	var runtime_section := _create_status_section("runtime_section")
+	_runtime_game_label = _create_status_label(runtime_section, "runtime_game_label")
+	_runtime_session_label = _create_status_label(runtime_section, "runtime_session_label")
+	_runtime_last_seen_label = _create_status_label(runtime_section, "runtime_last_seen_label")
 
 	var activity_section := _create_status_section("activity_section")
 	_last_command_label = _create_status_label(activity_section, "last_command_label")
@@ -277,7 +296,12 @@ func _handle_packet(packet_text: String) -> void:
 	var receipt_status := "completed" if bool(result.get("ok", false)) else "failed"
 	var error_text := str(result.get("error", ""))
 	_last_command = command_name
-	_last_receipt_key = "receipt_completed" if receipt_status == "completed" else "receipt_failed"
+	if receipt_status == "completed" and command_name == "editor_save_scene":
+		_last_receipt_key = "receipt_saved"
+	elif receipt_status == "completed" and command_name.begins_with("editor_"):
+		_last_receipt_key = "receipt_live_editor"
+	else:
+		_last_receipt_key = "receipt_completed" if receipt_status == "completed" else "receipt_failed"
 	_last_error = error_text
 	_update_status_panel()
 	_send({
@@ -297,22 +321,22 @@ func _send(message: Dictionary) -> void:
 func _update_status_panel() -> void:
 	if not _primary_status_label:
 		return
-	var state := _socket.get_ready_state()
-	var status_key := "status_disconnected"
-	if state == WebSocketPeer.STATE_CONNECTING:
-		status_key = "status_connecting"
-	elif state == WebSocketPeer.STATE_OPEN:
-		status_key = "status_connected"
-	elif state == WebSocketPeer.STATE_CLOSING:
-		status_key = "status_closing"
-	_set_primary_status(status_key)
+	var runtime_state := _read_runtime_state()
+	_set_primary_status()
 	_set_status_dot(_server_status_dot, "ok")
 	_set_status_text(_server_status_label, "server_label", _ui_text("server_ready_stdio"))
 	_set_status_dot(_handshake_status_dot, _editor_status_level())
 	_set_status_text(_handshake_label, "handshake_label", _handshake_status_text())
-	_set_status_dot(_runtime_status_dot, _runtime_status_level())
-	_set_status_text(_runtime_status_label, "runtime_bridge_label", _runtime_status_text())
+	_set_status_dot(_runtime_status_dot, _runtime_bridge_level(runtime_state))
+	_set_status_text(_runtime_status_label, "runtime_bridge_label", _runtime_bridge_text(runtime_state))
 	_set_status_text(_transport_label, "transport_label", _bridge_url)
+	_set_status_text(_live_editor_scene_label, "current_scene_label", _current_scene_text())
+	_set_status_text(_live_editor_selection_label, "selection_label", _selection_summary())
+	_set_status_text(_live_editor_status_label, "live_edits_label", _live_edit_status_text())
+	_set_status_text(_live_editor_save_mode_label, "save_mode_label", _save_mode_text())
+	_set_status_text(_runtime_game_label, "runtime_game_label", _runtime_game_text(runtime_state))
+	_set_status_text(_runtime_session_label, "runtime_session_label", _runtime_session_text(runtime_state))
+	_set_status_text(_runtime_last_seen_label, "runtime_last_seen_label", _runtime_last_seen_text(runtime_state))
 	_set_status_text(_last_command_label, "last_command_label", _last_command if _last_command != "" else _ui_text("none"))
 	_set_status_text(_last_receipt_label, "last_receipt_label", _ui_text(_last_receipt_key))
 	_set_status_text(_last_error_label, "last_error_label", _last_error if _last_error != "" else _ui_text("none"))
@@ -333,16 +357,24 @@ func _handshake_status_text() -> String:
 		return _ui_text("handshake_stale")
 	return _ui_text("handshake_registered")
 
-func _set_primary_status(status_key: String) -> void:
+func _set_primary_status() -> void:
 	var primary_text := _ui_text("primary_disconnected")
 	var level := "error"
-	if status_key == "status_connecting":
+	var state := _socket.get_ready_state()
+	if state == WebSocketPeer.STATE_CONNECTING:
 		primary_text = _ui_text("primary_connecting")
 		level = "warn"
-	elif status_key == "status_connected":
-		primary_text = _ui_text("primary_connected") if _hello_acknowledged else _ui_text("primary_waiting")
-		level = "ok" if _hello_acknowledged else "warn"
-	elif status_key == "status_closing":
+	elif state == WebSocketPeer.STATE_OPEN:
+		if not _hello_acknowledged:
+			primary_text = _ui_text("primary_waiting")
+			level = "warn"
+		elif not _edited_scene_root():
+			primary_text = _ui_text("primary_open_scene")
+			level = "warn"
+		else:
+			primary_text = _ui_text("primary_ready_live_editor")
+			level = "ok"
+	elif state == WebSocketPeer.STATE_CLOSING:
 		primary_text = _ui_text("primary_closing")
 		level = "warn"
 	_primary_status_label.text = primary_text
@@ -360,15 +392,78 @@ func _editor_status_level() -> String:
 
 func _runtime_status_text() -> String:
 	var state := _read_runtime_state()
+	return _runtime_bridge_text(state)
+
+func _runtime_bridge_text(state: Dictionary) -> String:
 	if not state.is_empty() and (bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false))):
 		return _ui_text("runtime_connected")
 	return _ui_text("runtime_waiting")
 
 func _runtime_status_level() -> String:
 	var state := _read_runtime_state()
+	return _runtime_bridge_level(state)
+
+func _runtime_bridge_level(state: Dictionary) -> String:
 	if not state.is_empty() and (bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false))):
 		return "ok"
 	return "warn"
+
+func _edited_scene_root() -> Node:
+	return get_editor_interface().get_edited_scene_root()
+
+func _current_scene_text() -> String:
+	var scene_root := _edited_scene_root()
+	if not scene_root:
+		return _ui_text("scene_none")
+	var scene_path := str(scene_root.scene_file_path)
+	if scene_path == "":
+		return "%s (%s)" % [str(scene_root.name), _ui_text("scene_unsaved")]
+	return scene_path
+
+func _selection_summary() -> String:
+	var selection := get_editor_interface().get_selection()
+	if not selection:
+		return _ui_text("none")
+	var selected_nodes: Array = selection.get_selected_nodes()
+	if selected_nodes.is_empty():
+		return _ui_text("selection_none")
+	if selected_nodes.size() == 1:
+		var node: Node = selected_nodes[0] if selected_nodes[0] is Node else null
+		return str(node.get_path()) if node else _ui_text("selection_one")
+	return "%d %s" % [selected_nodes.size(), _ui_text("selection_many")]
+
+func _live_edit_status_text() -> String:
+	if not _connected:
+		return _ui_text("live_edits_bridge_offline")
+	if not _hello_acknowledged:
+		return _ui_text("live_edits_waiting_ack")
+	if _editor_status_level() == "warn":
+		return _ui_text("live_edits_stale")
+	if not _edited_scene_root():
+		return _ui_text("live_edits_open_scene")
+	return _ui_text("live_edits_ready")
+
+func _save_mode_text() -> String:
+	return _ui_text("save_mode_manual")
+
+func _runtime_game_text(state: Dictionary) -> String:
+	if state.is_empty():
+		return _ui_text("runtime_game_not_running")
+	if bool(state.get("connected", false)) or bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false)):
+		return _ui_text("runtime_game_running")
+	return _ui_text("runtime_game_not_running")
+
+func _runtime_session_text(state: Dictionary) -> String:
+	var session_id := str(state.get("sessionId", ""))
+	if session_id == "":
+		return _ui_text("none")
+	return session_id
+
+func _runtime_last_seen_text(state: Dictionary) -> String:
+	var timestamp := str(state.get("timestamp", ""))
+	if timestamp == "":
+		return _ui_text("runtime_never_seen")
+	return timestamp
 
 func _read_runtime_state() -> Dictionary:
 	if not FileAccess.file_exists(RUNTIME_STATE_PATH):
@@ -406,6 +501,10 @@ func _ui_text(key: String) -> String:
 			return "\u8fd0\u884c\u65f6\u6865\u63a5" if zh else "Runtime Bridge"
 		"transport_label":
 			return "\u4f20\u8f93" if zh else "Transport"
+		"live_editor_section":
+			return "\u5b9e\u65f6\u7f16\u8f91\u5668" if zh else "Live Editor"
+		"runtime_section":
+			return "\u8fd0\u884c\u65f6" if zh else "Runtime"
 		"connection_section":
 			return "\u8fde\u63a5" if zh else "Connection"
 		"activity_section":
@@ -419,9 +518,23 @@ func _ui_text(key: String) -> String:
 		"last_command_label":
 			return "\u6700\u8fd1\u547d\u4ee4" if zh else "Last Command"
 		"last_receipt_label":
-			return "\u6700\u8fd1\u56de\u6267" if zh else "Last Receipt"
+			return "\u6700\u8fd1\u7ed3\u679c" if zh else "Last Result"
 		"last_error_label":
 			return "\u6700\u8fd1\u9519\u8bef" if zh else "Last Error"
+		"current_scene_label":
+			return "\u5f53\u524d\u573a\u666f" if zh else "Current Scene"
+		"selection_label":
+			return "\u9009\u62e9" if zh else "Selection"
+		"live_edits_label":
+			return "\u5b9e\u65f6\u4fee\u6539" if zh else "Live Edits"
+		"save_mode_label":
+			return "\u4fdd\u5b58\u6a21\u5f0f" if zh else "Save Mode"
+		"runtime_game_label":
+			return "\u6e38\u620f" if zh else "Game"
+		"runtime_session_label":
+			return "\u8fd0\u884c\u65f6\u4f1a\u8bdd" if zh else "Runtime Session"
+		"runtime_last_seen_label":
+			return "\u6700\u8fd1\u8fd0\u884c\u65f6\u72b6\u6001" if zh else "Last Runtime Seen"
 		"status_disconnected":
 			return "\u672a\u8fde\u63a5" if zh else "Disconnected"
 		"status_connecting":
@@ -438,6 +551,10 @@ func _ui_text(key: String) -> String:
 			return "\u7f16\u8f91\u5668\u6865\u63a5\u5df2\u6ce8\u518c" if zh else "Editor bridge registered"
 		"primary_waiting":
 			return "\u7f16\u8f91\u5668\u6865\u63a5\u7b49\u5f85\u786e\u8ba4" if zh else "Editor bridge waiting for ack"
+		"primary_open_scene":
+			return "\u6253\u5f00\u573a\u666f\u540e\u53ef\u4f7f\u7528\u5b9e\u65f6\u7f16\u8f91\u5de5\u5177" if zh else "Open a scene to use live edit tools"
+		"primary_ready_live_editor":
+			return "\u5df2\u51c6\u5907\u597d\u8fdb\u884c\u5b9e\u65f6\u7f16\u8f91\u4fee\u6539" if zh else "Ready for live editor edits"
 		"primary_closing":
 			return "\u7f16\u8f91\u5668\u6865\u63a5\u6b63\u5728\u5173\u95ed" if zh else "Editor bridge closing"
 		"handshake_disconnected":
@@ -452,8 +569,40 @@ func _ui_text(key: String) -> String:
 			return "\u5df2\u8fde\u63a5" if zh else "Connected"
 		"runtime_waiting":
 			return "\u7b49\u5f85\u6e38\u620f\u8fd0\u884c" if zh else "Waiting for game"
+		"scene_none":
+			return "\u6ca1\u6709\u6253\u5f00\u7684\u573a\u666f" if zh else "No edited scene"
+		"scene_unsaved":
+			return "\u672a\u4fdd\u5b58\u573a\u666f" if zh else "Unsaved scene"
+		"selection_none":
+			return "\u672a\u9009\u62e9" if zh else "None selected"
+		"selection_one":
+			return "\u5df2\u9009\u62e9 1 \u4e2a\u8282\u70b9" if zh else "1 node selected"
+		"selection_many":
+			return "\u4e2a\u8282\u70b9\u5df2\u9009\u62e9" if zh else "nodes selected"
+		"live_edits_bridge_offline":
+			return "\u7f16\u8f91\u5668\u6865\u63a5\u79bb\u7ebf" if zh else "Editor bridge offline"
+		"live_edits_waiting_ack":
+			return "\u7b49\u5f85\u7f16\u8f91\u5668\u6865\u63a5\u786e\u8ba4" if zh else "Waiting for editor bridge ack"
+		"live_edits_stale":
+			return "\u7f16\u8f91\u5668\u5fc3\u8df3\u8fc7\u671f" if zh else "Editor heartbeat stale"
+		"live_edits_open_scene":
+			return "\u6253\u5f00\u573a\u666f\u540e\u53ef\u4fee\u6539" if zh else "Open a scene to edit"
+		"live_edits_ready":
+			return "\u53ef\u4f7f\u7528 UndoRedo \u5b9e\u65f6\u4fee\u6539" if zh else "Ready with UndoRedo live edits"
+		"save_mode_manual":
+			return "\u9ed8\u8ba4\u624b\u52a8\u4fdd\u5b58\uff1bMCP \u547d\u4ee4\u53ef\u5355\u6b21\u8bf7\u6c42 autoSave\u3002" if zh else "Manual by default; autoSave can be requested per MCP command."
+		"runtime_game_running":
+			return "\u6b63\u5728\u8fd0\u884c" if zh else "Running"
+		"runtime_game_not_running":
+			return "\u672a\u8fd0\u884c" if zh else "Not running"
+		"runtime_never_seen":
+			return "\u5c1a\u672a\u770b\u5230" if zh else "Never"
 		"receipt_completed":
 			return "\u5df2\u5b8c\u6210" if zh else "completed"
+		"receipt_live_editor":
+			return "\u5b9e\u65f6\u7f16\u8f91\u5df2\u5b8c\u6210" if zh else "live editor edit completed"
+		"receipt_saved":
+			return "\u573a\u666f\u5df2\u4fdd\u5b58" if zh else "scene saved"
 		"receipt_failed":
 			return "\u5931\u8d25" if zh else "failed"
 		"reconnect":

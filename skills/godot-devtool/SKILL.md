@@ -1,16 +1,16 @@
 ---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.6.5 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.7.0 MCP server."
 metadata:
-  version: "2.6.5"
+  version: "2.7.0"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.6.5.
+Compatibility: `godot-devtool` 2.7.0.
 
-Tool catalog: All 221 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat. 中文：全部 221 个工具以 `get_capabilities` 输出为准，不要把完整工具清单长期放进上下文。
+Tool catalog: All 227 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat.
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
@@ -61,7 +61,7 @@ The MCP client talks to `godot-devtool` over stdio. Choose the operation transpo
     native          -> file, project, index, dependency, safety, audit
     headless_godot  -> scene/resource/script operations Godot must parse or serialize
     process_control -> launch, stop, export, project checks, debug output
-    editor_ws       -> live editor selection, Inspector, UndoRedo, plugin reload
+    editor_ws       -> live editor selection, Inspector, UndoRedo scene edits, scene save, plugin reload
     runtime_ws      -> running-game scene tree, input, screenshots, runtime properties, QA
 
 Default to native/headless. Use WebSocket only when current editor or running game state is required.
@@ -99,6 +99,14 @@ Use headless scene tools for saved scene authoring:
     create_scene, scene_open, add_node, update_node_properties
     node_move, rename_node, node_duplicate, delete_node, save_scene
     resource_create, load_sprite, material, shader
+
+Use live editor tools when the scene is already open in Godot and the user expects the editor to update without a disk reload:
+
+    editor_add_node, editor_delete_node, editor_rename_node
+    editor_move_node, editor_duplicate_node, editor_save_scene
+    editor_inspector_get_properties, editor_inspector_set_properties
+
+Existing node mutation tools can also use `mode: "editor_live"` with `autoSave` when the open editor scene should be modified through UndoRedo instead of rewriting the scene file headlessly.
 
 Prefer Inspector-visible node/resource properties for visual values, tuning values, materials, collision masks, anchors, margins, visibility, and exported values.
 
@@ -184,7 +192,7 @@ For a new game or prototype:
 
 - Read state before writing.
 - Prefer structured tools over raw file edits.
-- Save scenes after meaningful scene changes.
+- Save scenes after meaningful scene changes. For live editor edits, either let the user save in Godot, pass `autoSave: true`, or call `editor_save_scene`; the dock intentionally does not add a constant Save Scene button.
 - Run `check_gdscript_syntax` after script changes.
 - Run `run_project_checks` for project-level validation.
 - Use `filesystem_preview_delete` before delete operations unless the user explicitly named the exact path and asked to delete it.

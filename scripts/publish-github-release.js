@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const packageJson = JSON.parse(await readFile(join(process.cwd(), 'package.json'), 'utf8'));
@@ -82,18 +83,31 @@ function runReleaseGuards(releaseTag) {
 }
 
 function createZip(destination) {
+  const releaseRoot = mkdtempSync(join(tmpdir(), 'godot-devtool-release-'));
+  try {
+    cpSync(join(process.cwd(), 'build'), join(releaseRoot, 'build'), { recursive: true });
+    mkdirSync(join(releaseRoot, 'scripts'), { recursive: true });
+    cpSync(join(process.cwd(), 'scripts', 'build.js'), join(releaseRoot, 'scripts', 'build.js'));
+
+    createZipFromRoot(releaseRoot, destination);
+  } finally {
+    rmSync(releaseRoot, { recursive: true, force: true });
+  }
+}
+
+function createZipFromRoot(sourceRoot, destination) {
   if (process.platform === 'win32') {
     execFileSync('powershell', [
       '-NoProfile',
       '-ExecutionPolicy',
       'Bypass',
       '-Command',
-      `Compress-Archive -Path '${join(process.cwd(), 'build', '*').replaceAll("'", "''")}' -DestinationPath '${destination.replaceAll("'", "''")}' -Force`,
+      `Compress-Archive -Path '${join(sourceRoot, '*').replaceAll("'", "''")}' -DestinationPath '${destination.replaceAll("'", "''")}' -Force`,
     ], { stdio: 'inherit' });
     return;
   }
 
-  execFileSync('zip', ['-r', destination, 'build'], { stdio: 'inherit' });
+  execFileSync('zip', ['-r', destination, 'build', 'scripts'], { cwd: sourceRoot, stdio: 'inherit' });
 }
 
 function releaseExists(repository, releaseTag) {

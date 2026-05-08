@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.7.0
+
+实时编辑器场景修改与 dock 架构版本。
+
+- 增加显式实时 editor 工具，可通过 UndoRedo 在当前打开的 Godot 编辑器场景里添加、删除、重命名、移动、复制节点，并保存场景。
+- 为现有节点修改工具增加 `mode: "editor_live"`，让助手可以在可重复的 headless 文件编辑和实时 editor 修改之间选择，不再强制依赖磁盘重载。
+- 将 `GDT` dock 重新设计为连接、实时编辑器、运行时和活动四个区块，显示当前场景、选择、实时编辑就绪状态、手动保存策略、runtime session、状态新鲜度和最近命令结果。
+- 保持内置 Skill 只使用英文，并调整 GitHub Release 打包，使顶层 `scripts/` 目录只包含 `build.js`。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.7.0`。
+
 ## 2.6.5
 
 Skill 上下文预算优化版本。

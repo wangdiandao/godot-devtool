@@ -75,12 +75,25 @@ try {
   assert.match(pluginSource, /Runtime Bridge/, 'plugin.gd status dock must label the runtime bridge separately');
   assert.match(pluginSource, /Waiting for game/, 'plugin.gd status dock must explain runtime bridge idle state without implying MCP failure');
   assert.match(pluginSource, /Transport/, 'plugin.gd status dock must label WebSocket as transport details');
+  assert.match(pluginSource, /Live Editor/, 'plugin.gd status dock must include a live editor section');
+  assert.match(pluginSource, /Current Scene/, 'plugin.gd status dock must show the current edited scene');
+  assert.match(pluginSource, /Selection/, 'plugin.gd status dock must show the current editor selection');
+  assert.match(pluginSource, /Live Edits/, 'plugin.gd status dock must show whether live editor mutations are available');
+  assert.match(pluginSource, /Save Mode/, 'plugin.gd status dock must show the editor save strategy');
+  assert.match(pluginSource, /Manual by default/, 'plugin.gd status dock must make manual-save behavior explicit');
+  assert.match(pluginSource, /Runtime Session/, 'plugin.gd status dock must show runtime session diagnostics');
+  assert.match(pluginSource, /Last Runtime Seen/, 'plugin.gd status dock must show runtime state freshness');
   assert.match(pluginSource, /Activity/, 'plugin.gd status dock must group command and receipt details under Activity');
+  assert.match(pluginSource, /Last Result/, 'plugin.gd status dock must show the latest command result');
+  assert.doesNotMatch(pluginSource, /_save_scene_button/, 'plugin.gd dock must not expose a persistent Save Scene button');
   assert.match(pluginSource, /MCP (服务|\\u670d\\u52a1)/, 'plugin.gd status dock must include Simplified Chinese server label');
   assert.match(pluginSource, /(通过 stdio 就绪|\\u901a\\u8fc7 stdio \\u5c31\\u7eea)/, 'plugin.gd status dock must include Simplified Chinese stdio availability text');
   assert.match(pluginSource, /(编辑器桥接|\\u7f16\\u8f91\\u5668\\u6865\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese editor bridge label');
   assert.match(pluginSource, /(运行时桥接|\\u8fd0\\u884c\\u65f6\\u6865\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese runtime bridge label');
   assert.match(pluginSource, /(等待游戏运行|\\u7b49\\u5f85\\u6e38\\u620f\\u8fd0\\u884c)/, 'plugin.gd status dock must include Simplified Chinese runtime waiting text');
+  assert.match(pluginSource, /(实时编辑器|\\u5b9e\\u65f6\\u7f16\\u8f91\\u5668)/, 'plugin.gd status dock must include Simplified Chinese live editor label');
+  assert.match(pluginSource, /(当前场景|\\u5f53\\u524d\\u573a\\u666f)/, 'plugin.gd status dock must include Simplified Chinese current scene label');
+  assert.match(pluginSource, /(保存模式|\\u4fdd\\u5b58\\u6a21\\u5f0f)/, 'plugin.gd status dock must include Simplified Chinese save mode label');
   assert.match(pluginSource, /Reconnect/, 'plugin.gd status dock must expose a reconnect action');
   assert.match(pluginSource, /(重新连接|\\u91cd\\u65b0\\u8fde\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese reconnect action');
   assert.match(pluginSource, /_refresh_button/, 'plugin.gd status dock must expose a refresh button');
@@ -91,6 +104,25 @@ try {
   assert.match(pluginSource, /(最近命令|\\u6700\\u8fd1\\u547d\\u4ee4)/, 'plugin.gd status dock must include Simplified Chinese command label');
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
+  for (const liveEditorCommand of [
+    'editor_add_node',
+    'editor_delete_node',
+    'editor_rename_node',
+    'editor_move_node',
+    'editor_duplicate_node',
+    'editor_save_scene',
+  ]) {
+    assert.match(
+      readFileSync(join(sourceRoot, 'commands', 'editor_commands.gd'), 'utf8'),
+      new RegExp(`"${liveEditorCommand}"`),
+      `editor_commands.gd must route ${liveEditorCommand}`
+    );
+  }
+  const editorCommandSource = readFileSync(join(sourceRoot, 'commands', 'editor_commands.gd'), 'utf8');
+  assert.match(editorCommandSource, /create_action\("godot-devtool add node"\)/, 'live editor add node must use UndoRedo');
+  assert.match(editorCommandSource, /create_action\("godot-devtool delete node"\)/, 'live editor delete node must use UndoRedo');
+  assert.match(editorCommandSource, /save_scene\(\)/, 'live editor save must call the editor save_scene API');
+  assert.match(editorCommandSource, /edited\.get_path\(\)/, 'live editor node resolution must accept editor absolute node paths');
   assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
   assert.match(runtimeSource, /"type": "hello"/, 'runtime bridge must send a hello registration message');
   assert.match(runtimeSource, /"context": "runtime"/, 'runtime bridge must register with context runtime');

@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.6.5-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.7.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.6.5 optimizes the bundled Skill so assistants use `get_capabilities` as the dynamic tool-catalog entry point and keep only the active workflow in context.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.7.0 adds live editor scene mutations through the bundled plugin, keeps those edits inside Godot's UndoRedo stack, and redesigns the `GDT` dock around editor/runtime readiness instead of manual reload prompts.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ MCP client
 - The MCP server always runs over stdio.
 - Native routes inspect and edit project files without opening the editor.
 - Headless routes call Godot for scene/resource/script operations.
-- Editor routes use the bundled WebSocket plugin for live selection, Inspector writes, UndoRedo, and plugin reload.
+- Editor routes use the bundled WebSocket plugin for live selection, Inspector writes, UndoRedo scene mutations, scene save, and plugin reload.
 - Runtime routes use the installed autoload bridge for running-game scene tree, properties, input simulation, screenshots, and QA checks.
 - Browser visualizer routes serve a local read-only HTTP dashboard for bridge/client status and live-route orientation.
 
@@ -41,12 +41,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.6.5.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.5/godot-devtool-build-2.6.5.zip)
+   [godot-devtool-build-2.7.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.7.0/godot-devtool-build-2.7.0.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.6.5.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.7.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -181,13 +181,13 @@ Core project tools inspect `project.godot`, list projects, read and update proje
 
 Script, filesystem, and resource tools index GDScript files, read/write scripts, create and attach scripts, run syntax checks, read/write/list/search/delete project files, load/save resources, build dependency graphs, inspect export presets, and preview resource content. Visual workflow tools cover shaders, materials, particles, UI themes/templates, physics bodies and collision layers, navigation regions/agents/meshes, lighting/environment setup, TileMap edits, animation tracks/keyframes, and AnimationTree state machine operations.
 
-Editor tools install and verify the bundled `godot-devtool` plugin, reload it through the WebSocket bridge, read the live editor selection, select nodes, perform UndoRedo, and read/write Inspector properties. Runtime tools work while the game is running: they can read the live scene tree and node properties, set runtime properties, capture screenshots/frames, simulate input actions, inspect UI text/buttons, wait for nodes, navigate agents, monitor properties, record/replay interactions, and run QA-style assertions and stress checks.
+Editor tools install and verify the bundled `godot-devtool` plugin, reload it through the WebSocket bridge, read the live editor selection, select nodes, perform UndoRedo, read/write Inspector properties, and add/delete/rename/move/duplicate nodes in the currently open scene without forcing an external disk reload. The `GDT` dock shows connection state, the active edited scene, current selection, live-edit availability, save mode, runtime session diagnostics, and the latest command result. Runtime tools work while the game is running: they can read the live scene tree and node properties, set runtime properties, capture screenshots/frames, simulate input actions, inspect UI text/buttons, wait for nodes, navigate agents, monitor properties, record/replay interactions, and run QA-style assertions and stress checks.
 
 Browser visualizer tools start, inspect, and stop a local read-only dashboard. Use `browser_visualizer_start` to open a `http://127.0.0.1:<port>/` page that refreshes bridge status, connected editor/runtime clients, pending command count, and the existing screenshot/scene/input route names to call from the MCP client.
 
 The table below is generated from the actual tool definitions so the README stays aligned with the MCP server.
 
-## All 221 Tools
+## All 227 Tools
 
 ### Project Tools (18)
 | Tool | Description |
@@ -304,12 +304,18 @@ The table below is generated from the actual tool definitions so the README stay
 | `script_create` | Create a GDScript file inside a Godot project |
 | `script_write` | Write full GDScript content with overwrite protection |
 
-### Editor Tools (9)
+### Editor Tools (15)
 | Tool | Description |
 |------|-------------|
+| `editor_add_node` | Add a node to the currently open editor scene through UndoRedo without externally rewriting the scene file |
+| `editor_delete_node` | Delete a non-root node from the currently open editor scene through UndoRedo |
+| `editor_duplicate_node` | Duplicate a node in the currently open editor scene through UndoRedo |
 | `editor_get_selection` | Return the current editor selection when a live editor bridge is available |
 | `editor_inspector_get_properties` | Read Inspector properties from the selected or addressed node through the live editor bridge |
 | `editor_inspector_set_properties` | Write Inspector properties on the selected or addressed node through the live editor bridge |
+| `editor_move_node` | Move or reparent a node in the currently open editor scene through UndoRedo |
+| `editor_rename_node` | Rename a node in the currently open editor scene through UndoRedo |
+| `editor_save_scene` | Save the currently open editor scene through the live editor bridge |
 | `editor_select_node` | Select a node in the live Godot editor when an editor bridge is available |
 | `editor_undo_redo` | Perform undo or redo in the live Godot editor when an editor bridge is available |
 | `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |

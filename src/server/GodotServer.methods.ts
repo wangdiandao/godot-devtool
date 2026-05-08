@@ -3299,6 +3299,7 @@ class GodotServerMethodMixin {
           scenePath: args.scenePath ?? null,
           nodePath: args.nodePath ?? null,
           properties: args.properties,
+          autoSave: args.autoSave === true,
         },
         timeoutMs: args.timeoutMs,
       });
@@ -3314,6 +3315,163 @@ class GodotServerMethodMixin {
       return this.createErrorResponse(
         `Failed to enqueue inspector property write: ${error?.message || 'Unknown error'}`,
         ['Install and enable the editor bridge plugin first']
+      );
+    }
+  }
+
+  private async queueEditorLiveSceneCommand(args: any, commandType: string, payload: Record<string, unknown>, failureLabel: string) {
+    const timeoutMs = Number(args.timeoutMs ?? 10000);
+    const command = await enqueueEditorCommand(args.projectPath, {
+      type: commandType,
+      payload: {
+        scenePath: args.scenePath ?? null,
+        autoSave: args.autoSave === true,
+        ...payload,
+      },
+      timeoutMs,
+    });
+    const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+    this.assertCompletedBridgeReceipt(commandType, receipt);
+    return this.createJsonResponse({
+      ok: true,
+      mode: 'godot_editor_websocket_bridge',
+      command,
+      receipt,
+    });
+  }
+
+  private async handleEditorAddNode(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    if (!args.nodeType || !args.nodeName) {
+      return this.createErrorResponse('Missing required parameters', ['Provide projectPath, nodeType, and nodeName']);
+    }
+    if (!this.validateClassName(args.nodeType)) {
+      return this.createErrorResponse('Invalid nodeType', ['nodeType must be a built-in Godot class name']);
+    }
+    if (!this.validateNodeName(args.nodeName)) {
+      return this.createErrorResponse('Invalid nodeName', ['Provide a valid node name']);
+    }
+    if (args.properties !== undefined && (!args.properties || typeof args.properties !== 'object' || Array.isArray(args.properties))) {
+      return this.createErrorResponse('Invalid properties', ['Provide properties as an object']);
+    }
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_add_node', {
+        parentNodePath: args.parentNodePath ?? null,
+        nodeType: args.nodeType,
+        nodeName: args.nodeName,
+        properties: args.properties ?? {},
+      }, 'add live editor node');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor add node: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
+      );
+    }
+  }
+
+  private async handleEditorDeleteNode(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.nodePath) {
+      return this.createErrorResponse('nodePath is required', ['Provide the non-root editor node path to delete']);
+    }
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_delete_node', {
+        nodePath: args.nodePath,
+      }, 'delete live editor node');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor delete node: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
+      );
+    }
+  }
+
+  private async handleEditorRenameNode(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.nodePath || !this.validateNodeName(args.newName)) {
+      return this.createErrorResponse('Invalid rename request', ['Provide nodePath and a valid newName']);
+    }
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_rename_node', {
+        nodePath: args.nodePath,
+        newName: args.newName,
+      }, 'rename live editor node');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor rename node: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
+      );
+    }
+  }
+
+  private async handleEditorMoveNode(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.nodePath || (!args.position && !args.parentNodePath)) {
+      return this.createErrorResponse('Invalid move request', ['Provide nodePath and either position or parentNodePath']);
+    }
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_move_node', {
+        nodePath: args.nodePath,
+        parentNodePath: args.parentNodePath ?? null,
+        position: args.position ?? null,
+      }, 'move live editor node');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor move node: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
+      );
+    }
+  }
+
+  private async handleEditorDuplicateNode(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+    if (!args.nodePath) {
+      return this.createErrorResponse('nodePath is required', ['Provide the editor node path to duplicate']);
+    }
+    if (args.newName && !this.validateNodeName(args.newName)) {
+      return this.createErrorResponse('Invalid newName', ['Provide a valid duplicate node name']);
+    }
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_duplicate_node', {
+        nodePath: args.nodePath,
+        newName: args.newName ?? null,
+        parentNodePath: args.parentNodePath ?? null,
+      }, 'duplicate live editor node');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor duplicate node: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
+      );
+    }
+  }
+
+  private async handleEditorSaveScene(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      return await this.queueEditorLiveSceneCommand(args, 'editor_save_scene', {}, 'save live editor scene');
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to enqueue live editor save scene: ${error?.message || 'Unknown error'}`,
+        ['Open the target scene in Godot, enable the godot-devtool plugin, then retry']
       );
     }
   }
@@ -3668,6 +3826,9 @@ class GodotServerMethodMixin {
     if (!args.position && !args.parentNodePath) {
       return this.createErrorResponse('Missing required parameters', ['Provide position or parentNodePath']);
     }
+    if (args.mode === 'editor_live') {
+      return this.handleEditorMoveNode(args);
+    }
 
     try {
       const params: any = {
@@ -3710,6 +3871,9 @@ class GodotServerMethodMixin {
     if (validationError) return validationError;
     if (args.newName && !this.validateNodeName(args.newName)) {
       return this.createErrorResponse('Invalid node name', ['Provide a valid duplicate node name']);
+    }
+    if (args.mode === 'editor_live') {
+      return this.handleEditorDuplicateNode(args);
     }
 
     try {
@@ -4356,6 +4520,9 @@ class GodotServerMethodMixin {
     if (!args.properties || typeof args.properties !== 'object' || Array.isArray(args.properties)) {
       return this.createErrorResponse('Properties object is required', ['Provide a properties object to update']);
     }
+    if (args.mode === 'editor_live') {
+      return this.handleEditorInspectorSetProperties(args);
+    }
 
     try {
       const params = {
@@ -4400,6 +4567,9 @@ class GodotServerMethodMixin {
         ['Provide a non-empty node name without path separators or reserved filename characters']
       );
     }
+    if (args.mode === 'editor_live') {
+      return this.handleEditorRenameNode(args);
+    }
 
     try {
       const params = {
@@ -4437,6 +4607,9 @@ class GodotServerMethodMixin {
 
     const validationError = this.validateSceneOperationArgs(args, ['projectPath', 'scenePath', 'nodePath']);
     if (validationError) return validationError;
+    if (args.mode === 'editor_live') {
+      return this.handleEditorDeleteNode(args);
+    }
 
     try {
       const params = {
@@ -4491,6 +4664,9 @@ class GodotServerMethodMixin {
         'Invalid nodeType',
         ['nodeType must be a built-in Godot class name (no paths, no file extensions)']
       );
+    }
+    if (args.mode === 'editor_live') {
+      return this.handleEditorAddNode(args);
     }
 
     try {

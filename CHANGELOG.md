@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.7.0
+
+Live editor scene mutation and dock architecture release.
+
+- Added explicit live editor tools for adding, deleting, renaming, moving, duplicating, and saving nodes/scenes in the currently open Godot editor scene through UndoRedo.
+- Added `mode: "editor_live"` support to existing node mutation tools so assistants can choose between repeatable headless file edits and live editor edits without forcing a disk reload.
+- Redesigned the `GDT` dock into connection, live editor, runtime, and activity sections with current scene, selection, live-edit readiness, manual-save strategy, runtime session, freshness, and latest-result diagnostics.
+- Kept the bundled Skill English-only and changed GitHub Release packaging so the top-level `scripts/` directory includes only `build.js`.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.7.0`.
+
 ## Version 2.6.5
 
 Skill context-budget release.

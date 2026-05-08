@@ -29,6 +29,12 @@ const EDITOR_WS_TOOLS = new Set([
   'editor_undo_redo',
   'editor_inspector_get_properties',
   'editor_inspector_set_properties',
+  'editor_add_node',
+  'editor_delete_node',
+  'editor_rename_node',
+  'editor_move_node',
+  'editor_duplicate_node',
+  'editor_save_scene',
   'execute_editor_script',
   'get_editor_screenshot',
   'get_open_scripts',
@@ -108,6 +114,7 @@ function inferTransport(toolName: string, routeGroup: string): ToolTransport {
 function inferRiskLevel(toolName: string, configured?: string): RouteMetadata['riskLevel'] {
   if (configured === 'destructive' || configured === 'write' || configured === 'process') return configured;
   if (PROCESS_TOOLS.has(toolName)) return 'process';
+  if (toolName === 'editor_delete_node') return 'write';
   if (/(delete|remove|clear|stop|kill)/.test(toolName)) return 'destructive';
   if (MULTI_ACTION_WRITE_TOOLS.has(toolName)) return 'write';
   if (/(set|add|create|write|save|install|reload|run|launch|edit|update|attach|connect|disconnect|simulate|click|move|rename|duplicate|export|record|replay|fill)/.test(toolName)) return 'write';

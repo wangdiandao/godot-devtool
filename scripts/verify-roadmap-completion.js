@@ -436,6 +436,12 @@ try {
   assert.match(readmeZh, /generate_ci_snippet/);
   assert.match(readme, /plugin_install/);
   assert.match(readmeZh, /plugin_install/);
+  assert.match(readme, /editor_add_node/);
+  assert.match(readmeZh, /editor_add_node/);
+  assert.match(readme, /editor_save_scene/);
+  assert.match(readmeZh, /editor_save_scene/);
+  assert.match(readme, /GDT` dock/);
+  assert.match(readmeZh, /`GDT` dock/);
   assert.match(readme, /Ask AI To Install It/);
   assert.match(readmeZh, /让 AI 协助安装/);
   assert.match(readme, /Chinese prompt:/);
@@ -469,8 +475,11 @@ try {
   assert.match(skillRaw, /"mcpServers"/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 221 Tools/);
-  assert.match(skillRaw, /全部 221 个工具/);
+  assert.match(skillRaw, /All 227 Tools/);
+  assert.doesNotMatch(skillRaw, /[\u4e00-\u9fff]/);
+  assert.match(skillRaw, /editor_live/);
+  assert.match(skillRaw, /editor_add_node/);
+  assert.match(skillRaw, /editor_save_scene/);
   assert.match(skillRaw, /browser_visualizer_start/);
   assert.match(skillRaw, /get_node_properties/);
   assert.match(skillRaw, /update_node_properties/);
@@ -488,6 +497,9 @@ try {
   assert.equal(packageJson.scripts['verify:security'], 'npm run build && node scripts/verify-security-hardening.js');
   assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:security');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node scripts/publish-github-release.js');
+  const publishScript = await readRepoFile('scripts/publish-github-release.js');
+  assert.match(publishScript, /scripts', 'build\.js'/);
+  assert.match(publishScript, /zip', \['-r', destination, 'build', 'scripts'\]/);
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-plugin.js')));
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-browser-visualizer.js')));
   assert.ok(existsSync(join(process.cwd(), 'scripts/verify-godot-runtime.js')));
@@ -497,6 +509,8 @@ try {
   assert.ok(existsSync(join(process.cwd(), 'scripts/publish-github-release.js')));
   assert.ok(existsSync(join(process.cwd(), 'build/skills/godot-devtool/SKILL.md')));
   assert.match(await readRepoFile('build/skills/godot-devtool/SKILL.md'), new RegExp(`version: "${escapedReleaseVersion}"`));
+  assert.equal(existsSync(join(process.cwd(), 'build/survivors_behavior_test.log')), false);
+  assert.equal(existsSync(join(process.cwd(), 'build/visual_probe.gd')), false);
   assert.match(changelog, /\[中文\]\(CHANGELOG\.zh-CN\.md\)/);
   assert.match(changelogZh, /\[English\]\(CHANGELOG\.md\)/);
   for (const version of [releaseVersion, '2.5.0', '2.1.0', '2.0.0', '1.8.0', '1.7.0', '1.6.0', '1.5.0', '1.4.0', '1.3.1', '1.3.0', '1.2.1', '1.2.0', '1.1.0', '1.0.0']) {
