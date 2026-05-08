@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.5
+
+Skill context-budget release.
+
+- Compressed the bundled `godot-devtool` Skill from a long per-tool listing into a workflow router.
+- Added context-budget rules that tell assistants not to paste or carry the full tool catalog, generated README tables, or Godot source unless needed.
+- Reinforced `get_capabilities` as the dynamic schema and category entry point for all 221 exposed tools.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, and release zip links to `2.6.5`.
+
 ## Version 2.6.4
 
 Steam Godot launch compatibility release.

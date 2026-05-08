@@ -1,7 +1,7 @@
 # godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.6.4-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.6.5-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@
 
 [请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.4 修复 Steam 版 Godot 启动问题，在 editor、run、headless 和 export 操作前显式写入可用日志文件。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.6.5 优化内置 Skill，让助手以 `get_capabilities` 作为动态工具目录入口，并只保留当前工作流所需上下文。
 
 ## 架构
 
@@ -41,12 +41,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.6.4.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.4/godot-devtool-build-2.6.4.zip)
+   [godot-devtool-build-2.6.5.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.6.5/godot-devtool-build-2.6.5.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.6.4.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.6.5.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：

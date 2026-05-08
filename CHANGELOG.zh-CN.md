@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.5
+
+Skill 上下文预算优化版本。
+
+- 将内置 `godot-devtool` Skill 从较长的逐工具列表压缩为工作流路由。
+- 增加上下文预算规则，要求助手不要粘贴或长期携带完整工具目录、生成的 README 表格或 Godot 源码，除非任务确实需要。
+- 强化 `get_capabilities` 作为全部 221 个公开工具的动态 schema 和分类入口。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP 和 release zip 链接同步到 `2.6.5`。
+
 ## 2.6.4
 
 Steam Godot 启动兼容版本。
