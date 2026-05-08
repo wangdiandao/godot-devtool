@@ -459,6 +459,10 @@ try {
   assert.match(readmeZh, /Browser visualizer/);
   assert.match(readme, /ws:\/\/127\.0\.0\.1:8766/);
   assert.match(readmeZh, /ws:\/\/127\.0\.0\.1:8766/);
+  assert.match(readme, /Codex Desktop uses TOML in `config\.toml`/);
+  assert.match(readmeZh, /Codex Desktop 使用 `config\.toml` 的 TOML 格式/);
+  assert.match(readme, /\[mcp_servers\.godot-devtool\]/);
+  assert.match(readmeZh, /\[mcp_servers\.godot-devtool\]/);
   assert.match(readmeZh, /## 能做什么/);
   assert.doesNotMatch(readmeZh, /转接到/);
   assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
@@ -473,6 +477,10 @@ try {
   assert.match(skillRaw, /run_project_checks/);
   assert.match(skillRaw, /MCP clients and connected AI assistants/);
   assert.match(skillRaw, /"mcpServers"/);
+  assert.match(skillRaw, /Typical local release-zip MCP client configuration/);
+  assert.match(skillRaw, /Codex Desktop uses TOML in `config\.toml`/);
+  assert.match(skillRaw, /\[mcp_servers\.godot-devtool\]/);
+  assert.match(skillRaw, /E:\/godot-devtool\/build\/index\.js/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
   assert.match(skillRaw, /All 227 Tools/);

@@ -73,6 +73,15 @@ MCP client
    }
    ```
 
+   Codex Desktop uses TOML in `config.toml`:
+
+   ```toml
+   [mcp_servers.godot-devtool]
+   command = "node"
+   args = ["E:/godot-devtool/build/index.js"]
+   env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_PORT = "8766" }
+   ```
+
 5. Restart the MCP client and ask it to call:
 
    ```text

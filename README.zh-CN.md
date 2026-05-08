@@ -73,6 +73,15 @@ MCP client
    }
    ```
 
+   Codex Desktop 使用 `config.toml` 的 TOML 格式：
+
+   ```toml
+   [mcp_servers.godot-devtool]
+   command = "node"
+   args = ["E:/godot-devtool/build/index.js"]
+   env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_PORT = "8766" }
+   ```
+
 5. 重启 MCP 客户端，并让它调用：
 
    ```text

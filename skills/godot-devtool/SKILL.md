@@ -14,17 +14,30 @@ Tool catalog: All 227 Tools are exposed through `get_capabilities`; use that res
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
-Typical MCP client configuration:
+Typical local release-zip MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "godot-devtool": {
-      "command": "npx",
-      "args": ["godot-devtool"]
+      "command": "node",
+      "args": ["E:/godot-devtool/build/index.js"],
+      "env": {
+        "GODOT_PATH": "D:/Program Files/Godot/Godot_v4.x.exe",
+        "GODOT_DEVTOOL_WS_PORT": "8766"
+      }
     }
   }
 }
+```
+
+Codex Desktop uses TOML in `config.toml`:
+
+```toml
+[mcp_servers.godot-devtool]
+command = "node"
+args = ["E:/godot-devtool/build/index.js"]
+env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_PORT = "8766" }
 ```
 
 ## Context Budget Rules
