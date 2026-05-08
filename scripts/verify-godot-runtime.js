@@ -26,6 +26,7 @@ try {
     ].join('\n'),
     'utf8'
   );
+  await mkdir(join(projectPath, '.godot-devtool-logs'), { recursive: true });
 
   const version = await runProcess(godotPath, ['--version']);
   assertProcessSuccess('godot --version', version);
@@ -79,6 +80,8 @@ try {
 async function runGodotOperation(operation, params, options = {}) {
   const result = await runProcess(godotPath, [
     '--headless',
+    '--log-file',
+    join(projectPath, '.godot-devtool-logs', `${operation}-${Date.now()}.log`),
     '--path',
     projectPath,
     '--script',

@@ -83,6 +83,8 @@ try {
   const serverSource = readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8');
   assert.match(serverSource, /execFileAsync\(this\.godotPath!, args, \{[\s\S]*timeout:/, 'headless Godot exec must set a timeout');
   assert.match(serverSource, /killSignal:/, 'headless Godot timeout must configure a kill signal');
+  assert.match(serverSource, /createHeadlessLogArgs[\s\S]*--log-file/, 'headless Godot calls must use an explicit writable log file');
+  assert.match(serverSource, /\['--headless', \.\.\.this\.createHeadlessLogArgs/, 'headless Godot exec args must insert log-file before --path');
   assert.match(serverSource, /stdio:\s*'ignore'/, 'launch_editor must not keep undrained stdio pipes');
   assert.match(serverSource, /validateScriptPath|normalizeScriptPath/, 'script_attach must normalize and validate scriptPath');
 

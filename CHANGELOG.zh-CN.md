@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.6.3
+
+Steam headless Godot 兼容版本。
+
+- 修复 Windows 上 Steam Godot `4.6.2.stable.steam` 的 headless 启动问题：对 headless 语法检查、operation、项目运行和导出，在 `--path` 前显式加入可写的 `--log-file`。
+- 增加 `GODOT_DEVTOOL_HEADLESS_LOG_DIR`，允许用户指定 headless Godot 日志目录；默认仍写入系统临时目录。
+- 将 runtime 验证也切换到同样的显式日志文件路径，因此 `verify:runtime` 已可通过本机 Steam Godot tools 可执行文件。
+- 增加安全回归检查，要求未来发布保留 headless 日志文件规避逻辑。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP 和 release zip 链接同步到 `2.6.3`。
+
 ## 2.6.2
 
 安全加固版本。

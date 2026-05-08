@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.6.3
+
+Steam headless Godot compatibility release.
+
+- Fixed Steam Godot `4.6.2.stable.steam` headless launches on Windows by adding an explicit writable `--log-file` before `--path` for headless syntax checks, operations, project runs, and exports.
+- Added `GODOT_DEVTOOL_HEADLESS_LOG_DIR` so users can choose where headless Godot logs are written while the default stays in the system temp directory.
+- Updated runtime verification to use the same explicit log-file path, so `verify:runtime` now passes with the local Steam Godot tools executable.
+- Added security regression coverage to require the headless log-file workaround before future releases.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, and release zip links to `2.6.3`.
+
 ## Version 2.6.2
 
 Security hardening release.
