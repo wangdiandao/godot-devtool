@@ -1,11 +1,26 @@
 import assert from 'node:assert/strict';
 import { connect } from 'node:net';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const repoRoot = process.cwd();
+
+function readSourceTree(relativeDirectory) {
+  const directory = join(repoRoot, relativeDirectory);
+  const sources = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const relativePath = `${relativeDirectory}/${entry.name}`;
+    if (entry.isDirectory()) {
+      sources.push(readSourceTree(relativePath));
+    } else if (entry.isFile() && entry.name.endsWith('.ts')) {
+      sources.push(readFileSync(join(repoRoot, relativePath), 'utf8'));
+    }
+  }
+  return sources.join('\n');
+}
+
 const filesystem = await import('../build/godot/filesystemTools.js');
 const projectSettings = await import('../build/godot/projectSettings.js');
 const editorBridge = await import('../build/godot/editorBridge.js');
@@ -110,7 +125,7 @@ try {
     assert.match(releaseSource, requiredPattern, `release script is missing guard: ${requiredPattern}`);
   }
 
-  const serverSource = readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8');
+  const serverSource = readSourceTree('src/server');
   assert.match(serverSource, /execFileAsync\(this\.godotPath!, args, \{[\s\S]*timeout:/, 'headless Godot exec must set a timeout');
   assert.match(serverSource, /killSignal:/, 'headless Godot timeout must configure a kill signal');
   assert.match(serverSource, /createGodotLogArgs[\s\S]*--log-file/, 'Godot process launches must use an explicit writable log file');

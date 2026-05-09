@@ -140,8 +140,10 @@ func add_node(params):
 				print("Node '" + params.node_name + "' of type '" + params.node_type + "' added successfully")
 		else:
 			printerr("Failed to save scene: " + str(save_error))
+			quit(1)
 	else:
 		printerr("Failed to pack scene: " + str(result))
+		quit(1)
 
 # Load a sprite into a Sprite2D node
 func load_sprite(params):
@@ -451,8 +453,10 @@ func export_mesh_library(params):
 				print("MeshLibrary exported successfully with " + str(item_id) + " items to: " + full_output_path)
 		else:
 			printerr("Failed to save MeshLibrary: " + str(error))
+			quit(1)
 	else:
 		printerr("No valid meshes found in the scene")
+		quit(1)
 
 # Find files with a specific extension recursively
 func find_files(path, extension):
@@ -770,5 +774,7 @@ func save_scene(params):
 				print("Scene saved successfully to: " + save_path)
 		else:
 			printerr("Failed to save scene: " + str(error))
+			quit(1)
 	else:
 		printerr("Failed to pack scene: " + str(result))
+		quit(1)

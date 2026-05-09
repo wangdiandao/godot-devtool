@@ -35,8 +35,9 @@
     "verify:plugin": "npm run build && node scripts/verify-godot-plugin.js",
     "verify:roadmap": "npm run build && node scripts/verify-roadmap-completion.js",
     "verify:runtime": "npm run build && node scripts/verify-godot-runtime.js",
+    "verify:process": "npm run build && node scripts/verify-process-handling.js",
     "verify:security": "npm run build && node scripts/verify-security-hardening.js",
-    "verify:all": "npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:security",
+    "verify:all": "npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:process && npm run verify:security",
     "release:github": "npm run build && node scripts/publish-github-release.js",
     "prepare": "npm run build",
     "watch": "tsc --watch"

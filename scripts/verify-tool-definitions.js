@@ -1,10 +1,24 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { createToolHandlers } from '../build/server/handlers/index.js';
 import { COMPATIBILITY_TOOL_ROUTES } from '../build/tools/compatibilityTools.js';
 import { GODOT_TOOL_ALIASES, GODOT_TOOL_DEFINITIONS } from '../build/tools/toolDefinitions.js';
 
 const repoRoot = process.cwd();
+
+function readSourceTree(relativeDirectory) {
+  const directory = join(repoRoot, relativeDirectory);
+  const sources = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const relativePath = `${relativeDirectory}/${entry.name}`;
+    if (entry.isDirectory()) {
+      sources.push(readSourceTree(relativePath));
+    } else if (entry.isFile() && entry.name.endsWith('.ts')) {
+      sources.push(readFileSync(join(repoRoot, relativePath), 'utf8'));
+    }
+  }
+  return sources.join('\n');
+}
 
 const requiredFiles = [
   'src/tools/definitions/core.ts',
@@ -20,6 +34,8 @@ const requiredFiles = [
   'src/tools/compatibilityTools.ts',
   'src/tools/definitions/index.ts',
   'src/server/handlers/compatibility.ts',
+  'src/server/methods/core.ts',
+  'src/server/methods/shared.ts',
   'src/server/transports/browserVisualizer.ts',
 ];
 
@@ -367,10 +383,7 @@ for (const nativeQaToolName of [
 }
 
 const routeSource = readFileSync(join(repoRoot, 'src/tools/compatibilityTools.ts'), 'utf8');
-const serverSource = [
-  readFileSync(join(repoRoot, 'src/server/GodotServer.ts'), 'utf8'),
-  readFileSync(join(repoRoot, 'src/server/GodotServer.methods.ts'), 'utf8'),
-].join('\n');
+const serverSource = readSourceTree('src/server');
 if (/version:\s*['"]2\.2\.0['"]/.test(serverSource)) {
   console.error('Server metadata must not hard-code stale version 2.2.0');
   process.exit(1);
