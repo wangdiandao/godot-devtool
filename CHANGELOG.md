@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.0
+
+Server modularization and process-handling hardening release.
+
+- Split the legacy 5k-line `GodotServer.methods.ts` implementation into focused `src/server/methods/*` modules while keeping the public tool surface unchanged.
+- Added process-handling regression coverage for failed headless Godot operations, startup exits, and stopped-run debug output preservation.
+- Hardened Godot operation error propagation so non-zero process exits are reported as tool failures instead of being interpreted as successful output.
+- Updated generated verification scripts to scan the full `src/server` source tree after the server method split.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.8.0`.
+
 ## Version 2.7.3
 
 Stable MCP bridge lifecycle release.

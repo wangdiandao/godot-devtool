@@ -1,10 +1,10 @@
-@tool
+﻿@tool
 extends EditorPlugin
 
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const RUNTIME_STATE_PATH := "res://.godot-devtool/runtime-state.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
-const PLUGIN_VERSION := "2.7.3"
+const PLUGIN_VERSION := "2.8.0"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000

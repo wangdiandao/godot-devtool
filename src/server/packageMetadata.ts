@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+﻿import { existsSync, readFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -42,5 +42,5 @@ function readPackageVersion(): string {
     }
   }
 
-  return '2.7.3';
+  return '2.8.0';
 }

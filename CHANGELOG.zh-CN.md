@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.0
+
+Server 模块化和进程处理加固版本。
+
+- 将旧的 5k 行 `GodotServer.methods.ts` 实现拆分为聚焦的 `src/server/methods/*` 模块，同时保持公开工具面不变。
+- 增加进程处理回归覆盖，验证失败的 headless Godot 操作、启动即退出以及停止运行后的 debug output 保留。
+- 加固 Godot 操作错误传播，非零进程退出会作为工具失败报告，不再被误判为成功输出。
+- 更新生成验证脚本，使 server 方法拆分后验证会扫描完整 `src/server` 源码树。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.0`。
+
 ## 2.7.3
 
 稳定 MCP bridge 生命周期版本。
