@@ -343,17 +343,42 @@ export class GodotServer {
     // Error handling
     this.server.onerror = (error) => console.error('[MCP Error]', error);
 
-    // Cleanup on exit
-    process.on('SIGINT', async () => {
+    // Cleanup on exit - handle multiple signals
+    const cleanupAndExit = async () => {
       await this.cleanup();
       process.exit(0);
-    });
+    };
+    process.on('SIGINT', cleanupAndExit);
+    process.on('SIGTERM', cleanupAndExit);
   }
 
   /**
    * Log debug messages if debug mode is enabled
    * Using stderr instead of stdout to avoid interfering with JSON-RPC communication
    */
+  logDebug(message: string): void {
+    if (DEBUG_MODE) {
+      process.stderr.write(`[DEBUG] ${message}\n`);
+    }
+  }
+
+  /**
+   * Cleanup resources on exit
+   */
+  async cleanup(): Promise<void> {
+    this.logDebug('Cleaning up server resources...');
+    try {
+      await getWsBridge().stop();
+      this.logDebug('WebSocket bridge stopped.');
+    } catch (err) {
+      this.logDebug(`Error stopping WebSocket bridge: ${err}`);
+    }
+    if (this.activeProcess) {
+      try {
+        this.activeProcess.process.kill();
+      } catch {}
+    }
+  }
 }
 
 registerGodotServerMethods(GodotServer);
