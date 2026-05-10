@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.1
+
+WebSocket bridge port-conflict safety release.
+
+- Removed automatic `taskkill` / `kill -9` behavior when the WebSocket bridge port is already owned by another process.
+- Fixed failed bridge listen attempts so they clear the failed server state and no longer report `status().running` as true.
+- Added process regression coverage proving occupied bridge ports are reported without terminating the port owner and that the bridge can start after the owner exits.
+- Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.8.1`.
+
 ## Version 2.8.0
 
 Server modularization and process-handling hardening release.

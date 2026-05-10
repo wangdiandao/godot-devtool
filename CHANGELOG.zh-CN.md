@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.1
+
+WebSocket bridge 端口冲突安全版本。
+
+- 移除 WebSocket bridge 端口已被其它进程占用时自动执行 `taskkill` / `kill -9` 的行为。
+- 修复 bridge 监听失败后的 server 状态清理，避免 `status().running` 误报为 true。
+- 增加进程回归覆盖，验证端口占用会被报告但不会终止端口 owner，且 owner 退出后 bridge 可以重新启动。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.1`。
+
 ## 2.8.0
 
 Server 模块化和进程处理加固版本。

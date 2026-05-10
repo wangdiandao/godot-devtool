@@ -2,7 +2,7 @@
 
 English | [中文](ROADMAP.zh-CN.md)
 
-Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md). This file only tracks future work after `2.8.0`.
+Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md). This file only tracks future work after `2.8.1`.
 
 ## Future Versions
 
