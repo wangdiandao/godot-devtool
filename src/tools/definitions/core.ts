@@ -110,13 +110,47 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'get_capabilities',
-    description: 'Return supported godot-devtool MCP tools, run modes, risk levels, bridge requirements, and input schemas',
+    description: 'Return a lightweight godot-devtool tool catalog by default, with optional filtered input schemas by route group, transport, risk level, tool name, or query',
     inputSchema: {
       type: 'object',
       properties: {
         includeSchemas: {
           type: 'boolean',
-          description: 'Include input schemas for tools. Defaults to true.',
+          description: 'Include input schemas for the filtered tools. Defaults to false and requires routeGroup, transport, riskLevel, toolNames, or query when true.',
+        },
+        routeGroup: {
+          anyOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'Optional route group filter such as project, scene, node, visual, editor, runtime, filesystem, resource, script, or core.',
+        },
+        transport: {
+          anyOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'Optional transport filter such as native, headless_godot, process_control, editor_ws, or runtime_ws.',
+        },
+        riskLevel: {
+          anyOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } },
+          ],
+          description: 'Optional risk-level filter such as read, write, destructive, or process.',
+        },
+        toolNames: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional exact tool names to return. When provided, results follow this requested order.',
+        },
+        query: {
+          type: 'string',
+          description: 'Optional case-insensitive search across tool name, description, route group, transport, risk level, and canonical name.',
+        },
+        compact: {
+          type: 'boolean',
+          description: 'Return compact JSON. Defaults to true; set false for pretty-printed JSON.',
         },
       },
       required: [],

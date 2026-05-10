@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.1 keeps the split server method surface and makes WebSocket bridge port conflicts non-destructive.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.2 makes `get_capabilities` lightweight by default and requires focused filters before returning input schemas.
 
 ## Architecture
 
@@ -41,12 +41,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.8.1.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.1/godot-devtool-build-2.8.1.zip)
+   [godot-devtool-build-2.8.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.2/godot-devtool-build-2.8.2.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.1.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.8.2.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -87,6 +87,7 @@ MCP client
    ```text
    get_godot_version
    get_capabilities
+   get_capabilities {"toolNames":["plugin_install","plugin_status"],"includeSchemas":true}
    ```
 
 `GODOT_DEVTOOL_WS_PORT` defaults to `8766`. Change it only if that port is already in use.
@@ -155,12 +156,13 @@ Project path: "E:/my-godot-project"
 WebSocket port: 8766
 
 Steps:
-1. Call get_godot_version and get_capabilities.
+1. Call get_godot_version and get_capabilities for the lightweight tool catalog.
 2. Confirm plugin_install, plugin_status, and plugin_reload are available.
-3. Call plugin_install with overwrite=true for the project path above.
-4. Call plugin_status and summarize installed files, autoload registration, bridge mode, and WebSocket port.
-5. Tell me exactly how to enable the plugin in Godot.
-6. If runtime routes are needed, tell me to run the project and then verify runtime bridge status.
+3. If you need input schemas, call get_capabilities with toolNames=["plugin_install","plugin_status","plugin_reload"] and includeSchemas=true.
+4. Call plugin_install with overwrite=true for the project path above.
+5. Call plugin_status and summarize installed files, autoload registration, bridge mode, and WebSocket port.
+6. Tell me exactly how to enable the plugin in Godot.
+7. If runtime routes are needed, tell me to run the project and then verify runtime bridge status.
 Do not edit unrelated files.
 ```
 
@@ -173,18 +175,19 @@ Chinese prompt:
 WebSocket 端口: 8766
 
 步骤:
-1. 调用 get_godot_version 和 get_capabilities。
+1. 调用 get_godot_version 和 get_capabilities，先获取轻量工具目录。
 2. 确认 plugin_install、plugin_status、plugin_reload 可用。
-3. 对上述项目路径调用 plugin_install，overwrite=true。
-4. 调用 plugin_status，总结已安装文件、autoload 注册、bridge mode 和 WebSocket 端口。
-5. 告诉我在 Godot 编辑器里如何启用插件。
-6. 如果需要 runtime 路由，提醒我运行项目后再验证 runtime bridge 状态。
+3. 如果需要输入 schema，调用 get_capabilities，传入 toolNames=["plugin_install","plugin_status","plugin_reload"] 和 includeSchemas=true。
+4. 对上述项目路径调用 plugin_install，overwrite=true。
+5. 调用 plugin_status，总结已安装文件、autoload 注册、bridge mode 和 WebSocket 端口。
+6. 告诉我在 Godot 编辑器里如何启用插件。
+7. 如果需要 runtime 路由，提醒我运行项目后再验证 runtime bridge 状态。
 不要修改无关文件。
 ```
 
 ## What It Can Do
 
-Use `get_capabilities` as the source of truth. Every tool reports `routeGroup`, `transport`, `riskLevel`, `requiresEditor`, `requiresRuntime`, and `canonicalName` when a tool is implemented through a shared capability.
+Use `get_capabilities` as the source of truth. The default call returns a lightweight catalog with `routeGroup`, `transport`, `riskLevel`, `requiresEditor`, `requiresRuntime`, and `canonicalName` when a tool is implemented through a shared capability. It does not include input schemas by default. To load schemas, narrow the request with `routeGroup`, `transport`, `riskLevel`, `toolNames`, or `query`, then set `includeSchemas=true`; unfiltered schema requests are rejected to keep the response small.
 
 Core project tools inspect `project.godot`, list projects, read and update project settings with dry-run support, configure InputMap actions with native Godot syntax, run the project, stop the current run, export configured presets, update Godot 4.4+ UIDs, and run release-friendly project checks. Scene and node tools create/open/save scenes, inspect scene trees, add/delete/rename/duplicate/move nodes, update properties with structured Variant values, manage groups, inspect dependencies, and apply cross-scene edits.
 
@@ -444,7 +447,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `geometry` | Create and list basic 2D geometry/debug drawing nodes |
 | `get_audit_log` | Read godot-devtool project audit log entries |
 | `get_audit_replay` | Summarize godot-devtool audit log entries into replay steps, counters, and risk highlights |
-| `get_capabilities` | Return supported godot-devtool MCP tools, run modes, risk levels, bridge requirements, and input schemas |
+| `get_capabilities` | Return a lightweight godot-devtool tool catalog by default, with optional filtered input schemas by route group, transport, risk level, tool name, or query |
 | `get_debug_output` | Get the current debug output and errors |
 | `get_editor_errors` | Exact-name compatibility route for get_editor_errors. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `get_editor_performance` | Exact-name compatibility route for get_editor_performance. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
@@ -471,7 +474,7 @@ The table below is generated from the actual tool definitions so the README stay
 - Use `headless_godot` routes when Godot must load or mutate scenes/resources/scripts correctly.
 - Use `editor_ws` only when the current open editor state matters.
 - Use `runtime_ws` only after the game is running and you need live game state, input, screenshots, or QA assertions.
-- Use `get_capabilities` before automating unfamiliar workflows.
+- Use `get_capabilities` before automating unfamiliar workflows. Request schemas only for the active route group or exact tools.
 
 ## Verification
 

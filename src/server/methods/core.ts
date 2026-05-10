@@ -447,9 +447,70 @@ class GodotServerCoreMethods {
    */
   private handleGetCapabilities(args: any) {
     args = this.normalizeParameters(args || {});
-    const includeSchemas = args.includeSchemas !== false;
+    const includeSchemas = args.includeSchemas === true;
+    const compact = args.compact !== false;
 
-    const tools = GODOT_TOOL_DEFINITIONS.map((tool) => {
+    const toStringList = (value: any): string[] => {
+      if (value === undefined || value === null) return [];
+      if (Array.isArray(value)) return value.map((entry) => String(entry)).filter(Boolean);
+      return [String(value)].filter(Boolean);
+    };
+
+    const routeGroups = new Set(toStringList(args.routeGroup));
+    const transports = new Set(toStringList(args.transport));
+    const riskLevels = new Set(toStringList(args.riskLevel));
+    const requestedToolNames = toStringList(args.toolNames);
+    const requestedToolNameSet = new Set(requestedToolNames);
+    const query = typeof args.query === 'string' ? args.query.trim().toLowerCase() : '';
+    const hasFilter = routeGroups.size > 0 || transports.size > 0 || riskLevels.size > 0 || requestedToolNameSet.size > 0 || query.length > 0;
+
+    if (includeSchemas && !hasFilter) {
+      return this.createErrorResponse(
+        'includeSchemas=true requires routeGroup, transport, riskLevel, toolNames, or query to keep get_capabilities lightweight.',
+        [
+          'Call get_capabilities without includeSchemas for the lightweight catalog index',
+          'Request schemas for one workflow, for example { "routeGroup": "scene", "includeSchemas": true }',
+          'Request schemas for exact tools, for example { "toolNames": ["scene_open", "add_node"], "includeSchemas": true }',
+        ]
+      );
+    }
+
+    const matchesQuery = (tool: any): boolean => {
+      if (!query) return true;
+      return [
+        tool.name,
+        tool.description,
+        tool.routeGroup,
+        tool.transport,
+        tool.riskLevel,
+        tool.canonicalName,
+      ].some((value) => String(value ?? '').toLowerCase().includes(query));
+    };
+
+    let filteredDefinitions = GODOT_TOOL_DEFINITIONS.filter((tool) => {
+      if (routeGroups.size > 0 && !routeGroups.has(String(tool.routeGroup))) return false;
+      if (transports.size > 0 && !transports.has(String(tool.transport))) return false;
+      if (riskLevels.size > 0 && !riskLevels.has(String(tool.riskLevel))) return false;
+      if (requestedToolNameSet.size > 0 && !requestedToolNameSet.has(tool.name)) return false;
+      return matchesQuery(tool);
+    });
+
+    if (requestedToolNames.length > 0) {
+      const order = new Map(requestedToolNames.map((name, index) => [name, index]));
+      filteredDefinitions = [...filteredDefinitions].sort((left, right) =>
+        (order.get(left.name) ?? Number.MAX_SAFE_INTEGER) - (order.get(right.name) ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    const summarize = (key: string) => Object.entries(GODOT_TOOL_DEFINITIONS.reduce((acc: any, tool: any) => {
+      const value = String(tool[key] ?? 'unknown');
+      acc[value] = (acc[value] ?? 0) + 1;
+      return acc;
+    }, {}))
+      .map(([name, count]) => ({ name, count }))
+      .sort((left: any, right: any) => String(left.name).localeCompare(String(right.name)));
+
+    const tools = filteredDefinitions.map((tool) => {
       const entry: any = {
         name: tool.name,
         description: tool.description,
@@ -476,11 +537,31 @@ class GodotServerCoreMethods {
       godotPathConfigured: Boolean(this.godotPath || process.env.GODOT_PATH),
       godotPathGuidance: godotPathGuidance(),
       strictPathValidation: this.strictPathValidation,
+      schemaIncluded: includeSchemas,
+      filters: {
+        routeGroup: [...routeGroups],
+        transport: [...transports],
+        riskLevel: [...riskLevels],
+        toolNames: requestedToolNames,
+        query: query || null,
+      },
+      totalToolCount: GODOT_TOOL_DEFINITIONS.length,
       toolCount: tools.length,
+      routeGroups: summarize('routeGroup'),
+      transports: summarize('transport'),
+      riskLevels: summarize('riskLevel'),
+      unknownToolNames: requestedToolNames.filter((name) => !GODOT_TOOL_DEFINITIONS.some((tool) => tool.name === name)),
       tools,
     };
 
-    return this.createJsonResponse(result);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: compact ? JSON.stringify(result) : JSON.stringify(result, null, 2),
+        },
+      ],
+    };
   }
 
 

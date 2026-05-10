@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | 中文
 
-已完成版本记录在 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。本文件只记录 `2.8.1` 之后的未来工作。
+已完成版本记录在 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。本文件只记录 `2.8.2` 之后的未来工作。
 
 ## 未来计划
 

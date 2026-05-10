@@ -4,6 +4,17 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.2
+
+Capability catalog context-budget release.
+
+- Changed `get_capabilities` so the default response is a lightweight catalog without input schemas.
+- Added focused schema discovery filters for `routeGroup`, `transport`, `riskLevel`, `toolNames`, and `query`, with compact JSON output by default.
+- Rejected unfiltered `includeSchemas=true` requests to prevent large 900 KB class responses from being pulled into assistant context.
+- Updated README and the bundled Skill to document the two-stage discovery flow: lightweight catalog first, focused schemas only when needed.
+- Added roadmap verification coverage for payload size, filtered schema retrieval, unfiltered schema rejection, and documentation/Skill guidance.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and release zip links to `2.8.2`.
+
 ## Version 2.8.1
 
 WebSocket bridge port-conflict safety release.

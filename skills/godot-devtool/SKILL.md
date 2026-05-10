@@ -1,16 +1,16 @@
 ﻿---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.1 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.2 MCP server."
 metadata:
-  version: "2.8.1"
+  version: "2.8.2"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.8.1.
+Compatibility: `godot-devtool` 2.8.2.
 
-Tool catalog: All 227 Tools are exposed through `get_capabilities`; use that response as the current schema source of truth. Do not paste, memorize, or keep the full tool list in chat.
+Tool catalog: All 227 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
@@ -69,17 +69,23 @@ Stop only a listener you started, or reinstall the plugin with a different `webs
 
 ## Context Budget Rules
 
-- Start with `get_capabilities`; ask it for the categories, schemas, and bridge requirements needed for the current task.
+- Start with `get_capabilities` for the lightweight catalog. Do not request schemas until you know the active workflow.
+- When schemas are needed, call `get_capabilities` with `includeSchemas: true` plus `routeGroup`, `transport`, `riskLevel`, `toolNames`, or `query`. Unfiltered schema requests are rejected.
 - Keep only the active workflow in context. Do not paste the complete tool catalog, generated README tables, or Godot source unless the task needs internal Godot behavior.
 - Prefer primary operation tools. Use older route names only when an existing client, prompt, or project already depends on them.
-- When the task changes domains, call `get_capabilities` again for that domain instead of carrying unrelated tool details forward.
+- When the task changes domains, call `get_capabilities` again for that domain instead of carrying unrelated schema details forward.
 
 ## First Calls
 
 Always begin with:
 
     get_godot_version -> confirm Godot is visible to the MCP server
-    get_capabilities  -> discover current tools, schemas, transports, and bridge requirements
+    get_capabilities  -> discover current tools, route groups, transports, and bridge requirements
+
+Then request focused schemas only when needed:
+
+    get_capabilities { "routeGroup": "scene", "includeSchemas": true }
+    get_capabilities { "toolNames": ["plugin_install", "plugin_status"], "includeSchemas": true }
 
 Then inspect the project before editing:
 
@@ -127,7 +133,7 @@ When validating an install, upgrade, bridge bug, dock state, or runtime input is
 Run the chain through an actual MCP stdio client, not only a raw WebSocket probe:
 
 1. `get_godot_version` -> confirms the MCP process can see Godot.
-2. `get_capabilities` -> confirms the current tool catalog and bridge requirements.
+2. `get_capabilities` -> confirms the lightweight tool catalog and bridge requirements.
 3. `plugin_install` with `{ "projectPath": "...", "overwrite": true, "websocketPort": 8766 }`.
 4. `plugin_status` -> require `installed: true`, matching bridge port, runtime autoload, and no unexpected stale state.
 5. `run_project` with `{ "projectPath": "...", "headless": true }` for runtime validation.
@@ -224,7 +230,7 @@ For runtime input specifically, capture a before/after state change. A successfu
 
 ### UI, Animation, TileMap, Audio, 3D
 
-Use the domain tool first, then query `get_capabilities` for that domain's full schema:
+Use the domain tool first, then query `get_capabilities` for that domain's filtered schema:
 
     ui        -> Control nodes, themes, templates, signal wiring, screen text checks
     animation -> AnimationPlayer tracks, keyframes, AnimationTree state machines

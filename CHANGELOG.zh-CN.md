@@ -4,6 +4,17 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.2
+
+能力目录上下文预算优化版本。
+
+- 修改 `get_capabilities`，默认只返回不含输入 schema 的轻量工具目录。
+- 增加按 `routeGroup`、`transport`、`riskLevel`、`toolNames` 和 `query` 过滤的聚焦 schema 发现能力，并默认使用 compact JSON 输出。
+- 拒绝未过滤的 `includeSchemas=true` 请求，避免再次把 900 KB 级别响应拉进助手上下文。
+- 更新 README 和内置 Skill，明确两阶段发现流程：先取轻量目录，只在需要时取聚焦 schema。
+- 增加 roadmap 验证覆盖，检查 payload 大小、过滤 schema 获取、未过滤 schema 拒绝，以及文档/Skill 指引。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.2`。
+
 ## 2.8.1
 
 WebSocket bridge 端口冲突安全版本。

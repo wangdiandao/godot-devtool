@@ -276,11 +276,35 @@ try {
   const escapedLatestReleaseZipVersion = latestReleaseZipVersion.replaceAll('.', '\\.');
   assert.match(releaseVersion, /^\d+\.\d+\.\d+$/);
   const capabilitiesResponse = server.handleGetCapabilities({});
+  const capabilitiesPayloadBytes = Buffer.byteLength(capabilitiesResponse.content[0].text, 'utf8');
   const capabilities = JSON.parse(capabilitiesResponse.content[0].text);
   assert.equal(capabilities.version, releaseVersion);
   assert.notEqual(capabilities.version, '2.2.0');
   assert.equal(capabilities.serverMode, 'mcp_stdio');
   assert.ok(capabilities.godotPathGuidance.some((entry) => entry.includes('GODOT_PATH')));
+  assert.equal(capabilities.schemaIncluded, false);
+  assert.equal(capabilities.totalToolCount, toolDefinitions.GODOT_TOOL_DEFINITIONS.length);
+  assert.equal(capabilities.toolCount, toolDefinitions.GODOT_TOOL_DEFINITIONS.length);
+  assert.ok(capabilitiesPayloadBytes < 120000, `default get_capabilities payload too large: ${capabilitiesPayloadBytes}`);
+  assert.ok(capabilities.tools.length > 0);
+  assert.equal(Object.hasOwn(capabilities.tools[0], 'inputSchema'), false);
+  assert.ok(capabilities.routeGroups.some((entry) => entry.name === 'scene' && entry.count > 0));
+  assert.ok(capabilities.transports.some((entry) => entry.name === 'runtime_ws' && entry.count > 0));
+  const unfilteredSchemaResponse = server.handleGetCapabilities({ includeSchemas: true });
+  assert.equal(unfilteredSchemaResponse.isError, true);
+  assert.match(unfilteredSchemaResponse.content[0].text, /requires routeGroup, transport, riskLevel, toolNames, or query/);
+  const sceneCapabilities = JSON.parse(server.handleGetCapabilities({ routeGroup: 'scene', includeSchemas: true }).content[0].text);
+  assert.equal(sceneCapabilities.schemaIncluded, true);
+  assert.ok(sceneCapabilities.tools.length > 0);
+  assert.ok(sceneCapabilities.tools.every((tool) => tool.routeGroup === 'scene'));
+  assert.ok(sceneCapabilities.tools.every((tool) => tool.inputSchema));
+  assert.ok(Buffer.byteLength(JSON.stringify(sceneCapabilities), 'utf8') < 220000);
+  const focusedCapabilities = JSON.parse(server.handleGetCapabilities({
+    toolNames: ['get_capabilities', 'plugin_status'],
+    includeSchemas: true,
+  }).content[0].text);
+  assert.deepEqual(focusedCapabilities.tools.map((tool) => tool.name), ['get_capabilities', 'plugin_status']);
+  assert.ok(focusedCapabilities.tools.every((tool) => tool.inputSchema));
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -463,6 +487,12 @@ try {
   assert.match(readmeZh, /Codex Desktop 使用 `config\.toml` 的 TOML 格式/);
   assert.match(readme, /\[mcp_servers\.godot-devtool\]/);
   assert.match(readmeZh, /\[mcp_servers\.godot-devtool\]/);
+  assert.match(readme, /The default call returns a lightweight catalog/);
+  assert.match(readme, /unfiltered schema requests are rejected/);
+  assert.match(readme, /toolNames=\["plugin_install","plugin_status","plugin_reload"\]/);
+  assert.match(readmeZh, /默认调用只返回轻量工具目录/);
+  assert.match(readmeZh, /未过滤的 schema 请求会被拒绝/);
+  assert.match(readmeZh, /toolNames=\["plugin_install","plugin_status","plugin_reload"\]/);
   assert.match(readmeZh, /## 能做什么/);
   assert.doesNotMatch(readmeZh, /转接到/);
   assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
@@ -483,7 +513,9 @@ try {
   assert.match(skillRaw, /E:\/godot-devtool\/build\/index\.js/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 227 Tools/);
+  assert.match(skillRaw, /All 227 tools are discoverable through `get_capabilities`/);
+  assert.match(skillRaw, /lightweight index without input schemas/);
+  assert.match(skillRaw, /Unfiltered schema requests are rejected/);
   assert.doesNotMatch(skillRaw, /[\u4e00-\u9fff]/);
   assert.match(skillRaw, /editor_live/);
   assert.match(skillRaw, /editor_add_node/);
