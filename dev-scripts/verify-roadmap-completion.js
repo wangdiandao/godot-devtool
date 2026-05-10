@@ -448,11 +448,13 @@ try {
   assert.match(readme, /\| Tool \| Description \|/);
   assert.match(readme, /\| `get_project_info` \|/);
   assert.match(readme, /\| `plugin_status` \|/);
+  assert.match(readme, /\| `plugin_cleanup_port` \|/);
   assert.match(readmeZh, /## 全部 \d+ 个工具/);
   assert.match(readmeZh, /### 项目工具 \(\d+\)/);
   assert.match(readmeZh, /\| 工具 \| 描述 \|/);
   assert.match(readmeZh, /\| `get_project_info` \|/);
   assert.match(readmeZh, /\| `plugin_status` \|/);
+  assert.match(readmeZh, /\| `plugin_cleanup_port` \|/);
   assert.doesNotMatch(readmeZh, /### Project Tools/);
   assert.doesNotMatch(readmeZh, /Executable compatibility wrapper/);
   assert.doesNotMatch(readmeZh, /Compatibility alias for/);
@@ -489,10 +491,10 @@ try {
   assert.match(readmeZh, /\[mcp_servers\.godot-devtool\]/);
   assert.match(readme, /The default call returns a lightweight catalog/);
   assert.match(readme, /unfiltered schema requests are rejected/);
-  assert.match(readme, /toolNames=\["plugin_install","plugin_status","plugin_reload"\]/);
+  assert.match(readme, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
   assert.match(readmeZh, /默认调用只返回轻量工具目录/);
   assert.match(readmeZh, /未过滤的 schema 请求会被拒绝/);
-  assert.match(readmeZh, /toolNames=\["plugin_install","plugin_status","plugin_reload"\]/);
+  assert.match(readmeZh, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
   assert.match(readmeZh, /## 能做什么/);
   assert.doesNotMatch(readmeZh, /转接到/);
   assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
@@ -513,7 +515,7 @@ try {
   assert.match(skillRaw, /E:\/godot-devtool\/build\/index\.js/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 227 tools are discoverable through `get_capabilities`/);
+  assert.match(skillRaw, /All 228 tools are discoverable through `get_capabilities`/);
   assert.match(skillRaw, /lightweight index without input schemas/);
   assert.match(skillRaw, /Unfiltered schema requests are rejected/);
   assert.doesNotMatch(skillRaw, /[\u4e00-\u9fff]/);

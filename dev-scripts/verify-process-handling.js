@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { GodotServer } from '../build/server/GodotServer.js';
+import { commandLineMatchesGodotDevtool } from '../build/server/bridgeProcessCleanup.js';
 import { getWsBridge } from '../build/server/transports/wsBridge.js';
 
 async function main() {
@@ -51,9 +52,24 @@ async function main() {
     assert.equal(debugPayload.active, false);
 
     await assertWebSocketPortConflictIsNonDestructive();
+    assertBridgeCleanupCommandLineMatching();
+    await assertPluginCleanupPortIsExplicitAndScoped();
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
+}
+
+function assertBridgeCleanupCommandLineMatching() {
+  assert.equal(
+    commandLineMatchesGodotDevtool('node E:/godot-devtool/build/index.js'),
+    true,
+    'cleanup should recognize the release-zip MCP entry point'
+  );
+  assert.equal(
+    commandLineMatchesGodotDevtool('node -e "server.listen(8766)"'),
+    false,
+    'cleanup must not treat arbitrary node listeners as godot-devtool'
+  );
 }
 
 async function assertWebSocketPortConflictIsNonDestructive() {
@@ -78,8 +94,67 @@ async function assertWebSocketPortConflictIsNonDestructive() {
   }
 }
 
-async function startBlockingPortProcess() {
-  const child = spawn(process.execPath, [
+async function assertPluginCleanupPortIsExplicitAndScoped() {
+  const server = new GodotServer({ godotPath: process.execPath });
+
+  const unrelated = await startBlockingPortProcess();
+  try {
+    const unrelatedResponse = await server.handlePluginCleanupPort({ port: unrelated.port, kill: true, force: true });
+    const unrelatedPayload = parseToolJson(unrelatedResponse);
+    assert.equal(unrelatedPayload.killed, 0, 'cleanup must not kill unrelated listeners');
+    assert.equal(unrelated.child.exitCode, null, 'unrelated listener must remain alive after cleanup request');
+
+    const wrongPidResponse = await server.handlePluginCleanupPort({
+      port: unrelated.port,
+      pid: process.pid,
+      kill: true,
+      force: true,
+      allowUnverified: true,
+    });
+    const wrongPidPayload = parseToolJson(wrongPidResponse);
+    assert.equal(wrongPidPayload.killed, 0, 'unverified cleanup must require the exact listener pid');
+    assert.equal(unrelated.child.exitCode, null, 'wrong pid guard must leave unrelated listener alive');
+  } finally {
+    await stopChild(unrelated.child);
+  }
+
+  const marker = join(process.cwd(), 'build', 'index.js');
+  const stale = await startBlockingPortProcess({ commandLineMarker: marker });
+  try {
+    const dryRunResponse = await server.handlePluginCleanupPort({ port: stale.port });
+    const dryRunPayload = parseToolJson(dryRunResponse);
+    assert.equal(dryRunPayload.killRequested, false, 'cleanup must default to dry-run mode');
+    assert.equal(dryRunPayload.killed, 0, 'dry-run cleanup must not kill matching listeners');
+    assert.ok(
+      dryRunPayload.candidates.some((candidate) => candidate.pid === stale.child.pid),
+      'dry-run cleanup should identify the listener pid on the occupied port'
+    );
+    assert.equal(stale.child.exitCode, null, 'dry-run cleanup must leave matching listener alive');
+
+    const killResponse = await server.handlePluginCleanupPort({
+      port: stale.port,
+      pid: stale.child.pid,
+      kill: true,
+      force: true,
+      allowUnverified: true,
+    });
+    const killPayload = parseToolJson(killResponse);
+    assert.equal(killPayload.killed, 1, 'explicit cleanup must kill exactly one matching stale listener');
+    await waitForChildExit(stale.child);
+    assert.notEqual(stale.child.exitCode, null, 'matching stale listener should exit after explicit cleanup');
+
+    const bridge = getWsBridge();
+    await bridge.stop();
+    await bridge.start(stale.port);
+    assert.equal(bridge.status().running, true, 'bridge should start after explicit stale listener cleanup');
+    await bridge.stop();
+  } finally {
+    await stopChild(stale.child);
+  }
+}
+
+async function startBlockingPortProcess(options = {}) {
+  const args = [
     '-e',
     [
       "const { createServer } = require('node:http');",
@@ -87,7 +162,11 @@ async function startBlockingPortProcess() {
       "server.listen(0, '127.0.0.1', () => console.log(server.address().port));",
       'setInterval(() => {}, 1000);',
     ].join(' '),
-  ], { stdio: ['ignore', 'pipe', 'inherit'] });
+  ];
+  if (options.commandLineMarker) {
+    args.push(options.commandLineMarker);
+  }
+  const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'inherit'] });
   const port = await readFirstStdoutLine(child);
   return { child, port: Number(port) };
 }
@@ -136,6 +215,23 @@ async function stopChild(child) {
       resolve();
     });
   });
+}
+
+async function waitForChildExit(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timed out waiting for child process exit')), 5000);
+    child.once('exit', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+}
+
+function parseToolJson(response) {
+  assert.equal(response.isError, undefined, `tool response should not be an error: ${JSON.stringify(response)}`);
+  assert.equal(response.content?.[0]?.type, 'text');
+  return JSON.parse(response.content[0].text);
 }
 
 async function writeFakeGodot(directory, options) {

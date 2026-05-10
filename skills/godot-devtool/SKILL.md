@@ -10,7 +10,7 @@ metadata:
 
 Compatibility: `godot-devtool` 2.8.2.
 
-Tool catalog: All 227 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
+Tool catalog: All 228 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
@@ -64,8 +64,10 @@ If `GODOT_DEVTOOL_WS_PORT` is busy, identify the owner before changing code:
 
     PowerShell: Get-NetTCPConnection -LocalPort 8766 | Select-Object LocalAddress,LocalPort,State,OwningProcess
     fallback:   netstat -ano | Select-String ':8766'
+    plugin_cleanup_port { "port": 8766 } -> dry-run inspect listener candidates
+    plugin_cleanup_port { "port": 8766, "pid": <pid>, "kill": true } -> explicitly stop a verified stale godot-devtool listener
 
-Stop only a listener you started, or reinstall the plugin with a different `websocketPort` and keep that same port in the MCP client env.
+Stop only a listener you started, or reinstall the plugin with a different `websocketPort` and keep that same port in the MCP client env. If Windows cannot expose the command line, use `allowUnverified: true` only with the exact PID shown by the dry-run result.
 
 ## Context Budget Rules
 
@@ -85,7 +87,7 @@ Always begin with:
 Then request focused schemas only when needed:
 
     get_capabilities { "routeGroup": "scene", "includeSchemas": true }
-    get_capabilities { "toolNames": ["plugin_install", "plugin_status"], "includeSchemas": true }
+    get_capabilities { "toolNames": ["plugin_install", "plugin_status", "plugin_cleanup_port"], "includeSchemas": true }
 
 Then inspect the project before editing:
 
@@ -117,6 +119,7 @@ Before editor or runtime WebSocket work:
     plugin_install -> install addons/godot_devtool and runtime autoload into the project
     plugin_status  -> confirm plugin files, autoload, port, and bridge clients
     plugin_reload  -> reload the live editor plugin when the editor is open
+    plugin_cleanup_port -> explicitly inspect or stop stale bridge port listeners
 
 For a read-only browser status surface:
 

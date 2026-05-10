@@ -87,10 +87,10 @@ MCP client
    ```text
    get_godot_version
    get_capabilities
-   get_capabilities {"toolNames":["plugin_install","plugin_status"],"includeSchemas":true}
+   get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. Change it only if that port is already in use.
+`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. If an old `godot-devtool` process is still holding the port, first call `plugin_cleanup_port` without `kill` to inspect the listener. Only call it with `kill=true` after confirming the listener is the stale process you intend to stop.
 
 ## Build From Source
 
@@ -157,8 +157,8 @@ WebSocket port: 8766
 
 Steps:
 1. Call get_godot_version and get_capabilities for the lightweight tool catalog.
-2. Confirm plugin_install, plugin_status, and plugin_reload are available.
-3. If you need input schemas, call get_capabilities with toolNames=["plugin_install","plugin_status","plugin_reload"] and includeSchemas=true.
+2. Confirm plugin_install, plugin_status, plugin_reload, and plugin_cleanup_port are available.
+3. If you need input schemas, call get_capabilities with toolNames=["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"] and includeSchemas=true.
 4. Call plugin_install with overwrite=true for the project path above.
 5. Call plugin_status and summarize installed files, autoload registration, bridge mode, and WebSocket port.
 6. Tell me exactly how to enable the plugin in Godot.
@@ -176,8 +176,8 @@ WebSocket 端口: 8766
 
 步骤:
 1. 调用 get_godot_version 和 get_capabilities，先获取轻量工具目录。
-2. 确认 plugin_install、plugin_status、plugin_reload 可用。
-3. 如果需要输入 schema，调用 get_capabilities，传入 toolNames=["plugin_install","plugin_status","plugin_reload"] 和 includeSchemas=true。
+2. 确认 plugin_install、plugin_status、plugin_reload、plugin_cleanup_port 可用。
+3. 如果需要输入 schema，调用 get_capabilities，传入 toolNames=["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"] 和 includeSchemas=true。
 4. 对上述项目路径调用 plugin_install，overwrite=true。
 5. 调用 plugin_status，总结已安装文件、autoload 注册、bridge mode 和 WebSocket 端口。
 6. 告诉我在 Godot 编辑器里如何启用插件。
@@ -199,7 +199,7 @@ Browser visualizer tools start, inspect, and stop a local read-only dashboard. U
 
 The table below is generated from the actual tool definitions so the README stays aligned with the MCP server.
 
-## All 227 Tools
+## All 228 Tools
 
 ### Project Tools (18)
 | Tool | Description |
@@ -316,7 +316,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `script_create` | Create a GDScript file inside a Godot project |
 | `script_write` | Write full GDScript content with overwrite protection |
 
-### Editor Tools (15)
+### Editor Tools (16)
 | Tool | Description |
 |------|-------------|
 | `editor_add_node` | Add a node to the currently open editor scene through UndoRedo without externally rewriting the scene file |
@@ -330,6 +330,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `editor_save_scene` | Save the currently open editor scene through the live editor bridge |
 | `editor_select_node` | Select a node in the live Godot editor when an editor bridge is available |
 | `editor_undo_redo` | Perform undo or redo in the live Godot editor when an editor bridge is available |
+| `plugin_cleanup_port` | Explicitly inspect and optionally stop stale godot-devtool WebSocket bridge listeners on a local port |
 | `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |
 | `plugin_reload` | Reload the godot-devtool v2 editor plugin through the WebSocket bridge |
 | `plugin_status` | Read godot-devtool v2 plugin installation status and WebSocket bridge configuration |

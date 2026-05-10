@@ -17,6 +17,7 @@ const PROCESS_TOOLS = new Set([
   'get_debug_output',
   'clear_debug_output',
   'get_godot_version',
+  'plugin_cleanup_port',
   'browser_visualizer_start',
   'browser_visualizer_status',
   'browser_visualizer_stop',
@@ -104,6 +105,7 @@ export function routeMetadataForTool(toolName: string): RouteMetadata {
 
 function inferTransport(toolName: string, routeGroup: string): ToolTransport {
   if (toolName === 'plugin_install' || toolName === 'plugin_status') return 'native';
+  if (toolName === 'plugin_cleanup_port') return 'process_control';
   if (RUNTIME_WS_TOOLS.has(toolName)) return 'runtime_ws';
   if (EDITOR_WS_TOOLS.has(toolName)) return 'editor_ws';
   if (PROCESS_TOOLS.has(toolName)) return 'process_control';
@@ -113,6 +115,7 @@ function inferTransport(toolName: string, routeGroup: string): ToolTransport {
 
 function inferRiskLevel(toolName: string, configured?: string): RouteMetadata['riskLevel'] {
   if (configured === 'destructive' || configured === 'write' || configured === 'process') return configured;
+  if (toolName === 'plugin_cleanup_port') return 'destructive';
   if (PROCESS_TOOLS.has(toolName)) return 'process';
   if (toolName === 'editor_delete_node') return 'write';
   if (/(delete|remove|clear|stop|kill)/.test(toolName)) return 'destructive';

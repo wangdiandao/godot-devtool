@@ -65,7 +65,7 @@ if (compatibilityAliasDescriptions.length > 0) {
   console.error(`Compatibility alias tool definitions remain: ${compatibilityAliasDescriptions.map((tool) => tool.name).join(', ')}`);
   process.exit(1);
 }
-for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload']) {
+for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload', 'plugin_cleanup_port']) {
   if (!toolsByName.has(requiredName)) {
     console.error(`Missing v2 plugin tool: ${requiredName}`);
     process.exit(1);

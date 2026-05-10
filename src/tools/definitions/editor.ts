@@ -26,6 +26,23 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     },
   },
   {
+    name: 'plugin_cleanup_port',
+    description: 'Explicitly inspect and optionally stop stale godot-devtool WebSocket bridge listeners on a local port',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        port: { type: 'number', description: 'Local WebSocket bridge port. Defaults to 8766.' },
+        websocketPort: { type: 'number', description: 'Alias for port.' },
+        pid: { type: 'number', description: 'Optional listener PID guard. Required with allowUnverified when command-line verification is unavailable.' },
+        kill: { type: 'boolean', description: 'Set true to stop matching stale godot-devtool listeners. Defaults to false dry-run mode.' },
+        force: { type: 'boolean', description: 'After a graceful stop times out, forcefully terminate matching listeners. Defaults to false.' },
+        allowUnverified: { type: 'boolean', description: 'Allow cleanup of an exact listener PID when the process command line cannot be verified. Requires pid and kill=true.' },
+        waitMs: { type: 'number', description: 'Milliseconds to wait after each stop signal. Defaults to 1500.' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'plugin_reload',
     description: 'Reload the godot-devtool v2 editor plugin through the WebSocket bridge',
     inputSchema: {

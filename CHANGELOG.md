@@ -10,6 +10,7 @@ Capability catalog context-budget release.
 
 - Changed `get_capabilities` so the default response is a lightweight catalog without input schemas.
 - Added focused schema discovery filters for `routeGroup`, `transport`, `riskLevel`, `toolNames`, and `query`, with compact JSON output by default.
+- Added `plugin_cleanup_port` so stale WebSocket bridge listeners can be inspected by dry-run first and stopped only through an explicit cleanup request.
 - Rejected unfiltered `includeSchemas=true` requests to prevent large 900 KB class responses from being pulled into assistant context.
 - Updated README and the bundled Skill to document the two-stage discovery flow: lightweight catalog first, focused schemas only when needed.
 - Added roadmap verification coverage for payload size, filtered schema retrieval, unfiltered schema rejection, and documentation/Skill guidance.

@@ -87,6 +87,7 @@ import { COMPATIBILITY_TOOL_ROUTES, type CompatibilityToolRoute } from '../../to
 import { GODOT_TOOL_DEFINITIONS } from '../../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from '../handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from '../packageMetadata.js';
+import { cleanupBridgePort } from '../bridgeProcessCleanup.js';
 import { getBrowserVisualizer } from '../transports/browserVisualizer.js';
 import { getWsBridge } from '../transports/wsBridge.js';
 
@@ -285,6 +286,30 @@ class GodotServerEditorMethods {
       return this.createErrorResponse(
         `Failed to read editor bridge status: ${error?.message || 'Unknown error'}`,
         ['Install and enable the editor bridge plugin first']
+      );
+    }
+  }
+
+
+
+  private async handlePluginCleanupPort(args: any) {
+    args = this.normalizeParameters(args || {});
+
+    try {
+      const result = await cleanupBridgePort({
+        port: args.port,
+        websocketPort: args.websocketPort,
+        pid: args.pid,
+        kill: args.kill === true,
+        force: args.force === true,
+        allowUnverified: args.allowUnverified === true,
+        waitMs: args.waitMs,
+      });
+      return this.createJsonResponse(result);
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to clean up WebSocket bridge port: ${error?.message || 'Unknown error'}`,
+        ['Use a local TCP port between 1 and 65535', 'Pass kill=true to stop matching stale godot-devtool listeners']
       );
     }
   }
