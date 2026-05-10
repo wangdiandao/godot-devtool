@@ -3,7 +3,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
 
 type BridgeContext = 'editor' | 'runtime';
 
@@ -45,13 +44,11 @@ class WebSocketBridge extends EventEmitter {
       try {
         await this.tryListen();
         return; // Success
-      } catch (err: any) {
-        if (err.code === 'EADDRINUSE' && attempt < maxRetries) {
-          console.error(`[WebSocket Bridge] Port ${this.port} is in use, attempt ${attempt + 1}/${maxRetries}...`);
-          await this.killProcessOnPort(this.port);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-          // Clean up server for retry
-          this.cleanupServer();
+      } catch (err) {
+        const errorCode = (err as NodeJS.ErrnoException).code;
+        if (errorCode === 'EADDRINUSE' && attempt < maxRetries) {
+          console.error(`[WebSocket Bridge] Port ${this.port} is in use, retrying without killing external processes (${attempt + 1}/${maxRetries})...`);
+          await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
         } else {
           throw err;
         }
@@ -60,17 +57,11 @@ class WebSocketBridge extends EventEmitter {
     throw new Error(`Failed to start WebSocket bridge on port ${this.port} after ${maxRetries} attempts.`);
   }
 
-  private cleanupServer(): void {
-    if (this.server) {
-      this.server.close();
-      this.server = null;
-    }
-  }
-
   private tryListen(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      this.server = createServer();
-      this.server.on('upgrade', (request, socket) => {
+      const server = createServer();
+      this.server = server;
+      server.on('upgrade', (request, socket) => {
         const key = request.headers['sec-websocket-key'];
         if (typeof key !== 'string') {
           socket.destroy();
@@ -89,9 +80,22 @@ class WebSocketBridge extends EventEmitter {
         ].join('\r\n'));
         this.registerSocket(socket as import('node:net').Socket);
       });
-      this.server.once('error', reject);
-      this.server.listen({ port: this.port, host: '127.0.0.1', reuseAddress: true }, () => {
-        this.server!.off('error', reject);
+      const onError = (error: NodeJS.ErrnoException) => {
+        if (this.server === server) {
+          this.server = null;
+        }
+        server.close(() => undefined);
+        if (error.code === 'EADDRINUSE') {
+          const bridgeError = new Error(`WebSocket bridge port ${this.port} is already in use. Stop the existing bridge process after confirming ownership, or set GODOT_DEVTOOL_WS_PORT / websocketPort to a free port.`) as NodeJS.ErrnoException;
+          bridgeError.code = 'EADDRINUSE';
+          reject(bridgeError);
+          return;
+        }
+        reject(error);
+      };
+      server.once('error', onError);
+      server.listen({ port: this.port, host: '127.0.0.1', reuseAddress: true }, () => {
+        server.off('error', onError);
         resolve();
       });
     });
@@ -110,38 +114,6 @@ class WebSocketBridge extends EventEmitter {
     this.server = null;
   }
 
-  private async killProcessOnPort(port: number): Promise<void> {
-    try {
-      if (process.platform === 'win32') {
-        // Windows: find and kill process using the port
-        const output = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8' });
-        const lines = output.split('\n').filter(line => line.includes('LISTENING'));
-        for (const line of lines) {
-          const parts = line.trim().split(/\s+/);
-          const pid = parts[parts.length - 1];
-          if (pid && pid !== '0') {
-            console.error(`[WebSocket Bridge] Killing old process PID ${pid} on port ${port}`);
-            try {
-              execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
-            } catch {}
-          }
-        }
-      } else {
-        // Unix: find and kill process using the port
-        const output = execSync(`lsof -ti :${port}`, { encoding: 'utf8' });
-        const pids = output.trim().split('\n').filter(Boolean);
-        for (const pid of pids) {
-          console.error(`[WebSocket Bridge] Killing old process PID ${pid} on port ${port}`);
-          try {
-            execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
-          } catch {}
-        }
-      }
-    } catch {
-      // No process found on port or command failed
-    }
-  }
-
   status(projectPath?: string) {
     const clients = [...this.clients.values()]
       .filter((client) => !projectPath || normalizeProjectPath(client.projectPath) === normalizeProjectPath(projectPath))
@@ -155,7 +127,7 @@ class WebSocketBridge extends EventEmitter {
         protocolVersion: client.protocolVersion,
       }));
     return {
-      running: Boolean(this.server),
+      running: this.server?.listening === true,
       host: '127.0.0.1',
       port: this.port,
       clients,
