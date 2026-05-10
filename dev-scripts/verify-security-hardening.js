@@ -114,7 +114,7 @@ try {
   assert.match(packageJson.scripts['verify:all'], /verify:runtime/, 'verify:all must include verify:runtime');
   assert.match(packageJson.scripts['verify:all'], /verify:security/, 'verify:all must include verify:security');
 
-  const releaseSource = readFileSync(join(repoRoot, 'scripts/publish-github-release.js'), 'utf8');
+  const releaseSource = readFileSync(join(repoRoot, 'dev-scripts/publish-github-release.js'), 'utf8');
   for (const requiredPattern of [
     /git[\s\S]*status[\s\S]*--porcelain/,
     /rev-parse[\s\S]*HEAD/,

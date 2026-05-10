@@ -11,6 +11,7 @@ WebSocket bridge port-conflict safety release.
 - Removed automatic `taskkill` / `kill -9` behavior when the WebSocket bridge port is already owned by another process.
 - Fixed failed bridge listen attempts so they clear the failed server state and no longer report `status().running` as true.
 - Added process regression coverage proving occupied bridge ports are reported without terminating the port owner and that the bridge can start after the owner exits.
+- Moved internal maintenance and verification scripts to `dev-scripts/` so the repository root `scripts/` directory contains only `build.js`.
 - Synchronized package, plugin, Skill, README, changelog, roadmap, verification metadata, and release zip links to `2.8.1`.
 
 ## Version 2.8.0

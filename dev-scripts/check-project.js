@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const projectPath = process.argv[2];
 
 if (!projectPath) {
-  console.error('Usage: node scripts/check-project.js <projectPath>');
+  console.error('Usage: node dev-scripts/check-project.js <projectPath>');
   process.exit(2);
 }
 
