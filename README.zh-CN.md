@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.8.3-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@
 
 [请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.8.2 让 `get_capabilities` 默认返回轻量目录，并要求先用精确过滤条件缩小范围后再返回输入 schema。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.8.3 会让 `launch_editor` 复用已经连接的 Godot 编辑器，而不是再打开第二个编辑器进程。
 
 ## 架构
 
@@ -41,12 +41,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.8.2.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.2/godot-devtool-build-2.8.2.zip)
+   [godot-devtool-build-2.8.3.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.3/godot-devtool-build-2.8.3.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.2.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.8.3.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：

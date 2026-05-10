@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { connect } from 'node:net';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { GodotServer } from '../build/server/GodotServer.js';
 import { commandLineMatchesGodotDevtool } from '../build/server/bridgeProcessCleanup.js';
 import { getWsBridge } from '../build/server/transports/wsBridge.js';
+import { installEditorBridge } from '../build/godot/editorBridge.js';
 
 async function main() {
   const tempRoot = await mkdtemp(join(tmpdir(), 'godot-devtool-process-'));
@@ -54,8 +56,45 @@ async function main() {
     await assertWebSocketPortConflictIsNonDestructive();
     assertBridgeCleanupCommandLineMatching();
     await assertPluginCleanupPortIsExplicitAndScoped();
+    await assertLaunchEditorReusesConnectedEditor(tempRoot);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
+  }
+}
+
+async function assertLaunchEditorReusesConnectedEditor(tempRoot) {
+  const projectPath = join(tempRoot, 'open-editor-project');
+  await mkdir(projectPath, { recursive: true });
+  await writeFile(join(projectPath, 'project.godot'), '[application]\nconfig/name="Open Editor Fixture"\n', 'utf8');
+
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const websocketPort = await findFreePort();
+  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
+  const port = install.bridge.port;
+  const editorSocket = await openWebSocket(port);
+  try {
+    sendMaskedTextFrame(editorSocket, JSON.stringify({
+      type: 'hello',
+      context: 'editor',
+      projectPath,
+      protocolVersion: 1,
+      sessionId: 'already-open-editor',
+      authToken: install.bridge.authToken,
+    }));
+    await delay(150);
+    assert.equal(bridge.status(projectPath).clients.filter((client) => client.context === 'editor').length, 1);
+
+    const instantExitGodot = process.platform === 'win32'
+      ? 'C:\\Windows\\System32\\where.exe'
+      : await writeFakeGodot(tempRoot, { exitCode: 9, stderr: 'launch_editor should not spawn\n' });
+    const server = new GodotServer({ godotPath: instantExitGodot });
+    const response = await server.handleLaunchEditor({ projectPath });
+    assert.equal(response.isError, undefined, 'launch_editor must reuse an already connected editor instead of spawning');
+    assert.match(response.content[0].text, /already connected|existing editor/i);
+  } finally {
+    editorSocket.destroy();
+    await bridge.stop();
   }
 }
 
@@ -226,6 +265,61 @@ async function waitForChildExit(child) {
       resolve();
     });
   });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function openWebSocket(port) {
+  const socket = connect({ host: '127.0.0.1', port });
+  await new Promise((resolve, reject) => {
+    socket.once('connect', resolve);
+    socket.once('error', reject);
+  });
+  socket.write([
+    'GET / HTTP/1.1',
+    `Host: 127.0.0.1:${port}`,
+    'Upgrade: websocket',
+    'Connection: Upgrade',
+    'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==',
+    'Sec-WebSocket-Version: 13',
+    '',
+    '',
+  ].join('\r\n'));
+  await new Promise((resolve, reject) => {
+    let buffer = '';
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      if (buffer.includes('\r\n\r\n')) {
+        socket.off('data', onData);
+        resolve();
+      }
+    };
+    socket.on('data', onData);
+    socket.once('error', reject);
+  });
+  return socket;
+}
+
+async function findFreePort() {
+  const child = await startBlockingPortProcess();
+  const port = child.port;
+  await stopChild(child.child);
+  return port;
+}
+
+function sendMaskedTextFrame(socket, payload) {
+  const data = Buffer.from(payload, 'utf8');
+  const mask = Buffer.from([0x12, 0x34, 0x56, 0x78]);
+  const header = data.length < 126
+    ? Buffer.from([0x81, 0x80 | data.length])
+    : Buffer.from([0x81, 0x80 | 126, data.length >> 8, data.length & 0xff]);
+  const masked = Buffer.from(data);
+  for (let index = 0; index < masked.length; index += 1) {
+    masked[index] ^= mask[index % 4];
+  }
+  socket.write(Buffer.concat([header, mask, masked]));
 }
 
 function parseToolJson(response) {

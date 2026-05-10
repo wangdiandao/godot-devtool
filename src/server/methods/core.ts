@@ -369,7 +369,39 @@ class GodotServerCoreMethods {
     }
 
     try {
-      // Ensure godotPath is set
+      // Check if the project directory exists and contains a project.godot file
+      const projectFile = join(args.projectPath, 'project.godot');
+      if (!existsSync(projectFile)) {
+        return this.createErrorResponse(
+          `Not a valid Godot project: ${args.projectPath}`,
+          [
+            'Ensure the path points to a directory containing a project.godot file',
+            'Use list_projects to find valid Godot projects',
+          ]
+        );
+      }
+
+      const existingEditor = await this.findConnectedEditorClient(args.projectPath);
+      if (existingEditor) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  message: `Godot editor is already connected for project at ${args.projectPath}. Reusing the existing editor session instead of launching a new process.`,
+                  reusedExistingEditor: true,
+                  client: existingEditor,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      // Ensure godotPath is set only when a new editor process is needed.
       if (!this.godotPath) {
         await this.detectGodotPath();
         if (!this.godotPath) {
@@ -381,18 +413,6 @@ class GodotServerCoreMethods {
             ]
           );
         }
-      }
-
-      // Check if the project directory exists and contains a project.godot file
-      const projectFile = join(args.projectPath, 'project.godot');
-      if (!existsSync(projectFile)) {
-        return this.createErrorResponse(
-          `Not a valid Godot project: ${args.projectPath}`,
-          [
-            'Ensure the path points to a directory containing a project.godot file',
-            'Use list_projects to find valid Godot projects',
-          ]
-        );
       }
 
       this.logDebug(`Launching Godot editor for project: ${args.projectPath}`);
@@ -438,6 +458,30 @@ class GodotServerCoreMethods {
         ]
       );
     }
+  }
+
+  private async findConnectedEditorClient(projectPath: string): Promise<any | null> {
+    const findClient = () => getWsBridge()
+      .status(projectPath)
+      .clients
+      .find((client: any) => client.context === 'editor') ?? null;
+
+    const currentClient = findClient();
+    if (currentClient) return currentClient;
+
+    try {
+      await readEditorBridgeStatus(projectPath);
+    } catch {
+      return null;
+    }
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const client = findClient();
+      if (client) return client;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    return null;
   }
 
 

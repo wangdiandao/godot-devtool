@@ -4,6 +4,16 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.3
+
+编辑器启动复用安全版本。
+
+- 修改 `launch_editor`，让它先复用请求项目中已经连接的 editor bridge，而不是再启动第二个 Godot 编辑器进程。
+- 将 Godot 可执行文件检测移动到现有编辑器检查之后；如果项目已经有打开的编辑器，就不需要为了新启动流程先依赖 `GODOT_PATH`。
+- 增加进程回归覆盖，模拟已经连接的 editor client，并验证 `launch_editor` 不会启动替代进程。
+- 更新公开工具描述，明确复用或启动的行为。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.3`。
+
 ## 2.8.2
 
 能力目录上下文预算优化版本。

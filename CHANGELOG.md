@@ -4,6 +4,16 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.3
+
+Editor launch reuse safety release.
+
+- Changed `launch_editor` so it first reuses an already connected editor bridge for the requested project instead of launching a second Godot editor process.
+- Moved Godot executable detection until after the existing-editor check, so projects with an open editor can be reused even when `GODOT_PATH` is not needed for a new launch.
+- Added process regression coverage that simulates an already connected editor client and proves `launch_editor` does not spawn a replacement process.
+- Updated the public tool description to make the reuse-or-launch behavior explicit.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and release zip links to `2.8.3`.
+
 ## Version 2.8.2
 
 Capability catalog context-budget release.

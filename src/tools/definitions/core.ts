@@ -3,7 +3,7 @@ import type { GodotToolDefinition } from './types.js';
 export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   {
     name: 'launch_editor',
-    description: 'Launch Godot editor for a specific project',
+    description: 'Reuse an already connected Godot editor for a project, or launch one when no editor bridge is connected',
     inputSchema: {
       type: 'object',
       properties: {

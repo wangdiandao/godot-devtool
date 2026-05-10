@@ -42,5 +42,5 @@ function readPackageVersion(): string {
     }
   }
 
-  return '2.8.2';
+  return '2.8.3';
 }
