@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.5 keeps the stdio MCP server available without binding the WebSocket bridge port at startup; bridge tools open the local bridge only for the active MCP tool call and release the port when that call finishes.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. The stdio MCP server starts without binding the WebSocket bridge port; bridge tools open the local bridge on demand, keep it alive while `run_project` is active or a runtime client is connected, and otherwise release the port after tool-call cleanup.
 
 ## Architecture
 
@@ -90,7 +90,7 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. The stdio MCP server starts without opening that port; bridge tools open it for the current MCP call, and cleanup closes it afterward. The Godot plugin reconnects when the next bridge tool starts, and live commands briefly wait for that reconnect.
+`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. The stdio MCP server starts without opening that port. Bridge tools open it on demand; editor-only calls release it during cleanup, while a project launched through `run_project` or an already connected runtime client keeps the listener open so runtime commands do not depend on a one-call reconnect window.
 
 If another listener already holds the port while a bridge tool runs, use `plugin_status` and `plugin_cleanup_port` to inspect it. Only call `plugin_cleanup_port` with `kill=true` after confirming the listener is stale; switching ports creates a separate bridge and does not adopt editor clients connected to the old one.
 

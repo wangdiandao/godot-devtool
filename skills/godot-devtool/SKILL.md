@@ -44,9 +44,9 @@ env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_P
 
 Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-devtool/build/index.js` MCP process running while the MCP client needs tools.
 
-The MCP process does not bind `GODOT_DEVTOOL_WS_PORT` (default `8766`) at startup. Bridge-backed tools open the WebSocket bridge only for the active MCP tool call and release the port in cleanup when that call finishes.
+The MCP process does not bind `GODOT_DEVTOOL_WS_PORT` (default `8766`) at startup. Bridge-backed tools open the WebSocket bridge on demand. Editor-only calls release the listener in cleanup; a project launched through `run_project` or an already connected runtime client keeps the listener alive so `DevtoolRuntime` can stay connected.
 
-The `GDT` dock can briefly return to `Unregistered` between calls because the listener was intentionally closed. The next `editor_ws` or `runtime_ws` tool call starts the listener again and waits briefly for the Godot plugin or runtime bridge to reconnect.
+The `GDT` dock can briefly return to `Unregistered` between editor-only calls because the listener was intentionally closed. Runtime calls should stay registered while the `run_project` process is active or a runtime client is attached; if they do not, treat that as a runtime bridge lifecycle bug rather than proof from `plugin_status` alone.
 
 If a bridge tool reports that the WebSocket bridge port is occupied, the stdio MCP server can still be available for native tools, `plugin_status`, and `plugin_cleanup_port`. Do not solve that by launching a second editor or picking a new port unless you intentionally want an isolated bridge and will reinstall/reload the plugin with the same `websocketPort`.
 
@@ -55,12 +55,12 @@ If the dock shows `Unregistered` or runtime state stops updating, check the list
     plugin_status -> confirms installed plugin files, WebSocket port, and active bridge clients
     PowerShell: Get-NetTCPConnection -LocalPort 8766
 
-Do not treat a short-lived `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; with the default tool-call lifetime, the dock can return to `Unregistered` after cleanup.
+Do not treat a short-lived `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; require a real `runtime_ws` command receipt for runtime success.
 
 Distinguish the two live pieces:
 
     MCP stdio server -> the real tool server launched by the MCP client
-    WebSocket bridge -> transient editor/runtime listener opened by bridge tools
+    WebSocket bridge -> on-demand editor/runtime listener opened by bridge tools
 
 A detached WebSocket keepalive can keep the dock registered for diagnosis, but it is not a replacement for real MCP tool calls. Use real MCP calls to prove tool availability.
 

@@ -756,7 +756,7 @@ class GodotServerCompatibilityMethods {
       throw new Error('Runtime bridge is not installed. Run plugin_install with overwrite=true, then start the Godot project so the DevtoolRuntime autoload can process commands.');
     }
     if (status.stale) {
-      throw new Error(`Runtime bridge is not active. State path ${status.statePath} is ${status.ageMs === null ? 'missing' : `${status.ageMs}ms old`}; start or focus the running Godot project and retry.`);
+      this.logDebug(`Runtime bridge was not connected during ${toolName} preflight; waiting for DevtoolRuntime to reconnect before dispatch.`);
     }
 
     const timeoutMs = Number(args.timeoutMs ?? 10000);

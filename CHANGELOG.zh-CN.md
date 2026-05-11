@@ -4,6 +4,14 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 未发布
+
+Runtime bridge listener 生命周期加固。
+
+- 当 `run_project` 仍有活跃进程或 runtime client 已连接时保持 WebSocket bridge listener，并在没有 runtime 状态、`stop_project`、替代运行、进程退出或 server cleanup 时关闭它。
+- 修改 runtime compatibility 工具：不再因为初始 `plugin_status` stale 快照直接失败，而是等待 `DevtoolRuntime` 重新连接并返回真实命令 receipt。
+- 增加进程回归覆盖，验证 runtime 重连派发和项目运行期间 listener 持续存在。
+
 ## 2.8.5
 
 按 MCP 调用清理 WebSocket bridge 的小版本。

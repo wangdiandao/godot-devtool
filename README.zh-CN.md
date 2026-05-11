@@ -10,7 +10,7 @@
 
 [请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.8.5 会在启动 stdio MCP server 时避免占用 WebSocket bridge 端口；bridge 工具只在当前 MCP 工具调用期间打开本地 bridge，并在调用结束后释放端口。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。stdio MCP server 启动时不会占用 WebSocket bridge 端口；bridge 工具会按需打开本地 bridge，并在 `run_project` 仍有活跃进程或 runtime client 已连接时保持监听；其它情况下会在工具调用清理阶段释放端口。
 
 ## 架构
 
@@ -90,7 +90,7 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` 默认是 `8766`。stdio MCP server 仍会启动但不会立即打开该端口，bridge 工具会在当前 MCP 调用期间打开端口，并在清理阶段关闭它。Godot 插件会在下一次 bridge 工具启动时重新连接，实时命令也会短暂等待这次重连。
+`GODOT_DEVTOOL_WS_PORT` 默认是 `8766`。stdio MCP server 仍会启动但不会立即打开该端口。bridge 工具按需打开端口；纯 editor 调用会在清理阶段释放监听，而通过 `run_project` 启动的项目或已经连接的 runtime client 会保持 listener，避免 runtime 命令依赖单次调用窗口内的重连。
 
 如果某个 bridge 工具运行时发现端口已被其它监听进程占用，使用 `plugin_status` 和 `plugin_cleanup_port` 检查监听者。只有确认监听进程已经过期时，才调用带 `kill=true` 的 `plugin_cleanup_port`；单纯换端口会创建另一套 bridge，不能接管已经连接到旧 bridge 的 editor client。
 

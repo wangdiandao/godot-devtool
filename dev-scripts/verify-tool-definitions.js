@@ -393,11 +393,11 @@ if (!serverSource.includes('PACKAGE_VERSION')) {
   process.exit(1);
 }
 if (!serverSource.includes('releaseTransientWebSocketBridge')) {
-  console.error('GodotServer must release the WebSocket bridge after each MCP tool call by default');
+  console.error('GodotServer must release or preserve the WebSocket bridge after MCP tool calls');
   process.exit(1);
 }
-if (!serverSource.includes('finally') || !serverSource.includes('await this.releaseTransientWebSocketBridge()')) {
-  console.error('CallToolRequestSchema handler must clean up the transient WebSocket bridge in a finally block');
+if (!serverSource.includes('finally') || !serverSource.includes('await this.releaseTransientWebSocketBridge(toolName)')) {
+  console.error('CallToolRequestSchema handler must clean up or preserve the WebSocket bridge in a finally block with tool context');
   process.exit(1);
 }
 if (serverSource.includes('GODOT_DEVTOOL_WS_LIFETIME') || serverSource.includes('websocketBridgeLifetime')) {

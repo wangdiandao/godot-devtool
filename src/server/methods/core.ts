@@ -343,19 +343,65 @@ class GodotServerCoreMethods {
       try {
         return await handler(request.params.arguments);
       } finally {
-        await this.releaseTransientWebSocketBridge();
+        await this.releaseTransientWebSocketBridge(toolName);
       }
     });
   }
 
 
 
-  private async releaseTransientWebSocketBridge(): Promise<void> {
+  private async releaseTransientWebSocketBridge(toolName?: string): Promise<void> {
     try {
+      if (this.shouldKeepWebSocketBridgeForActiveRuntime(toolName)) {
+        this.logDebug(`Keeping WebSocket bridge alive after ${toolName ?? 'tool call'} because runtime bridge state is active.`);
+        return;
+      }
       await getWsBridge().stop();
       this.logDebug('Transient WebSocket bridge stopped after MCP tool call.');
     } catch (err) {
       this.logDebug(`Error stopping transient WebSocket bridge: ${err}`);
+    }
+  }
+
+
+
+  private shouldKeepWebSocketBridgeForActiveRuntime(_toolName?: string): boolean {
+    const status = getWsBridge().status();
+    if (status.running !== true) return false;
+    const hasRuntimeClient = status.clients.some((client: any) => client.context === 'runtime');
+    if (!this.activeProcess && !hasRuntimeClient) return false;
+    if (this.activeProcess) {
+      this.runtimeBridgeOwnerProcess = this.activeProcess.process;
+    }
+    return true;
+  }
+
+
+
+  private async startRuntimeWebSocketBridgeForActiveRun(projectPath: string, process: any): Promise<void> {
+    const bridgeConfigPath = join(projectPath, '.godot-devtool', 'bridge-config.json');
+    if (!existsSync(bridgeConfigPath)) return;
+    try {
+      const status = await readRuntimeBridgeStatus(projectPath);
+      if (status.lastState?.websocket?.running === true && this.activeProcess?.process === process) {
+        this.runtimeBridgeOwnerProcess = process;
+        this.logDebug(`Runtime WebSocket bridge is listening while Godot project runs: ${projectPath}`);
+      }
+    } catch (err) {
+      this.logDebug(`Runtime WebSocket bridge was not started for run_project: ${err}`);
+    }
+  }
+
+
+
+  private async stopRuntimeWebSocketBridgeForProcess(process: any, reason: string): Promise<void> {
+    if (!this.runtimeBridgeOwnerProcess || this.runtimeBridgeOwnerProcess !== process) return;
+    this.runtimeBridgeOwnerProcess = null;
+    try {
+      await getWsBridge().stop();
+      this.logDebug(`Runtime WebSocket bridge stopped: ${reason}.`);
+    } catch (err) {
+      this.logDebug(`Error stopping runtime WebSocket bridge after ${reason}: ${err}`);
     }
   }
 
@@ -671,6 +717,7 @@ class GodotServerCoreMethods {
       // Kill any existing process
       if (this.activeProcess) {
         this.logDebug('Killing existing Godot process before starting a new one');
+        await this.stopRuntimeWebSocketBridgeForProcess(this.activeProcess.process, 'starting replacement Godot process');
         this.activeProcess.process.kill();
         this.lastRun = {
           ...this.activeProcess,
@@ -720,6 +767,7 @@ class GodotServerCoreMethods {
           this.lastRun = run;
           this.activeProcess = null;
         }
+        void this.stopRuntimeWebSocketBridgeForProcess(process, 'Godot process exited');
       });
 
       process.on('error', (err: Error) => {
@@ -731,6 +779,7 @@ class GodotServerCoreMethods {
         if (this.activeProcess && this.activeProcess.process === process) {
           this.activeProcess = null;
         }
+        void this.stopRuntimeWebSocketBridgeForProcess(process, 'Godot process error');
       });
 
       const startupError = await new Promise<Error | null>((resolveStartup) => {
@@ -757,6 +806,8 @@ class GodotServerCoreMethods {
         }
         return this.createErrorResponse(`Failed to run Godot project: ${startupError.message}`);
       }
+
+      await this.startRuntimeWebSocketBridgeForActiveRun(args.projectPath, process);
 
       return {
         content: [
@@ -884,6 +935,7 @@ class GodotServerCoreMethods {
     const output = run.output;
     const errors = run.errors;
     this.activeProcess = null;
+    await this.stopRuntimeWebSocketBridgeForProcess(run.process, 'Godot project stopped');
 
     return {
       content: [
@@ -1100,7 +1152,7 @@ class GodotServerCoreMethods {
       console.error(`[SERVER] Using Godot at: ${this.godotPath}`);
 
       const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
-      console.error(`[SERVER] WebSocket bridge opens per tool call; port ${websocketPort} is released after each MCP tool call.`);
+      console.error(`[SERVER] WebSocket bridge opens on demand; port ${websocketPort} is kept while run_project is active and otherwise released after MCP tool calls.`);
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);

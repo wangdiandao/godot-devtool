@@ -57,6 +57,8 @@ async function main() {
 
     await assertWebSocketPortConflictIsNonDestructive();
     await assertWebSocketBridgeWaitsForReconnectBeforeCommand(tempRoot);
+    await assertRuntimeCompatibilityWaitsForReconnectBeforeCommand(tempRoot);
+    await assertRuntimeBridgeStaysAliveWhileProjectRuns(tempRoot);
     assertBridgeCleanupCommandLineMatching();
     await assertPluginCleanupPortIsExplicitAndScoped();
     await assertLaunchEditorReusesConnectedEditor(tempRoot);
@@ -297,6 +299,111 @@ async function assertWebSocketBridgeWaitsForReconnectBeforeCommand(tempRoot) {
     await bridge.stop();
   }
   if (commandError) throw commandError;
+}
+
+async function assertRuntimeCompatibilityWaitsForReconnectBeforeCommand(tempRoot) {
+  const projectPath = join(tempRoot, 'runtime-reconnect-project');
+  await mkdir(projectPath, { recursive: true });
+  await writeFile(join(projectPath, 'project.godot'), '[application]\nconfig/name="Runtime Reconnect Fixture"\n', 'utf8');
+
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const websocketPort = await findFreePort();
+  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
+  await bridge.stop();
+
+  const server = new GodotServer({ godotPath: process.execPath });
+  let runtimeSocket = null;
+  let clientError = null;
+  const clientPromise = (async () => {
+    await delay(100);
+    runtimeSocket = await openWebSocket(install.bridge.port);
+    sendMaskedTextFrame(runtimeSocket, JSON.stringify({
+      type: 'hello',
+      context: 'runtime',
+      projectPath,
+      protocolVersion: 1,
+      sessionId: 'transient-reconnect-runtime',
+      authToken: install.bridge.authToken,
+    }));
+    await readWebSocketTextFrame(runtimeSocket);
+    const command = JSON.parse(await readWebSocketTextFrame(runtimeSocket));
+    assert.equal(command.type, 'command', 'reconnected runtime should receive the queued command');
+    assert.equal(command.command, 'get_game_scene_tree');
+    sendMaskedTextFrame(runtimeSocket, JSON.stringify({
+      type: 'receipt',
+      commandId: command.commandId,
+      command: command.command,
+      status: 'completed',
+      result: { root: { name: 'Main' } },
+    }));
+  })().catch((error) => {
+    clientError = error;
+  });
+
+  try {
+    const response = await server.handleCompatibilityTool('get_game_scene_tree', { projectPath, timeoutMs: 2000 });
+    const payload = parseToolJson(response);
+    assert.equal(payload.status, 'completed');
+    assert.deepEqual(payload.result, { root: { name: 'Main' } });
+    await clientPromise;
+    if (clientError) throw clientError;
+  } finally {
+    runtimeSocket?.destroy();
+    await clientPromise.catch(() => {});
+    await bridge.stop();
+  }
+}
+
+async function assertRuntimeBridgeStaysAliveWhileProjectRuns(tempRoot) {
+  const projectPath = join(tempRoot, 'runtime-persistent-project');
+  await mkdir(projectPath, { recursive: true });
+  await writeFile(join(projectPath, 'project.godot'), '[application]\nconfig/name="Runtime Persistent Fixture"\n', 'utf8');
+
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const websocketPort = await findFreePort();
+  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
+  await bridge.stop();
+  await bridge.start(install.bridge.port);
+
+  const runtimeSocket = await openWebSocket(install.bridge.port);
+  try {
+    sendMaskedTextFrame(runtimeSocket, JSON.stringify({
+      type: 'hello',
+      context: 'runtime',
+      projectPath,
+      protocolVersion: 1,
+      sessionId: 'persistent-runtime',
+      authToken: install.bridge.authToken,
+    }));
+    await readWebSocketTextFrame(runtimeSocket);
+    assert.equal(bridge.status(projectPath).clients.filter((client) => client.context === 'runtime').length, 1);
+
+    const server = new GodotServer({ godotPath: process.execPath });
+    server.activeProcess = {
+      process: { kill() {} },
+      output: [],
+      errors: [],
+      startedAt: new Date().toISOString(),
+    };
+    await server.releaseTransientWebSocketBridge('get_game_scene_tree');
+    assert.equal(bridge.status(projectPath).running, true, 'runtime bridge listener must stay alive while run_project is active');
+    assert.equal(bridge.status(projectPath).clients.filter((client) => client.context === 'runtime').length, 1);
+
+    server.activeProcess = null;
+    await server.releaseTransientWebSocketBridge('get_game_scene_tree');
+    assert.equal(bridge.status(projectPath).running, true, 'runtime bridge listener must stay alive while a runtime client is connected');
+
+    runtimeSocket.destroy();
+    await bridge.stop();
+    await bridge.start(install.bridge.port);
+    await server.releaseTransientWebSocketBridge('get_game_scene_tree');
+    assert.equal(bridge.status(projectPath).running, false, 'runtime bridge listener should stop once no project run or runtime client is active');
+  } finally {
+    runtimeSocket.destroy();
+    await bridge.stop();
+  }
 }
 
 async function assertPluginCleanupPortIsExplicitAndScoped() {

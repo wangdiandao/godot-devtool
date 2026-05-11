@@ -160,6 +160,7 @@ export class GodotServer {
   private server: Server;
   private activeProcess: GodotProcess | null = null;
   private lastRun: GodotProcess | null = null;
+  private runtimeBridgeOwnerProcess: any | null = null;
   private godotPath: string | null = null;
   private operationsScriptPath: string;
   private currentScene: SceneOpenResult | null = null;
@@ -369,6 +370,7 @@ export class GodotServer {
     this.logDebug('Cleaning up server resources...');
     try {
       await getWsBridge().stop();
+      this.runtimeBridgeOwnerProcess = null;
       this.logDebug('WebSocket bridge stopped.');
     } catch (err) {
       this.logDebug(`Error stopping WebSocket bridge: ${err}`);

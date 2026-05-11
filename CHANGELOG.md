@@ -4,6 +4,14 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Unreleased
+
+Runtime bridge listener lifecycle hardening.
+
+- Kept the WebSocket bridge listener alive while a `run_project` process is active or a runtime client is connected, then stopped it when no runtime state remains or on `stop_project`, replacement runs, process exit, or server cleanup.
+- Changed runtime compatibility tools to wait for `DevtoolRuntime` to reconnect and return a real command receipt instead of failing on an initial `plugin_status` stale snapshot.
+- Added process regression coverage for runtime reconnect dispatch and runtime listener persistence while a project is running.
+
 ## Version 2.8.5
 
 Per-call WebSocket bridge cleanup release.

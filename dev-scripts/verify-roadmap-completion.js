@@ -493,14 +493,16 @@ try {
   assert.match(readme, /unfiltered schema requests are rejected/);
   assert.match(readme, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
   assert.match(readme, /The stdio MCP server starts without opening that port/);
-  assert.match(readme, /release it in cleanup when that call finishes|cleanup closes it afterward/);
+  assert.match(readme, /`run_project` or an already connected runtime client keeps the listener open/);
+  assert.match(readme, /editor-only calls release it during cleanup/);
   assert.doesNotMatch(readme, /GODOT_DEVTOOL_WS_LIFETIME|long-lived bridge|session lifetime/i);
   assert.match(readme, /switching ports creates a separate bridge/);
   assert.match(readmeZh, /默认调用只返回轻量工具目录/);
   assert.match(readmeZh, /未过滤的 schema 请求会被拒绝/);
   assert.match(readmeZh, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
   assert.match(readmeZh, /stdio MCP server 仍会启动但不会立即打开该端口/);
-  assert.match(readmeZh, /调用结束后释放端口|清理阶段关闭它/);
+  assert.match(readmeZh, /`run_project` 启动的项目或已经连接的 runtime client 会保持 listener/);
+  assert.match(readmeZh, /纯 editor 调用会在清理阶段释放监听/);
   assert.doesNotMatch(readmeZh, /GODOT_DEVTOOL_WS_LIFETIME|长期监听|session lifetime/i);
   assert.match(readmeZh, /单纯换端口会创建另一套 bridge/);
   assert.match(readmeZh, /## 能做什么/);
@@ -526,7 +528,8 @@ try {
   assert.match(skillRaw, /All 228 tools are discoverable through `get_capabilities`/);
   assert.match(skillRaw, /lightweight index without input schemas/);
   assert.match(skillRaw, /Unfiltered schema requests are rejected/);
-  assert.match(skillRaw, /release the port in cleanup when that call finishes/);
+  assert.match(skillRaw, /Editor-only calls release the listener in cleanup/);
+  assert.match(skillRaw, /`run_project` or an already connected runtime client keeps the listener alive/);
   assert.doesNotMatch(skillRaw, /GODOT_DEVTOOL_WS_LIFETIME|long-lived bridge|session lifetime/i);
   assert.match(skillRaw, /If a bridge tool reports that the WebSocket bridge port is occupied/);
   assert.match(skillRaw, /new MCP process cannot command editor clients connected to the old listener/);
