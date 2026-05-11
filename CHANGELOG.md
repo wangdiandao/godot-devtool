@@ -4,6 +4,17 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.4
+
+Existing editor bridge adoption diagnostics release.
+
+- Changed MCP startup so an occupied WebSocket bridge port no longer prevents the stdio MCP server from starting; native diagnostics and `plugin_cleanup_port` remain available.
+- Changed `plugin_status` so bridge port conflicts are reported as structured status with reuse and cleanup guidance instead of a generic installation error.
+- Changed `launch_editor` so it refuses to open a replacement editor when the configured bridge port is owned by another listener, preventing accidental second-editor sessions.
+- Improved WebSocket bridge port-conflict guidance to explain that changing ports creates a separate bridge and does not adopt editor clients connected to another MCP process.
+- Added process regression coverage for occupied-port startup, diagnostic `plugin_status`, and `launch_editor` refusal.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and release zip links to `2.8.4`.
+
 ## Version 2.8.3
 
 Editor launch reuse safety release.

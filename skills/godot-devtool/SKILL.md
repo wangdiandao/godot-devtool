@@ -1,14 +1,14 @@
 ﻿---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.3 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.4 MCP server."
 metadata:
-  version: "2.8.3"
+  version: "2.8.4"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.8.3.
+Compatibility: `godot-devtool` 2.8.4.
 
 Tool catalog: All 228 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
 
@@ -46,6 +46,8 @@ Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-de
 
 The MCP process owns the local WebSocket bridge on `GODOT_DEVTOOL_WS_PORT` (default `8766`). The `GDT` dock can show `Registered`, and `editor_ws` / `runtime_ws` tools can work, only while that process is still listening.
 
+If startup reports that the WebSocket bridge port is occupied, the stdio MCP server can still be available for native tools, `plugin_status`, and `plugin_cleanup_port`. Do not solve that by launching a second editor or picking a new port unless you intentionally want an isolated bridge and will reinstall/reload the plugin with the same `websocketPort`.
+
 If the dock shows `Unregistered` or runtime state stops updating, check the listener before changing project code:
 
     plugin_status -> confirms installed plugin files, WebSocket port, and active bridge clients
@@ -67,7 +69,7 @@ If `GODOT_DEVTOOL_WS_PORT` is busy, identify the owner before changing code:
     plugin_cleanup_port { "port": 8766 } -> dry-run inspect listener candidates
     plugin_cleanup_port { "port": 8766, "pid": <pid>, "kill": true } -> explicitly stop a verified stale godot-devtool listener
 
-Stop only a listener you started, or reinstall the plugin with a different `websocketPort` and keep that same port in the MCP client env. If Windows cannot expose the command line, use `allowUnverified: true` only with the exact PID shown by the dry-run result.
+Stop only a listener you started. If the listener is the active `godot-devtool` MCP process for the already-open editor, keep using that same MCP session; a new MCP process cannot command editor clients connected to the old listener. If Windows cannot expose the command line, use `allowUnverified: true` only with the exact PID shown by the dry-run result.
 
 ## Context Budget Rules
 

@@ -57,6 +57,8 @@ async function main() {
     assertBridgeCleanupCommandLineMatching();
     await assertPluginCleanupPortIsExplicitAndScoped();
     await assertLaunchEditorReusesConnectedEditor(tempRoot);
+    await assertOccupiedBridgePortIsDiagnosable(tempRoot);
+    await assertMcpServerStartsWhenBridgePortIsOccupied();
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -98,6 +100,69 @@ async function assertLaunchEditorReusesConnectedEditor(tempRoot) {
   }
 }
 
+async function assertOccupiedBridgePortIsDiagnosable(tempRoot) {
+  const projectPath = join(tempRoot, 'occupied-bridge-project');
+  await mkdir(join(projectPath, '.godot-devtool'), { recursive: true });
+  await writeFile(join(projectPath, 'project.godot'), '[application]\nconfig/name="Occupied Bridge Fixture"\n', 'utf8');
+
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const blocker = await startBlockingPortProcess({ commandLineMarker: join(process.cwd(), 'build', 'index.js') });
+  await writeFile(join(projectPath, '.godot-devtool', 'bridge-config.json'), JSON.stringify({
+    mode: 'websocket',
+    instanceId: 'occupied-bridge',
+    projectPath,
+    host: '127.0.0.1',
+    port: blocker.port,
+    url: `ws://127.0.0.1:${blocker.port}`,
+    authToken: 'occupied-token',
+  }, null, 2), 'utf8');
+
+  try {
+    const server = new GodotServer({ godotPath: process.execPath });
+    const statusResponse = await server.handleEditorBridgeStatus({ projectPath });
+    assert.equal(statusResponse.isError, undefined, 'plugin_status should stay available when the bridge port is occupied');
+    const statusPayload = parseToolJson(statusResponse);
+    assert.equal(statusPayload.lastState.connected, false, 'current MCP process must not claim a client owned by another listener');
+    assert.equal(statusPayload.lastState.portConflict.port, blocker.port, 'plugin_status should report the occupied bridge port');
+    assert.match(statusPayload.lastState.portConflict.message, /already.*use|occupied/i);
+    assert.match(statusPayload.lastState.portConflict.guidance.join('\n'), /plugin_cleanup_port/);
+    assert.match(statusPayload.lastState.portConflict.guidance.join('\n'), /reuse.*MCP|same MCP/i);
+
+    const launchResponse = await server.handleLaunchEditor({ projectPath });
+    assert.equal(launchResponse.isError, true, 'launch_editor should not open another editor when the configured bridge port is occupied');
+    assert.match(launchResponse.content[0].text, /bridge port .*already.*use|occupied/i);
+    assert.match(launchResponse.content[0].text, /plugin_cleanup_port|same MCP|reuse/i);
+    assert.equal(blocker.child.exitCode, null, 'diagnostics must not stop the existing bridge listener');
+  } finally {
+    await bridge.stop();
+    await stopChild(blocker.child);
+  }
+}
+
+async function assertMcpServerStartsWhenBridgePortIsOccupied() {
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const blocker = await startBlockingPortProcess({ commandLineMarker: join(process.cwd(), 'build', 'index.js') });
+  const child = spawn(process.execPath, [join(process.cwd(), 'build', 'index.js')], {
+    env: {
+      ...process.env,
+      GODOT_PATH: process.execPath,
+      GODOT_DEVTOOL_WS_PORT: String(blocker.port),
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  try {
+    const stderr = await waitForStderr(child, /Godot MCP server running on stdio|Failed to start/i);
+    assert.match(stderr, /Godot MCP server running on stdio/i, 'MCP stdio server should still start when the bridge port is occupied');
+    assert.match(stderr, /bridge port .*already.*use|occupied/i, 'startup should explain the bridge port conflict');
+    assert.equal(child.exitCode, null, 'MCP process must remain alive for native diagnostics and cleanup tools');
+  } finally {
+    await stopChild(child);
+    await stopChild(blocker.child);
+  }
+}
+
 function assertBridgeCleanupCommandLineMatching() {
   assert.equal(
     commandLineMatchesGodotDevtool('node E:/godot-devtool/build/index.js'),
@@ -109,6 +174,40 @@ function assertBridgeCleanupCommandLineMatching() {
     false,
     'cleanup must not treat arbitrary node listeners as godot-devtool'
   );
+}
+
+function waitForStderr(child, pattern) {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timed out waiting for stderr pattern ${pattern}. Stderr so far:\n${buffer}`));
+    }, 5000);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      child.stderr?.off('data', onData);
+      child.off('exit', onExit);
+      child.off('error', onError);
+    };
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      if (pattern.test(buffer)) {
+        cleanup();
+        resolve(buffer);
+      }
+    };
+    const onExit = (code, signal) => {
+      cleanup();
+      reject(new Error(`Process exited before stderr pattern ${pattern}: code=${code} signal=${signal}\n${buffer}`));
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    child.stderr?.on('data', onData);
+    child.once('exit', onExit);
+    child.once('error', onError);
+  });
 }
 
 async function assertWebSocketPortConflictIsNonDestructive() {

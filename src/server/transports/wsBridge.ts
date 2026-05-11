@@ -6,6 +6,13 @@ import { join } from 'node:path';
 
 type BridgeContext = 'editor' | 'runtime';
 
+export interface BridgePortConflictDetails {
+  code: 'EADDRINUSE';
+  port: number;
+  message: string;
+  guidance: string[];
+}
+
 export interface BridgeReceipt {
   commandId: string;
   type: string;
@@ -86,7 +93,7 @@ class WebSocketBridge extends EventEmitter {
         }
         server.close(() => undefined);
         if (error.code === 'EADDRINUSE') {
-          const bridgeError = new Error(`WebSocket bridge port ${this.port} is already in use. Stop the existing bridge process after confirming ownership, or set GODOT_DEVTOOL_WS_PORT / websocketPort to a free port.`) as NodeJS.ErrnoException;
+          const bridgeError = new Error(bridgePortInUseDetails(this.port).message) as NodeJS.ErrnoException;
           bridgeError.code = 'EADDRINUSE';
           reject(bridgeError);
           return;
@@ -336,6 +343,24 @@ function normalizeProjectPath(value: string | null | undefined): string {
 }
 
 const bridge = new WebSocketBridge();
+
+export function isBridgePortInUseError(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException | undefined)?.code === 'EADDRINUSE';
+}
+
+export function bridgePortInUseDetails(port: number): BridgePortConflictDetails {
+  return {
+    code: 'EADDRINUSE',
+    port,
+    message: `WebSocket bridge port ${port} is already in use. Another godot-devtool MCP process may already be serving the open Godot editor; this MCP process cannot command editor clients connected to that other listener. Reuse the same MCP session for live editor tools, or inspect the listener with plugin_cleanup_port before changing ports.`,
+    guidance: [
+      `Call plugin_cleanup_port { "port": ${port} } to inspect the listener before stopping anything.`,
+      'If the listener is the active godot-devtool MCP process, keep using that same MCP session for the current Godot editor.',
+      'Only stop a verified stale listener with plugin_cleanup_port kill=true and an exact pid.',
+      'Only use a different port for an isolated session after setting both GODOT_DEVTOOL_WS_PORT and plugin_install websocketPort to that same port.',
+    ],
+  };
+}
 
 export function getWsBridge(): WebSocketBridge {
   return bridge;

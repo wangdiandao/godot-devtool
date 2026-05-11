@@ -16,7 +16,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'plugin_status',
-    description: 'Read godot-devtool v2 plugin installation status and WebSocket bridge configuration',
+    description: 'Read godot-devtool v2 plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics',
     inputSchema: {
       type: 'object',
       properties: {

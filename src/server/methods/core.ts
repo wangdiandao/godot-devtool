@@ -88,7 +88,7 @@ import { GODOT_TOOL_DEFINITIONS } from '../../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from '../handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from '../packageMetadata.js';
 import { getBrowserVisualizer } from '../transports/browserVisualizer.js';
-import { getWsBridge } from '../transports/wsBridge.js';
+import { bridgePortInUseDetails, getWsBridge, isBridgePortInUseError } from '../transports/wsBridge.js';
 
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
@@ -382,7 +382,7 @@ class GodotServerCoreMethods {
       }
 
       const existingEditor = await this.findConnectedEditorClient(args.projectPath);
-      if (existingEditor) {
+      if (existingEditor.client) {
         return {
           content: [
             {
@@ -391,7 +391,7 @@ class GodotServerCoreMethods {
                 {
                   message: `Godot editor is already connected for project at ${args.projectPath}. Reusing the existing editor session instead of launching a new process.`,
                   reusedExistingEditor: true,
-                  client: existingEditor,
+                  client: existingEditor.client,
                 },
                 null,
                 2
@@ -399,6 +399,12 @@ class GodotServerCoreMethods {
             },
           ],
         };
+      }
+      if (existingEditor.portConflict) {
+        return this.createErrorResponse(
+          `Cannot launch a replacement Godot editor because ${existingEditor.portConflict.message} Use plugin_cleanup_port to inspect the owner; reuse the same MCP session if it is the active bridge.`,
+          existingEditor.portConflict.guidance
+        );
       }
 
       // Ensure godotPath is set only when a new editor process is needed.
@@ -460,28 +466,30 @@ class GodotServerCoreMethods {
     }
   }
 
-  private async findConnectedEditorClient(projectPath: string): Promise<any | null> {
+  private async findConnectedEditorClient(projectPath: string): Promise<{ client: any | null; portConflict: any | null }> {
     const findClient = () => getWsBridge()
       .status(projectPath)
       .clients
       .find((client: any) => client.context === 'editor') ?? null;
 
     const currentClient = findClient();
-    if (currentClient) return currentClient;
+    if (currentClient) return { client: currentClient, portConflict: null };
 
     try {
-      await readEditorBridgeStatus(projectPath);
+      const status = await readEditorBridgeStatus(projectPath);
+      const portConflict = (status.lastState as any)?.portConflict ?? null;
+      if (portConflict) return { client: null, portConflict };
     } catch {
-      return null;
+      return { client: null, portConflict: null };
     }
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const client = findClient();
-      if (client) return client;
+      if (client) return { client, portConflict: null };
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
-    return null;
+    return { client: null, portConflict: null };
   }
 
 
@@ -1077,8 +1085,20 @@ class GodotServerCoreMethods {
       console.error(`[SERVER] Using Godot at: ${this.godotPath}`);
 
       const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
-      await getWsBridge().start(websocketPort);
-      console.error(`[SERVER] Godot WebSocket bridge listening on ws://127.0.0.1:${websocketPort}`);
+      try {
+        await getWsBridge().start(websocketPort);
+        console.error(`[SERVER] Godot WebSocket bridge listening on ws://127.0.0.1:${websocketPort}`);
+      } catch (error) {
+        if (!isBridgePortInUseError(error)) {
+          throw error;
+        }
+        const conflict = bridgePortInUseDetails(websocketPort);
+        console.error(`[SERVER] ${conflict.message}`);
+        for (const item of conflict.guidance) {
+          console.error(`[SERVER] ${item}`);
+        }
+        console.error('[SERVER] Continuing stdio MCP startup; native tools and plugin_cleanup_port remain available.');
+      }
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);

@@ -50,6 +50,7 @@ try {
 
   assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
   assert.match(pluginSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `plugin.gd must report plugin version ${releaseVersion}`);
+  assert.match(runtimeSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `runtime_bridge.gd must report plugin version ${releaseVersion}`);
   assert.match(pluginConfigSource, new RegExp(`version="${escapedReleaseVersion}"`), `plugin.cfg must report plugin version ${releaseVersion}`);
   assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
   assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');

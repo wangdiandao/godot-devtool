@@ -492,9 +492,13 @@ try {
   assert.match(readme, /The default call returns a lightweight catalog/);
   assert.match(readme, /unfiltered schema requests are rejected/);
   assert.match(readme, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
+  assert.match(readme, /the stdio MCP server still starts/);
+  assert.match(readme, /switching ports creates a separate bridge/);
   assert.match(readmeZh, /默认调用只返回轻量工具目录/);
   assert.match(readmeZh, /未过滤的 schema 请求会被拒绝/);
   assert.match(readmeZh, /toolNames=\["plugin_install","plugin_status","plugin_reload","plugin_cleanup_port"\]/);
+  assert.match(readmeZh, /stdio MCP server 仍会启动/);
+  assert.match(readmeZh, /单纯换端口会创建另一套 bridge/);
   assert.match(readmeZh, /## 能做什么/);
   assert.doesNotMatch(readmeZh, /转接到/);
   assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
@@ -518,6 +522,8 @@ try {
   assert.match(skillRaw, /All 228 tools are discoverable through `get_capabilities`/);
   assert.match(skillRaw, /lightweight index without input schemas/);
   assert.match(skillRaw, /Unfiltered schema requests are rejected/);
+  assert.match(skillRaw, /If startup reports that the WebSocket bridge port is occupied/);
+  assert.match(skillRaw, /new MCP process cannot command editor clients connected to the old listener/);
   assert.doesNotMatch(skillRaw, /[\u4e00-\u9fff]/);
   assert.match(skillRaw, /editor_live/);
   assert.match(skillRaw, /editor_add_node/);

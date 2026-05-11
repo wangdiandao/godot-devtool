@@ -4,6 +4,17 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.4
+
+已打开编辑器 bridge 接管诊断版本。
+
+- 修改 MCP 启动流程：WebSocket bridge 端口已被占用时，不再阻止 stdio MCP server 启动；native 诊断工具和 `plugin_cleanup_port` 仍可使用。
+- 修改 `plugin_status`：bridge 端口冲突会作为结构化状态返回，并附带复用和清理指引，不再只给出笼统的安装错误。
+- 修改 `launch_editor`：当配置的 bridge 端口已被其它监听进程占用时，拒绝再打开替代编辑器，避免误开第二个 Godot 编辑器会话。
+- 改进 WebSocket bridge 端口冲突提示，明确说明换端口会创建另一套 bridge，不能接管已经连到其它 MCP 进程的 editor client。
+- 增加进程回归覆盖，验证端口占用下的启动、`plugin_status` 诊断和 `launch_editor` 拒绝行为。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.4`。
+
 ## 2.8.3
 
 编辑器启动复用安全版本。

@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.3-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.8.4-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.3 reuses an already connected Godot editor for `launch_editor` instead of opening a second editor process.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.4 keeps the stdio MCP server available when the WebSocket bridge port is already occupied, reports the existing listener through `plugin_status`, and prevents `launch_editor` from opening a second editor in that state.
 
 ## Architecture
 
@@ -41,12 +41,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.8.3.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.3/godot-devtool-build-2.8.3.zip)
+   [godot-devtool-build-2.8.4.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.4/godot-devtool-build-2.8.4.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.3.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.8.4.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -90,7 +90,7 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. If an old `godot-devtool` process is still holding the port, first call `plugin_cleanup_port` without `kill` to inspect the listener. Only call it with `kill=true` after confirming the listener is the stale process you intend to stop.
+`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. If another listener already holds the port, the stdio MCP server still starts so you can call `plugin_status` and `plugin_cleanup_port`. If the listener is the active `godot-devtool` process serving your open editor, keep using that same MCP session. Only call `plugin_cleanup_port` with `kill=true` after confirming the listener is stale; switching ports creates a separate bridge and does not adopt editor clients connected to the old one.
 
 ## Build From Source
 
@@ -333,7 +333,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `plugin_cleanup_port` | Explicitly inspect and optionally stop stale godot-devtool WebSocket bridge listeners on a local port |
 | `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |
 | `plugin_reload` | Reload the godot-devtool v2 editor plugin through the WebSocket bridge |
-| `plugin_status` | Read godot-devtool v2 plugin installation status and WebSocket bridge configuration |
+| `plugin_status` | Read godot-devtool v2 plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics |
 | `reload_plugin` | Exact-name compatibility route for reload_plugin. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 
 ### Filesystem Tools (11)
@@ -456,7 +456,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `get_performance_monitors` | Runtime WebSocket compatibility route. Executes get_performance_monitors through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_rollback_suggestions` | Return honest rollback guidance for an operation, audit entry, or changed paths |
 | `get_safety_policy` | Read the project-local godot-devtool safety policy and default enforcement state |
-| `launch_editor` | Launch Godot editor for a specific project |
+| `launch_editor` | Reuse an already connected Godot editor, launch one only when no bridge is connected, and refuse replacement launches during bridge port conflicts |
 | `load_sprite` | Load a sprite into a Sprite2D node |
 | `monitor_properties` | Runtime WebSocket compatibility route. Executes monitor_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `move_to` | Runtime WebSocket compatibility route. Executes move_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |

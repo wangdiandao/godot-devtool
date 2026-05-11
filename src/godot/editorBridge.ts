@@ -13,7 +13,12 @@ import {
 } from './safetyRecovery.js';
 import { appendAuditEntry } from './workflowAutomation.js';
 import { writeProjectSettings } from './projectSettings.js';
-import { getWsBridge } from '../server/transports/wsBridge.js';
+import {
+  bridgePortInUseDetails,
+  getWsBridge,
+  isBridgePortInUseError,
+  type BridgePortConflictDetails,
+} from '../server/transports/wsBridge.js';
 
 const ADDON_PATH = 'addons/godot_devtool';
 const PLUGIN_CFG_PATH = `${ADDON_PATH}/plugin.cfg`;
@@ -141,6 +146,11 @@ export interface RuntimeBridgeStatus {
   recentReceipts: EditorBridgeReceipt[];
 }
 
+interface BridgeWebSocketStatus {
+  websocket: ReturnType<ReturnType<typeof getWsBridge>['status']>;
+  portConflict: BridgePortConflictDetails | null;
+}
+
 export async function installEditorBridge(
   projectPath: string,
   options: { overwrite?: boolean; mode?: EditorBridgeMode; httpPort?: number; websocketPort?: number } = {}
@@ -244,9 +254,9 @@ export async function installEditorBridge(
 
 export async function readEditorBridgeStatus(projectPath: string): Promise<EditorBridgeStatus> {
   const bridge = await readBridgeConfig(projectPath);
-  await getWsBridge().start(bridge.port);
-  const bridgeStatus = getWsBridge().status(projectPath);
+  const bridgeStatus = await readWebSocketStatus(projectPath, bridge.port);
   const runtime = await readRuntimeBridgeStatus(projectPath);
+  const connected = bridgeStatus.websocket.clients.some((client) => client.context === 'editor');
 
   return {
     installed: existsSync(join(projectPath, PLUGIN_CFG_PATH)) && existsSync(join(projectPath, PLUGIN_SCRIPT_PATH)) && existsSync(join(projectPath, ROUTER_SCRIPT_PATH)),
@@ -254,11 +264,12 @@ export async function readEditorBridgeStatus(projectPath: string): Promise<Edito
     instanceId: bridge.instanceId,
     statePath: STATE_PATH,
     lastState: {
-      websocket: bridgeStatus,
-      connected: bridgeStatus.clients.some((client) => client.context === 'editor'),
+      websocket: bridgeStatus.websocket,
+      connected,
+      portConflict: bridgeStatus.portConflict,
     },
     runtime,
-    pendingCommands: bridgeStatus.pendingCommands,
+    pendingCommands: bridgeStatus.websocket.pendingCommands,
     pendingCommandDetails: [],
     expiredCommands: [],
     recentReceipts: [],
@@ -356,22 +367,43 @@ export async function waitForRuntimeCommandReceipt(
 
 export async function readRuntimeBridgeStatus(projectPath: string): Promise<RuntimeBridgeStatus> {
   const bridge = await readBridgeConfig(projectPath);
-  await getWsBridge().start(bridge.port);
-  const bridgeStatus = getWsBridge().status(projectPath);
-  const connected = bridgeStatus.clients.some((client) => client.context === 'runtime');
+  const bridgeStatus = await readWebSocketStatus(projectPath, bridge.port);
+  const connected = bridgeStatus.websocket.clients.some((client) => client.context === 'runtime');
 
   return {
     installed: existsSync(join(projectPath, RUNTIME_SCRIPT_PATH)),
     transport: 'runtime_ws',
     statePath: RUNTIME_STATE_PATH,
-    lastState: { websocket: bridgeStatus, connected },
+    lastState: {
+      websocket: bridgeStatus.websocket,
+      connected,
+      portConflict: bridgeStatus.portConflict,
+    },
     stale: !connected,
     ageMs: null,
-    pendingCommands: bridgeStatus.pendingCommands,
+    pendingCommands: bridgeStatus.websocket.pendingCommands,
     pendingCommandDetails: [],
     expiredCommands: [],
     recentReceipts: [],
   };
+}
+
+async function readWebSocketStatus(projectPath: string, port: number): Promise<BridgeWebSocketStatus> {
+  try {
+    await getWsBridge().start(port);
+    return {
+      websocket: getWsBridge().status(projectPath),
+      portConflict: null,
+    };
+  } catch (error) {
+    if (!isBridgePortInUseError(error)) {
+      throw error;
+    }
+    return {
+      websocket: getWsBridge().status(projectPath),
+      portConflict: bridgePortInUseDetails(port),
+    };
+  }
 }
 
 export async function waitForEditorCommandReceipt(
