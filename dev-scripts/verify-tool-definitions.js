@@ -392,8 +392,16 @@ if (!serverSource.includes('PACKAGE_VERSION')) {
   console.error('Server metadata must use package version metadata');
   process.exit(1);
 }
-if (!serverSource.includes('GODOT_DEVTOOL_WS_PORT') || !serverSource.includes('getWsBridge().start(websocketPort)')) {
-  console.error('GodotServer.run must keep the WebSocket bridge listening for the MCP server lifetime');
+if (!serverSource.includes('releaseTransientWebSocketBridge')) {
+  console.error('GodotServer must release the WebSocket bridge after each MCP tool call by default');
+  process.exit(1);
+}
+if (!serverSource.includes('finally') || !serverSource.includes('await this.releaseTransientWebSocketBridge()')) {
+  console.error('CallToolRequestSchema handler must clean up the transient WebSocket bridge in a finally block');
+  process.exit(1);
+}
+if (serverSource.includes('GODOT_DEVTOOL_WS_LIFETIME') || serverSource.includes('websocketBridgeLifetime')) {
+  console.error('GodotServer must not keep a session-lifetime WebSocket bridge compatibility mode');
   process.exit(1);
 }
 if (!serverSource.includes('await getWsBridge().stop()')) {

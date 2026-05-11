@@ -4,6 +4,15 @@ English | [中文](CHANGELOG.zh-CN.md)
 
 All notable completed changes are tracked here. Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
+## Version 2.8.5
+
+Per-call WebSocket bridge cleanup release.
+
+- Removed the session-lifetime WebSocket bridge compatibility mode so MCP startup never keeps the configured bridge port open by default.
+- Kept bridge-backed tools usable by waiting briefly for the Godot editor/runtime bridge to reconnect when a command starts a transient listener.
+- Added process and tool-definition regression coverage to prove startup does not bind the bridge port and each MCP tool call cleans it up.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and release zip links to `2.8.5`.
+
 ## Version 2.8.4
 
 Existing editor bridge adoption diagnostics release.

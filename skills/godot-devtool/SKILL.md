@@ -1,14 +1,14 @@
 ﻿---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.4 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.5 MCP server."
 metadata:
-  version: "2.8.4"
+  version: "2.8.5"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.8.4.
+Compatibility: `godot-devtool` 2.8.5.
 
 Tool catalog: All 228 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
 
@@ -42,25 +42,27 @@ env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_P
 
 ## MCP Server Lifetime
 
-Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-devtool/build/index.js` MCP process running for the whole Godot editor or game-runtime session.
+Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-devtool/build/index.js` MCP process running while the MCP client needs tools.
 
-The MCP process owns the local WebSocket bridge on `GODOT_DEVTOOL_WS_PORT` (default `8766`). The `GDT` dock can show `Registered`, and `editor_ws` / `runtime_ws` tools can work, only while that process is still listening.
+The MCP process does not bind `GODOT_DEVTOOL_WS_PORT` (default `8766`) at startup. Bridge-backed tools open the WebSocket bridge only for the active MCP tool call and release the port in cleanup when that call finishes.
 
-If startup reports that the WebSocket bridge port is occupied, the stdio MCP server can still be available for native tools, `plugin_status`, and `plugin_cleanup_port`. Do not solve that by launching a second editor or picking a new port unless you intentionally want an isolated bridge and will reinstall/reload the plugin with the same `websocketPort`.
+The `GDT` dock can briefly return to `Unregistered` between calls because the listener was intentionally closed. The next `editor_ws` or `runtime_ws` tool call starts the listener again and waits briefly for the Godot plugin or runtime bridge to reconnect.
+
+If a bridge tool reports that the WebSocket bridge port is occupied, the stdio MCP server can still be available for native tools, `plugin_status`, and `plugin_cleanup_port`. Do not solve that by launching a second editor or picking a new port unless you intentionally want an isolated bridge and will reinstall/reload the plugin with the same `websocketPort`.
 
 If the dock shows `Unregistered` or runtime state stops updating, check the listener before changing project code:
 
     plugin_status -> confirms installed plugin files, WebSocket port, and active bridge clients
     PowerShell: Get-NetTCPConnection -LocalPort 8766
 
-Do not start a short-lived hello probe and then treat its `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; the dock will return to `Unregistered` after the listening process exits.
+Do not treat a short-lived `hello_ack` as persistent MCP availability. A successful probe only proves the handshake path; with the default tool-call lifetime, the dock can return to `Unregistered` after cleanup.
 
 Distinguish the two live pieces:
 
     MCP stdio server -> the real tool server launched by the MCP client
-    WebSocket bridge -> the editor/runtime listener owned by that running MCP server
+    WebSocket bridge -> transient editor/runtime listener opened by bridge tools
 
-A detached WebSocket keepalive can keep the dock registered for diagnosis, but it is not a replacement for an MCP client holding `node E:/godot-devtool/build/index.js` open over stdio. Use real MCP calls to prove tool availability.
+A detached WebSocket keepalive can keep the dock registered for diagnosis, but it is not a replacement for real MCP tool calls. Use real MCP calls to prove tool availability.
 
 If `GODOT_DEVTOOL_WS_PORT` is busy, identify the owner before changing code:
 

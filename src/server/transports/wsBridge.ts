@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 type BridgeContext = 'editor' | 'runtime';
+const DEFAULT_RECONNECT_WAIT_MS = 1500;
 
 export interface BridgePortConflictDetails {
   code: 'EADDRINUSE';
@@ -169,10 +170,7 @@ class WebSocketBridge extends EventEmitter {
 
   async sendCommand(projectPath: string, context: BridgeContext, command: string, payload: Record<string, unknown>, timeoutMs = 10000): Promise<BridgeReceipt> {
     await this.start(this.port);
-    const client = [...this.clients.values()].find((candidate) => (
-      candidate.context === context &&
-      normalizeProjectPath(candidate.projectPath) === normalizeProjectPath(projectPath)
-    ));
+    const client = await this.waitForClient(projectPath, context, timeoutMs);
     if (!client) {
       throw new Error(`No active ${context} WebSocket bridge is connected for ${projectPath}. Enable the godot-devtool plugin or start the project runtime.`);
     }
@@ -192,6 +190,45 @@ class WebSocketBridge extends EventEmitter {
       timeoutMs,
     }));
     return receiptPromise;
+  }
+
+  private findClient(projectPath: string, context: BridgeContext): BridgeClient | null {
+    return [...this.clients.values()].find((candidate) => (
+      candidate.context === context &&
+      normalizeProjectPath(candidate.projectPath) === normalizeProjectPath(projectPath)
+    )) ?? null;
+  }
+
+  private async waitForClient(projectPath: string, context: BridgeContext, timeoutMs: number): Promise<BridgeClient | null> {
+    const existing = this.findClient(projectPath, context);
+    if (existing) return existing;
+
+    const reconnectWaitMs = Math.min(
+      timeoutMs,
+      Number(process.env.GODOT_DEVTOOL_WS_RECONNECT_WAIT_MS ?? DEFAULT_RECONNECT_WAIT_MS)
+    );
+    if (!Number.isFinite(reconnectWaitMs) || reconnectWaitMs <= 0) return null;
+
+    return new Promise((resolve) => {
+      let timer: NodeJS.Timeout;
+      const finish = (client: BridgeClient | null) => {
+        clearTimeout(timer);
+        this.off('client', onClient);
+        resolve(client);
+      };
+      const onClient = (client: BridgeClient) => {
+        if (
+          client.context === context &&
+          normalizeProjectPath(client.projectPath) === normalizeProjectPath(projectPath)
+        ) {
+          finish(client);
+        }
+      };
+      timer = setTimeout(() => finish(null), reconnectWaitMs);
+      this.on('client', onClient);
+      const lateExisting = this.findClient(projectPath, context);
+      if (lateExisting) finish(lateExisting);
+    });
   }
 
   private registerSocket(socket: import('node:net').Socket): void {

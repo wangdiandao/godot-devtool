@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.4-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-2.8.5-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@
 
 [请我喝一杯咖啡（爱发电）](https://afdian.com/a/wangdiandao)，如果这个项目对你有帮助。
 
-`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.8.4 会在 WebSocket bridge 端口已被占用时继续保留 stdio MCP server 可用，通过 `plugin_status` 报告现有监听进程，并阻止 `launch_editor` 在这种状态下再打开第二个编辑器。
+`godot-devtool` 是面向 Godot 4 的 MCP server，用于让 AI 助手检查、编辑、验证和自动化运行中的 Godot 项目。2.8.5 会在启动 stdio MCP server 时避免占用 WebSocket bridge 端口；bridge 工具只在当前 MCP 工具调用期间打开本地 bridge，并在调用结束后释放端口。
 
 ## 架构
 
@@ -41,12 +41,12 @@ MCP client
 
 1. 下载发布包：
 
-   [godot-devtool-build-2.8.4.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.4/godot-devtool-build-2.8.4.zip)
+   [godot-devtool-build-2.8.5.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.5/godot-devtool-build-2.8.5.zip)
 
 2. 解压到稳定路径，例如：
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.4.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.8.5.zip" "E:\godot-devtool" -Force
    ```
 
 3. 确认 server 入口和插件文件存在：
@@ -90,7 +90,9 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` 默认是 `8766`。如果端口已被其它监听进程占用，stdio MCP server 仍会启动，便于继续调用 `plugin_status` 和 `plugin_cleanup_port`。如果该监听进程就是正在服务已打开编辑器的 `godot-devtool` 进程，应继续使用同一个 MCP 会话。只有确认监听进程已经过期时，才调用带 `kill=true` 的 `plugin_cleanup_port`；单纯换端口会创建另一套 bridge，不能接管已经连接到旧 bridge 的 editor client。
+`GODOT_DEVTOOL_WS_PORT` 默认是 `8766`。stdio MCP server 仍会启动但不会立即打开该端口，bridge 工具会在当前 MCP 调用期间打开端口，并在清理阶段关闭它。Godot 插件会在下一次 bridge 工具启动时重新连接，实时命令也会短暂等待这次重连。
+
+如果某个 bridge 工具运行时发现端口已被其它监听进程占用，使用 `plugin_status` 和 `plugin_cleanup_port` 检查监听者。只有确认监听进程已经过期时，才调用带 `kill=true` 的 `plugin_cleanup_port`；单纯换端口会创建另一套 bridge，不能接管已经连接到旧 bridge 的 editor client。
 
 ## 从源码构建
 
@@ -496,7 +498,7 @@ npm.cmd run check:project -- "C:/path/to/your-godot-project"
 - 编辑器路由超时：打开 Godot 项目并启用插件。
 - Runtime 路由超时：运行游戏，让 `DevtoolRuntime` autoload 连接。
 - Browser visualizer 页面没有 client：先启动 MCP server，再打开 Godot 编辑器或运行项目。
-- 端口冲突：修改 `GODOT_DEVTOOL_WS_PORT`，并用同一个 `websocketPort` 重新安装插件。
+- 端口冲突：先用 `plugin_cleanup_port` 检查监听者；只停止确认过期的监听进程，或在确实需要隔离 bridge 时设置匹配的备用 `GODOT_DEVTOOL_WS_PORT` 并用同一个 `websocketPort` 重新安装插件。
 - MCP client 无法启动 server：确认 `node` 可用，并且 `build/index.js` 存在。
 
 ## Skill

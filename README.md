@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.4-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.8.5-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -10,7 +10,7 @@ English | [中文](README.zh-CN.md)
 
 [Buy me a coffee on Patreon](https://patreon.com/wangdiandao) if this project helps you. I am not very familiar with editing Patreon pages yet; thanks for your understanding.
 
-`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.4 keeps the stdio MCP server available when the WebSocket bridge port is already occupied, reports the existing listener through `plugin_status`, and prevents `launch_editor` from opening a second editor in that state.
+`godot-devtool` is a Godot 4 MCP server for AI-assisted project inspection, editing, validation, and runtime automation. Version 2.8.5 keeps the stdio MCP server available without binding the WebSocket bridge port at startup; bridge tools open the local bridge only for the active MCP tool call and release the port when that call finishes.
 
 ## Architecture
 
@@ -41,12 +41,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.8.4.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.4/godot-devtool-build-2.8.4.zip)
+   [godot-devtool-build-2.8.5.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.5/godot-devtool-build-2.8.5.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.4.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-2.8.5.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -90,7 +90,9 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. If another listener already holds the port, the stdio MCP server still starts so you can call `plugin_status` and `plugin_cleanup_port`. If the listener is the active `godot-devtool` process serving your open editor, keep using that same MCP session. Only call `plugin_cleanup_port` with `kill=true` after confirming the listener is stale; switching ports creates a separate bridge and does not adopt editor clients connected to the old one.
+`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. The stdio MCP server starts without opening that port; bridge tools open it for the current MCP call, and cleanup closes it afterward. The Godot plugin reconnects when the next bridge tool starts, and live commands briefly wait for that reconnect.
+
+If another listener already holds the port while a bridge tool runs, use `plugin_status` and `plugin_cleanup_port` to inspect it. Only call `plugin_cleanup_port` with `kill=true` after confirming the listener is stale; switching ports creates a separate bridge and does not adopt editor clients connected to the old one.
 
 ## Build From Source
 
@@ -502,7 +504,7 @@ npm.cmd run check:project -- "C:/path/to/your-godot-project"
 - `plugin_status` says not installed: run `plugin_install` for the correct project path.
 - Editor routes time out: open the project in Godot and enable the plugin.
 - Runtime routes time out: run the game so the `DevtoolRuntime` autoload can connect.
-- Port conflict: change `GODOT_DEVTOOL_WS_PORT` and reinstall with the same `websocketPort`.
+- Port conflict: inspect the owner with `plugin_cleanup_port`; stop only a verified stale listener, or deliberately set a matching alternate `GODOT_DEVTOOL_WS_PORT` and reinstall with the same `websocketPort`.
 - MCP client cannot start the server: confirm `node` is available and `build/index.js` exists.
 
 ## Skill

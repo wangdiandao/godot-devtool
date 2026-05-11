@@ -4,6 +4,15 @@
 
 这里记录已经完成的版本变更。未来计划见 [ROADMAP.zh-CN.md](ROADMAP.zh-CN.md)。
 
+## 2.8.5
+
+按 MCP 调用清理 WebSocket bridge 的小版本。
+
+- 移除 WebSocket bridge 的会话级兼容模式，MCP 启动后不再默认保持配置端口打开。
+- 保持 bridge 工具可用：当命令启动临时监听时，短暂等待 Godot editor/runtime bridge 重新连接。
+- 增加进程和工具定义回归覆盖，验证启动不会绑定 bridge 端口，并且每次 MCP 工具调用结束都会清理端口。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和 release zip 链接同步到 `2.8.5`。
+
 ## 2.8.4
 
 已打开编辑器 bridge 接管诊断版本。

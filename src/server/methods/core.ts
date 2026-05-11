@@ -88,7 +88,7 @@ import { GODOT_TOOL_DEFINITIONS } from '../../tools/toolDefinitions.js';
 import { createToolHandlers, createUnknownToolError } from '../handlers/index.js';
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from '../packageMetadata.js';
 import { getBrowserVisualizer } from '../transports/browserVisualizer.js';
-import { bridgePortInUseDetails, getWsBridge, isBridgePortInUseError } from '../transports/wsBridge.js';
+import { getWsBridge } from '../transports/wsBridge.js';
 
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
@@ -340,8 +340,23 @@ class GodotServerCoreMethods {
         throw createUnknownToolError(requestedToolName);
       }
 
-      return await handler(request.params.arguments);
+      try {
+        return await handler(request.params.arguments);
+      } finally {
+        await this.releaseTransientWebSocketBridge();
+      }
     });
+  }
+
+
+
+  private async releaseTransientWebSocketBridge(): Promise<void> {
+    try {
+      await getWsBridge().stop();
+      this.logDebug('Transient WebSocket bridge stopped after MCP tool call.');
+    } catch (err) {
+      this.logDebug(`Error stopping transient WebSocket bridge: ${err}`);
+    }
   }
 
 
@@ -1085,20 +1100,7 @@ class GodotServerCoreMethods {
       console.error(`[SERVER] Using Godot at: ${this.godotPath}`);
 
       const websocketPort = Number(process.env.GODOT_DEVTOOL_WS_PORT ?? 8766);
-      try {
-        await getWsBridge().start(websocketPort);
-        console.error(`[SERVER] Godot WebSocket bridge listening on ws://127.0.0.1:${websocketPort}`);
-      } catch (error) {
-        if (!isBridgePortInUseError(error)) {
-          throw error;
-        }
-        const conflict = bridgePortInUseDetails(websocketPort);
-        console.error(`[SERVER] ${conflict.message}`);
-        for (const item of conflict.guidance) {
-          console.error(`[SERVER] ${item}`);
-        }
-        console.error('[SERVER] Continuing stdio MCP startup; native tools and plugin_cleanup_port remain available.');
-      }
+      console.error(`[SERVER] WebSocket bridge opens per tool call; port ${websocketPort} is released after each MCP tool call.`);
 
       const transport = new StdioServerTransport();
       await this.server.connect(transport);

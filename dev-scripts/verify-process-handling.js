@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { connect } from 'node:net';
+import { connect, createServer } from 'node:net';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -10,6 +10,8 @@ import { GodotServer } from '../build/server/GodotServer.js';
 import { commandLineMatchesGodotDevtool } from '../build/server/bridgeProcessCleanup.js';
 import { getWsBridge } from '../build/server/transports/wsBridge.js';
 import { installEditorBridge } from '../build/godot/editorBridge.js';
+
+const socketFrameBuffers = new WeakMap();
 
 async function main() {
   const tempRoot = await mkdtemp(join(tmpdir(), 'godot-devtool-process-'));
@@ -54,11 +56,12 @@ async function main() {
     assert.equal(debugPayload.active, false);
 
     await assertWebSocketPortConflictIsNonDestructive();
+    await assertWebSocketBridgeWaitsForReconnectBeforeCommand(tempRoot);
     assertBridgeCleanupCommandLineMatching();
     await assertPluginCleanupPortIsExplicitAndScoped();
     await assertLaunchEditorReusesConnectedEditor(tempRoot);
     await assertOccupiedBridgePortIsDiagnosable(tempRoot);
-    await assertMcpServerStartsWhenBridgePortIsOccupied();
+    await assertMcpServerDoesNotOccupyBridgePortOnStartup();
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -140,26 +143,38 @@ async function assertOccupiedBridgePortIsDiagnosable(tempRoot) {
   }
 }
 
-async function assertMcpServerStartsWhenBridgePortIsOccupied() {
+async function assertMcpServerDoesNotOccupyBridgePortOnStartup() {
   const bridge = getWsBridge();
   await bridge.stop();
-  const blocker = await startBlockingPortProcess({ commandLineMarker: join(process.cwd(), 'build', 'index.js') });
+  const websocketPort = await findFreePort();
   const child = spawn(process.execPath, [join(process.cwd(), 'build', 'index.js')], {
     env: {
       ...process.env,
       GODOT_PATH: process.execPath,
-      GODOT_DEVTOOL_WS_PORT: String(blocker.port),
+      GODOT_DEVTOOL_WS_PORT: String(websocketPort),
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   try {
     const stderr = await waitForStderr(child, /Godot MCP server running on stdio|Failed to start/i);
     assert.match(stderr, /Godot MCP server running on stdio/i, 'MCP stdio server should still start when the bridge port is occupied');
-    assert.match(stderr, /bridge port .*already.*use|occupied/i, 'startup should explain the bridge port conflict');
+    assert.doesNotMatch(stderr, /WebSocket bridge listening|bridge port .*already.*use|occupied/i, 'startup must not bind or probe the WebSocket bridge port');
+    await assertPortCanBeBound(websocketPort);
     assert.equal(child.exitCode, null, 'MCP process must remain alive for native diagnostics and cleanup tools');
   } finally {
     await stopChild(child);
-    await stopChild(blocker.child);
+  }
+}
+
+async function assertPortCanBeBound(port) {
+  const server = createServer();
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen({ host: '127.0.0.1', port }, resolve);
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 }
 
@@ -230,6 +245,58 @@ async function assertWebSocketPortConflictIsNonDestructive() {
     await bridge.stop();
     await stopChild(blocker.child);
   }
+}
+
+async function assertWebSocketBridgeWaitsForReconnectBeforeCommand(tempRoot) {
+  const projectPath = join(tempRoot, 'transient-reconnect-project');
+  await mkdir(projectPath, { recursive: true });
+  await writeFile(join(projectPath, 'project.godot'), '[application]\nconfig/name="Transient Reconnect Fixture"\n', 'utf8');
+
+  const bridge = getWsBridge();
+  await bridge.stop();
+  const websocketPort = await findFreePort();
+  const install = await installEditorBridge(projectPath, { overwrite: true, websocketPort });
+  await bridge.stop();
+
+  let editorSocket = null;
+  const commandPromise = bridge.sendCommand(projectPath, 'editor', 'reload_plugin', { reason: 'transient-test' }, 2000);
+  const clientPromise = (async () => {
+    await delay(100);
+    editorSocket = await openWebSocket(install.bridge.port);
+    sendMaskedTextFrame(editorSocket, JSON.stringify({
+      type: 'hello',
+      context: 'editor',
+      projectPath,
+      protocolVersion: 1,
+      sessionId: 'transient-reconnect-editor',
+      authToken: install.bridge.authToken,
+    }));
+    await readWebSocketTextFrame(editorSocket);
+    const command = JSON.parse(await readWebSocketTextFrame(editorSocket));
+    assert.equal(command.type, 'command', 'reconnected editor should receive the queued command');
+    assert.equal(command.command, 'reload_plugin');
+    sendMaskedTextFrame(editorSocket, JSON.stringify({
+      type: 'receipt',
+      commandId: command.commandId,
+      command: command.command,
+      status: 'completed',
+      result: { ok: true },
+    }));
+  })();
+
+  let commandError = null;
+  try {
+    const receipt = await commandPromise;
+    assert.equal(receipt.status, 'completed');
+    assert.deepEqual(receipt.result, { ok: true });
+  } catch (error) {
+    commandError = error;
+  } finally {
+    await clientPromise.catch(() => {});
+    editorSocket?.destroy();
+    await bridge.stop();
+  }
+  if (commandError) throw commandError;
 }
 
 async function assertPluginCleanupPortIsExplicitAndScoped() {
@@ -419,6 +486,69 @@ function sendMaskedTextFrame(socket, payload) {
     masked[index] ^= mask[index % 4];
   }
   socket.write(Buffer.concat([header, mask, masked]));
+}
+
+function readWebSocketTextFrame(socket) {
+  return new Promise((resolve, reject) => {
+    let buffer = socketFrameBuffers.get(socket) ?? Buffer.alloc(0);
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timed out waiting for WebSocket text frame'));
+    }, 2000);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off('data', onData);
+      socket.off('error', onError);
+      socket.off('close', onClose);
+    };
+    const resolveFrameIfAvailable = () => {
+      const frame = decodeWebSocketFrame(buffer);
+      if (!frame) return false;
+      socketFrameBuffers.set(socket, buffer.subarray(frame.bytesRead));
+      cleanup();
+      resolve(frame.payload);
+      return true;
+    };
+    const onData = (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      resolveFrameIfAvailable();
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Socket closed before WebSocket text frame arrived'));
+    };
+    socket.on('data', onData);
+    socket.once('error', onError);
+    socket.once('close', onClose);
+    resolveFrameIfAvailable();
+  });
+}
+
+function decodeWebSocketFrame(buffer) {
+  if (buffer.length < 2) return null;
+  const second = buffer[1];
+  let offset = 2;
+  let length = second & 0x7f;
+  if (length === 126) {
+    if (buffer.length < offset + 2) return null;
+    length = buffer.readUInt16BE(offset);
+    offset += 2;
+  } else if (length === 127) {
+    if (buffer.length < offset + 8) return null;
+    length = Number(buffer.readBigUInt64BE(offset));
+    offset += 8;
+  }
+  const masked = Boolean(second & 0x80);
+  if (masked) offset += 4;
+  if (buffer.length < offset + length) return null;
+  return {
+    payload: buffer.subarray(offset, offset + length).toString('utf8'),
+    bytesRead: offset + length,
+  };
 }
 
 function parseToolJson(response) {
