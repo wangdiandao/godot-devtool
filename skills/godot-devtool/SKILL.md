@@ -1,16 +1,16 @@
 ﻿---
 name: godot-devtool
-description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 2.8.5 MCP server."
+description: "Use when MCP clients and connected AI assistants work on a Godot 4 project through the godot-devtool 3.0.0 MCP server."
 metadata:
-  version: "2.8.5"
+  version: "3.0.0"
   mcp_server: "godot-devtool"
 ---
 
 # Godot Devtool MCP
 
-Compatibility: `godot-devtool` 2.8.5.
+Compatibility: `godot-devtool` 3.0.0.
 
-Tool catalog: All 228 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
+Tool catalog: All 234 tools are discoverable through `get_capabilities`. The default response is a lightweight index without input schemas. Request schemas only for the active `workflow`, `routeGroup`, exact `toolNames`, or another narrow filter with `includeSchemas: true`.
 
 Use this skill when an AI assistant works on a Godot 4 project through `godot-devtool`.
 
@@ -46,6 +46,10 @@ Starting `godot-devtool` MCP is not a one-shot probe. Keep the `node E:/godot-de
 
 The MCP process does not bind `GODOT_DEVTOOL_WS_PORT` (default `8766`) at startup. Bridge-backed tools open the WebSocket bridge on demand. Editor-only calls release the listener in cleanup; a project launched through `run_project` or an already connected runtime client keeps the listener alive so `DevtoolRuntime` can stay connected.
 
+In 3.0 the WebSocket listener is a shared broker. Multiple MCP clients or AI agents can use the same port; editor and runtime bridge clients are identified by `projectPath`, `context`, `sessionId`, and `runId`. When a target is ambiguous, call `list_bridge_sessions` or `resolve_bridge_target` and pass the chosen `sessionId` or `runId` instead of guessing.
+
+Multiple game instances are tracked by `runId`. `run_project` returns the id, `list_run_instances` reports active and recent runs, and `get_debug_output`, `clear_debug_output`, `stop_project`, and `stop_run_instance` accept `runId` when more than one instance matches.
+
 The `GDT` dock can briefly return to `Unregistered` between editor-only calls because the listener was intentionally closed. Runtime calls should stay registered while the `run_project` process is active or a runtime client is attached; if they do not, treat that as a runtime bridge lifecycle bug rather than proof from `plugin_status` alone.
 
 If a bridge tool reports that the WebSocket bridge port is occupied, the stdio MCP server can still be available for native tools, `plugin_status`, and `plugin_cleanup_port`. Do not solve that by launching a second editor or picking a new port unless you intentionally want an isolated bridge and will reinstall/reload the plugin with the same `websocketPort`.
@@ -76,6 +80,7 @@ Stop only a listener you started. If the listener is the active `godot-devtool` 
 ## Context Budget Rules
 
 - Start with `get_capabilities` for the lightweight catalog. Do not request schemas until you know the active workflow.
+- Prefer workflow filters first: `project_setup`, `live_editor`, `runtime_test`, `multi_instance`, or `release_verify`.
 - When schemas are needed, call `get_capabilities` with `includeSchemas: true` plus `routeGroup`, `transport`, `riskLevel`, `toolNames`, or `query`. Unfiltered schema requests are rejected.
 - Keep only the active workflow in context. Do not paste the complete tool catalog, generated README tables, or Godot source unless the task needs internal Godot behavior.
 - Prefer primary operation tools. Use older route names only when an existing client, prompt, or project already depends on them.

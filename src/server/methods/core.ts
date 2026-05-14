@@ -89,6 +89,11 @@ import { createToolHandlers, createUnknownToolError } from '../handlers/index.js
 import { PACKAGE_NAME, PACKAGE_VERSION, godotPathGuidance } from '../packageMetadata.js';
 import { getBrowserVisualizer } from '../transports/browserVisualizer.js';
 import { getWsBridge } from '../transports/wsBridge.js';
+import { WORKFLOW_TOOL_FILTERS } from '../routeRegistry.js';
+import { RunRegistry } from '../runs/runRegistry.js';
+import { clearRunOutput, readRunOutput } from '../runs/runOutput.js';
+import { appendRunOutput, createManagedRun, createRunId, markRunExited, startGodotRunProcess } from '../runs/runProcess.js';
+import { BridgeTargetAmbiguityError, bridgeTargetAmbiguityPayload } from '../targets/ambiguity.js';
 
 // Check if debug mode is enabled
 const DEBUG_MODE: boolean = process.env.DEBUG === 'true';
@@ -166,7 +171,6 @@ const RUNTIME_COMPATIBILITY_TOOLS = new Set([
 ]);
 
 class GodotServerCoreMethods {
-
   private async handleBrowserVisualizerStart(args: any) {
     args = this.normalizeParameters(args || {});
     const result = await getBrowserVisualizer().start({
@@ -364,16 +368,61 @@ class GodotServerCoreMethods {
   }
 
 
+  private getRunRegistry(): RunRegistry {
+    if (!this.runRegistry) {
+      this.runRegistry = new RunRegistry();
+    }
+    if (this.activeProcess) {
+      this.runRegistry.adoptLegacy(this.activeProcess);
+    }
+    if (this.lastRun) {
+      this.runRegistry.adoptLegacy(this.lastRun);
+    }
+    return this.runRegistry;
+  }
+
+
+  private syncLegacyRunPointers(): void {
+    const registry = this.getRunRegistry();
+    this.activeProcess = registry.getLatestActiveRun();
+    this.lastRun = registry.getLastRun();
+  }
+
+
+  private createRunSelectionErrorResponse(selection: any, action: string): any {
+    const error = selection.reason === 'ambiguous' ? 'run_ambiguous' : `run_${selection.reason}`;
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              error,
+              action,
+              message: selection.message,
+              runId: selection.runId ?? null,
+              candidates: selection.candidates ?? [],
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+
 
   private shouldKeepWebSocketBridgeForActiveRuntime(_toolName?: string): boolean {
     const status = getWsBridge().status();
     if (status.running !== true) return false;
-    const hasRuntimeClient = status.clients.some((client: any) => client.context === 'runtime');
-    if (!this.activeProcess && !hasRuntimeClient) return false;
-    if (this.activeProcess) {
-      this.runtimeBridgeOwnerProcess = this.activeProcess.process;
+    const activeRun = this.getRunRegistry().getLatestActiveRun();
+    if (activeRun) {
+      this.runtimeBridgeOwnerProcess = activeRun.process;
+      return true;
     }
-    return true;
+    return status.clients.length > 0 || status.pendingCommands > 0;
   }
 
 
@@ -383,7 +432,8 @@ class GodotServerCoreMethods {
     if (!existsSync(bridgeConfigPath)) return;
     try {
       const status = await readRuntimeBridgeStatus(projectPath);
-      if (status.lastState?.websocket?.running === true && this.activeProcess?.process === process) {
+      const run = this.getRunRegistry().findByProcess(process);
+      if (status.lastState?.websocket?.running === true && run && !run.exitedAt) {
         this.runtimeBridgeOwnerProcess = process;
         this.logDebug(`Runtime WebSocket bridge is listening while Godot project runs: ${projectPath}`);
       }
@@ -397,6 +447,12 @@ class GodotServerCoreMethods {
   private async stopRuntimeWebSocketBridgeForProcess(process: any, reason: string): Promise<void> {
     if (!this.runtimeBridgeOwnerProcess || this.runtimeBridgeOwnerProcess !== process) return;
     this.runtimeBridgeOwnerProcess = null;
+    const nextActiveRun = this.getRunRegistry().getLatestActiveRun();
+    if (nextActiveRun) {
+      this.runtimeBridgeOwnerProcess = nextActiveRun.process;
+      this.logDebug(`Runtime WebSocket bridge kept for active run ${nextActiveRun.runId} after ${reason}.`);
+      return;
+    }
     try {
       await getWsBridge().stop();
       this.logDebug(`Runtime WebSocket bridge stopped: ${reason}.`);
@@ -575,7 +631,9 @@ class GodotServerCoreMethods {
     const requestedToolNames = toStringList(args.toolNames);
     const requestedToolNameSet = new Set(requestedToolNames);
     const query = typeof args.query === 'string' ? args.query.trim().toLowerCase() : '';
-    const hasFilter = routeGroups.size > 0 || transports.size > 0 || riskLevels.size > 0 || requestedToolNameSet.size > 0 || query.length > 0;
+    const workflow = typeof args.workflow === 'string' ? args.workflow.trim() : '';
+    const workflowToolNames = new Set(this.workflowToolNames(workflow));
+    const hasFilter = routeGroups.size > 0 || transports.size > 0 || riskLevels.size > 0 || requestedToolNameSet.size > 0 || query.length > 0 || workflowToolNames.size > 0;
 
     if (includeSchemas && !hasFilter) {
       return this.createErrorResponse(
@@ -605,6 +663,7 @@ class GodotServerCoreMethods {
       if (transports.size > 0 && !transports.has(String(tool.transport))) return false;
       if (riskLevels.size > 0 && !riskLevels.has(String(tool.riskLevel))) return false;
       if (requestedToolNameSet.size > 0 && !requestedToolNameSet.has(tool.name)) return false;
+      if (workflowToolNames.size > 0 && !workflowToolNames.has(tool.name)) return false;
       return matchesQuery(tool);
     });
 
@@ -657,6 +716,7 @@ class GodotServerCoreMethods {
         riskLevel: [...riskLevels],
         toolNames: requestedToolNames,
         query: query || null,
+        workflow: workflow || null,
       },
       totalToolCount: GODOT_TOOL_DEFINITIONS.length,
       toolCount: tools.length,
@@ -675,6 +735,10 @@ class GodotServerCoreMethods {
         },
       ],
     };
+  }
+
+  private workflowToolNames(workflow: string): string[] {
+    return WORKFLOW_TOOL_FILTERS[workflow] ?? [];
   }
 
 
@@ -714,20 +778,6 @@ class GodotServerCoreMethods {
         );
       }
 
-      // Kill any existing process
-      if (this.activeProcess) {
-        this.logDebug('Killing existing Godot process before starting a new one');
-        await this.stopRuntimeWebSocketBridgeForProcess(this.activeProcess.process, 'starting replacement Godot process');
-        this.activeProcess.process.kill();
-        this.lastRun = {
-          ...this.activeProcess,
-          exitedAt: new Date().toISOString(),
-          exitCode: null,
-          exitSignal: 'SIGTERM',
-        };
-        this.activeProcess = null;
-      }
-
       const cmdArgs = ['-d'];
       if (args.headless === true) {
         cmdArgs.push('--headless');
@@ -743,42 +793,49 @@ class GodotServerCoreMethods {
       }
 
       this.logDebug(`Running Godot project: ${args.projectPath}`);
-      const process = spawn(this.godotPath!, cmdArgs, { stdio: 'pipe' });
-      const output: string[] = [];
-      const errors: string[] = [];
+      const requestedRunId = typeof args.runId === 'string' && args.runId.trim() ? args.runId.trim() : undefined;
+      const registry = this.getRunRegistry();
+      if (requestedRunId && registry.get(requestedRunId)) {
+        return this.createErrorResponse(
+          `Godot runId already exists: ${requestedRunId}`,
+          ['Choose a unique runId or omit runId to let godot-devtool generate one.']
+        );
+      }
+      const runId = requestedRunId ?? createRunId();
+      const process = startGodotRunProcess(this.godotPath!, cmdArgs, { GODOT_DEVTOOL_RUN_ID: runId });
+      const run = createManagedRun({
+        runId,
+        process,
+        projectPath: args.projectPath,
+        scene: args.scene ?? null,
+        headless: args.headless === true,
+      });
+      run.quitAfter = Number.isInteger(args.quitAfter) && args.quitAfter >= 0 ? args.quitAfter : null;
+      run.args = cmdArgs;
+      registry.add(run);
 
       process.stdout?.on('data', (data: Buffer) => {
-        this.appendProcessOutput(output, data, 'Godot stdout');
+        appendRunOutput(run.output, data, GODOT_DEBUG_OUTPUT_MAX_LINES, 'Godot stdout', (message: string) => this.logDebug(message));
       });
 
       process.stderr?.on('data', (data: Buffer) => {
-        this.appendProcessOutput(errors, data, 'Godot stderr');
+        appendRunOutput(run.errors, data, GODOT_DEBUG_OUTPUT_MAX_LINES, 'Godot stderr', (message: string) => this.logDebug(message));
       });
 
-      const run: GodotProcess = { process, output, errors, startedAt: new Date().toISOString() };
       this.activeProcess = run;
+      this.lastRun = run;
 
       process.on('exit', (code: number | null, signal: string | null) => {
         this.logDebug(`Godot process exited with code ${code}`);
-        run.exitedAt = run.exitedAt ?? new Date().toISOString();
-        run.exitCode = run.exitCode ?? code;
-        run.exitSignal = run.exitSignal ?? signal;
-        if (this.activeProcess && this.activeProcess.process === process) {
-          this.lastRun = run;
-          this.activeProcess = null;
-        }
+        registry.markExited(run, code, signal);
+        this.syncLegacyRunPointers();
         void this.stopRuntimeWebSocketBridgeForProcess(process, 'Godot process exited');
       });
 
       process.on('error', (err: Error) => {
         console.error('Failed to start Godot process:', err);
-        run.exitedAt = run.exitedAt ?? new Date().toISOString();
-        run.exitCode = run.exitCode ?? null;
-        run.exitSignal = run.exitSignal ?? null;
-        this.lastRun = run;
-        if (this.activeProcess && this.activeProcess.process === process) {
-          this.activeProcess = null;
-        }
+        registry.markExited(run, null, null);
+        this.syncLegacyRunPointers();
         void this.stopRuntimeWebSocketBridgeForProcess(process, 'Godot process error');
       });
 
@@ -797,13 +854,9 @@ class GodotServerCoreMethods {
         });
       });
       if (startupError) {
-        run.exitedAt = run.exitedAt ?? new Date().toISOString();
-        run.exitCode = run.exitCode ?? null;
-        run.exitSignal = run.exitSignal ?? null;
-        this.lastRun = run;
-        if (this.activeProcess && this.activeProcess.process === process) {
-          this.activeProcess = null;
-        }
+        markRunExited(run, run.exitCode ?? null, run.exitSignal ?? null);
+        registry.markLast(run);
+        this.syncLegacyRunPointers();
         return this.createErrorResponse(`Failed to run Godot project: ${startupError.message}`);
       }
 
@@ -813,7 +866,17 @@ class GodotServerCoreMethods {
         content: [
           {
             type: 'text',
-            text: `Godot project started in debug mode. Use get_debug_output to see output.`,
+            text: JSON.stringify(
+              {
+                message: 'Godot project started in debug mode. Use get_debug_output to see output.',
+                runId: run.runId,
+                projectPath: run.projectPath,
+                scene: run.scene,
+                activeRunCount: registry.activeRunCount(),
+              },
+              null,
+              2
+            ),
           },
         ],
       };
@@ -837,46 +900,29 @@ class GodotServerCoreMethods {
    */
   private async handleGetDebugOutput(args: any) {
     args = this.normalizeParameters(args || {});
-    const run = this.activeProcess ?? this.lastRun;
-    if (!run) {
-      return this.createErrorResponse(
-        'No Godot process output is available.',
-        [
-          'Use run_project to start a Godot project first',
-          'Check if the Godot process crashed unexpectedly',
-        ]
-      );
+    const selection = this.getRunRegistry().select({
+      runId: args.runId,
+      projectPath: args.projectPath,
+      mode: 'available',
+    });
+    if (!selection.ok) {
+      if (selection.reason === 'none') {
+        return this.createErrorResponse(
+          'No Godot process output is available.',
+          [
+            'Use run_project to start a Godot project first',
+            'Check if the Godot process crashed unexpectedly',
+          ]
+        );
+      }
+      return this.createRunSelectionErrorResponse(selection, 'get_debug_output');
     }
-
-    const outputOffset = Number.isInteger(args.outputOffset) && args.outputOffset >= 0 ? args.outputOffset : 0;
-    const errorOffset = Number.isInteger(args.errorOffset) && args.errorOffset >= 0 ? args.errorOffset : 0;
-    const tail = Number.isInteger(args.tail) && args.tail > 0 ? args.tail : null;
-    const outputWindow = run.output.slice(outputOffset);
-    const errorWindow = run.errors.slice(errorOffset);
-    const output = tail ? outputWindow.slice(-tail) : outputWindow;
-    const errors = tail ? errorWindow.slice(-tail) : errorWindow;
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              output,
-              errors,
-              outputOffset,
-              errorOffset,
-              nextOutputOffset: run.output.length,
-              nextErrorOffset: run.errors.length,
-              active: this.activeProcess !== null,
-              startedAt: run.startedAt,
-              exitedAt: run.exitedAt ?? null,
-              exitCode: run.exitCode ?? null,
-              exitSignal: run.exitSignal ?? null,
-            },
-            null,
-            2
-          ),
+          text: JSON.stringify(readRunOutput(selection.run, args), null, 2),
         },
       ],
     };
@@ -887,23 +933,28 @@ class GodotServerCoreMethods {
   /**
    * Handle the clear_debug_output tool
    */
-  private async handleClearDebugOutput() {
-    const run = this.activeProcess ?? this.lastRun;
-    if (!run) {
+  private async handleClearDebugOutput(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    const selection = this.getRunRegistry().select({
+      runId: args.runId,
+      projectPath: args.projectPath,
+      mode: 'available',
+    });
+    if (!selection.ok) {
+      if (selection.reason !== 'none') {
+        return this.createRunSelectionErrorResponse(selection, 'clear_debug_output');
+      }
       return this.createErrorResponse(
         'No Godot process output is available.',
         ['Use run_project to start a Godot project first']
       );
     }
 
-    run.output.length = 0;
-    run.errors.length = 0;
-
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({ message: 'Debug output cleared', nextOutputOffset: 0, nextErrorOffset: 0 }, null, 2),
+          text: JSON.stringify(clearRunOutput(selection.run), null, 2),
         },
       ],
     };
@@ -914,8 +965,18 @@ class GodotServerCoreMethods {
   /**
    * Handle the stop_project tool
    */
-  private async handleStopProject() {
-    if (!this.activeProcess) {
+  private async handleStopProject(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    const registry = this.getRunRegistry();
+    const selection = registry.select({
+      runId: args.runId,
+      projectPath: args.projectPath,
+      mode: 'active',
+    });
+    if (!selection.ok) {
+      if (selection.reason !== 'none') {
+        return this.createRunSelectionErrorResponse(selection, 'stop_project');
+      }
       return this.createErrorResponse(
         'No active Godot process to stop.',
         [
@@ -925,16 +986,12 @@ class GodotServerCoreMethods {
       );
     }
 
-    this.logDebug('Stopping active Godot process');
-    const run = this.activeProcess;
-    run.process.kill();
-    run.exitedAt = run.exitedAt ?? new Date().toISOString();
-    run.exitCode = run.exitCode ?? null;
-    run.exitSignal = run.exitSignal ?? 'SIGTERM';
-    this.lastRun = run;
+    const run = selection.run;
+    this.logDebug(`Stopping Godot process ${run.runId}`);
+    registry.stop(run);
     const output = run.output;
     const errors = run.errors;
-    this.activeProcess = null;
+    this.syncLegacyRunPointers();
     await this.stopRuntimeWebSocketBridgeForProcess(run.process, 'Godot project stopped');
 
     return {
@@ -944,6 +1001,8 @@ class GodotServerCoreMethods {
           text: JSON.stringify(
             {
               message: 'Godot project stopped',
+              runId: run.runId,
+              activeRunCount: registry.activeRunCount(),
               finalOutput: output,
               finalErrors: errors,
             },
@@ -953,6 +1012,146 @@ class GodotServerCoreMethods {
         },
       ],
     };
+  }
+
+
+  private async handleBrokerStatus(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    const bridge = getWsBridge();
+    const localStatus = bridge.status(args.projectPath);
+    if (localStatus.running) {
+      return this.createJsonResponse({
+        ...localStatus,
+        localProcess: true,
+        remoteBroker: false,
+      });
+    }
+
+    const port = Number(args.port ?? process.env.GODOT_DEVTOOL_WS_PORT ?? localStatus.port ?? 8766);
+    try {
+      const remoteStatus = await bridge.remoteStatus(port, args.projectPath);
+      return this.createJsonResponse({
+        ...remoteStatus,
+        localProcess: false,
+        remoteBroker: true,
+      });
+    } catch {
+      return this.createJsonResponse({
+        ...localStatus,
+        localProcess: true,
+        remoteBroker: false,
+      });
+    }
+  }
+
+
+  private async handleListBridgeSessions(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    const statusResponse = await this.handleBrokerStatus({ projectPath: args.projectPath, port: args.port });
+    const status = JSON.parse(statusResponse.content[0].text);
+    let sessions = Array.isArray(status.clients) ? status.clients : [];
+    if (args.context === 'editor' || args.context === 'runtime') {
+      sessions = sessions.filter((client: any) => client.context === args.context);
+    }
+    return this.createJsonResponse({
+      sessions,
+      count: sessions.length,
+      projectPath: args.projectPath ?? null,
+      context: args.context ?? null,
+      brokerId: status.brokerId ?? null,
+      remoteBroker: status.remoteBroker === true,
+    });
+  }
+
+
+  private async handleListRunInstances(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    return this.createJsonResponse(this.getRunRegistry().status({
+      projectPath: args.projectPath,
+      includeExited: args.includeExited !== false,
+    }));
+  }
+
+
+  private async handleStopRunInstance(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    if (!args.runId) {
+      return this.createErrorResponse('runId is required', ['Call list_run_instances to choose a runId.']);
+    }
+    return this.handleStopProject({ ...args, runId: args.runId });
+  }
+
+
+  private async handleResolveBridgeTarget(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    if (!args.projectPath) {
+      return this.createErrorResponse('projectPath is required', ['Provide a valid Godot project path.']);
+    }
+    if (args.context !== 'editor' && args.context !== 'runtime') {
+      return this.createErrorResponse('context must be editor or runtime', ['Pass context: "editor" or context: "runtime".']);
+    }
+
+    const statusResponse = await this.handleBrokerStatus({ projectPath: args.projectPath, port: args.port });
+    const status = JSON.parse(statusResponse.content[0].text);
+    let candidates = Array.isArray(status.clients) ? status.clients : [];
+    candidates = candidates.filter((client: any) => client.context === args.context);
+    if (args.sessionId) {
+      candidates = candidates.filter((client: any) => client.sessionId === args.sessionId);
+    }
+    if (args.runId) {
+      candidates = candidates.filter((client: any) => client.runId === args.runId);
+    }
+
+    if (candidates.length === 0) {
+      return this.createJsonResponse({
+        ok: false,
+        code: 'bridge_target_not_found',
+        context: args.context,
+        projectPath: args.projectPath,
+        candidates: [],
+        guidance: ['Start the Godot editor or project runtime, then call list_bridge_sessions.'],
+      });
+    }
+    if (candidates.length > 1) {
+      return this.createJsonResponse(bridgeTargetAmbiguityPayload(new BridgeTargetAmbiguityError(args.context, candidates)));
+    }
+    return this.createJsonResponse({
+      ok: true,
+      context: args.context,
+      projectPath: args.projectPath,
+      target: candidates[0],
+    });
+  }
+
+
+  private async handleBrokerCleanupIdle(args: any = {}) {
+    args = this.normalizeParameters(args || {});
+    const bridge = getWsBridge();
+    const status = bridge.status(args.projectPath);
+    const activeRunCount = this.getRunRegistry().activeRunCount(args.projectPath);
+    if (!status.running) {
+      return this.createJsonResponse({
+        stopped: false,
+        reason: 'not_running',
+        activeRunCount,
+        status,
+      });
+    }
+    if (status.clients.length > 0 || status.pendingCommands > 0 || activeRunCount > 0) {
+      return this.createJsonResponse({
+        stopped: false,
+        reason: 'broker_in_use',
+        activeRunCount,
+        status,
+      });
+    }
+    await bridge.stop();
+    return this.createJsonResponse({
+      stopped: true,
+      reason: 'idle',
+      activeRunCount,
+      status: bridge.status(args.projectPath),
+    });
   }
 
 

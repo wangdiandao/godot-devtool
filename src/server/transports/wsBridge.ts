@@ -4,44 +4,32 @@ import { EventEmitter } from 'node:events';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-type BridgeContext = 'editor' | 'runtime';
+import { BrokerClientRegistry, normalizeProjectPath } from '../broker/brokerClientRegistry.js';
+import { BrokerCommandRouter } from '../broker/brokerCommandRouter.js';
+import { BrokerLeaseRegistry } from '../broker/brokerLeases.js';
+import { sendRemoteBrokerMessage } from '../broker/brokerServer.js';
+import {
+  type BridgeClient,
+  type BridgeCommandTarget,
+  type BridgeContext,
+  type BridgePortConflictDetails,
+  type BridgeReceipt,
+} from '../broker/types.js';
+import { BridgeTargetAmbiguityError, bridgeTargetAmbiguityPayload } from '../targets/ambiguity.js';
+import { resolveBridgeTarget } from '../targets/targetResolver.js';
+
+export type { BridgePortConflictDetails, BridgeReceipt };
+
 const DEFAULT_RECONNECT_WAIT_MS = 1500;
-
-export interface BridgePortConflictDetails {
-  code: 'EADDRINUSE';
-  port: number;
-  message: string;
-  guidance: string[];
-}
-
-export interface BridgeReceipt {
-  commandId: string;
-  type: string;
-  status: 'completed' | 'failed' | 'expired';
-  startedAt?: string;
-  finishedAt: string;
-  error?: string;
-  result?: unknown;
-}
-
-interface BridgeClient {
-  id: string;
-  projectPath: string | null;
-  context: BridgeContext | null;
-  socket: import('node:net').Socket;
-  connectedAt: string;
-  acknowledgedAt: string | null;
-  lastSeenAt: string;
-  protocolVersion: number | null;
-  sessionId: string | null;
-}
 
 class WebSocketBridge extends EventEmitter {
   private server: HttpServer | null = null;
-  private clients = new Map<string, BridgeClient>();
-  private pending = new Map<string, { clientId: string; resolve: (receipt: BridgeReceipt) => void; reject: (error: Error) => void; timer: NodeJS.Timeout }>();
+  private clients = new BrokerClientRegistry();
+  private commandRouter = new BrokerCommandRouter();
+  private leases = new BrokerLeaseRegistry();
   private authTokens = new Map<string, string>();
   private port = 8766;
+  private brokerId = randomUUID();
 
   async start(port = 8766): Promise<void> {
     if (this.server) return;
@@ -112,35 +100,36 @@ class WebSocketBridge extends EventEmitter {
   async stop(): Promise<void> {
     for (const client of this.clients.values()) client.socket.destroy();
     this.clients.clear();
-    for (const pending of this.pending.values()) {
-      clearTimeout(pending.timer);
-      pending.reject(new Error('WebSocket bridge stopped before command completed.'));
-    }
-    this.pending.clear();
+    this.commandRouter.clear();
+    this.leases.clear();
     if (!this.server) return;
     await new Promise<void>((resolve) => this.server!.close(() => resolve()));
     this.server = null;
   }
 
   status(projectPath?: string) {
-    const clients = [...this.clients.values()]
-      .filter((client) => !projectPath || normalizeProjectPath(client.projectPath) === normalizeProjectPath(projectPath))
-      .map((client) => ({
-        id: client.id,
-        context: client.context,
-        projectPath: client.projectPath,
-        connectedAt: client.connectedAt,
-        acknowledgedAt: client.acknowledgedAt,
-        lastSeenAt: client.lastSeenAt,
-        protocolVersion: client.protocolVersion,
-      }));
     return {
+      brokerId: this.brokerId,
       running: this.server?.listening === true,
       host: '127.0.0.1',
       port: this.port,
-      clients,
-      pendingCommands: this.pending.size,
+      clients: this.clients.snapshots(projectPath),
+      pendingCommands: this.commandRouter.size,
+      pendingCommandDetails: this.commandRouter.snapshot(),
+      pendingCommandCount: this.commandRouter.size,
+      leases: this.leases.snapshot(),
     };
+  }
+
+  async remoteStatus(port: number, projectPath?: string) {
+    const response = await sendRemoteBrokerMessage(port, {
+      type: 'frontend_status',
+      projectPath,
+    }, 2000);
+    if (response?.type !== 'frontend_status_ack' || !response.status) {
+      throw new Error(`Port ${port} is occupied, but the listener did not respond as a godot-devtool broker.`);
+    }
+    return response.status;
   }
 
   registerProjectAuth(projectPath: string, authToken: string): void {
@@ -168,39 +157,65 @@ class WebSocketBridge extends EventEmitter {
     }
   }
 
-  async sendCommand(projectPath: string, context: BridgeContext, command: string, payload: Record<string, unknown>, timeoutMs = 10000): Promise<BridgeReceipt> {
-    await this.start(this.port);
-    const client = await this.waitForClient(projectPath, context, timeoutMs);
+  async sendCommand(
+    projectPath: string,
+    context: BridgeContext,
+    command: string,
+    payload: Record<string, unknown>,
+    timeoutMs = 10000,
+    target: BridgeCommandTarget = targetFromPayload(payload)
+  ): Promise<BridgeReceipt> {
+    try {
+      await this.start(this.port);
+    } catch (error) {
+      if (!isBridgePortInUseError(error)) throw error;
+      return this.sendCommandViaRemoteBroker(projectPath, context, command, payload, timeoutMs, target);
+    }
+    const client = await this.waitForClient(projectPath, context, timeoutMs, target);
     if (!client) {
       throw new Error(`No active ${context} WebSocket bridge is connected for ${projectPath}. Enable the godot-devtool plugin or start the project runtime.`);
     }
-    const commandId = randomUUID();
-    const receiptPromise = new Promise<BridgeReceipt>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(commandId);
-        reject(new Error(`Timed out waiting for ${context} WebSocket command ${command}.`));
-      }, timeoutMs);
-      this.pending.set(commandId, { clientId: client.id, resolve, reject, timer });
-    });
-    this.sendFrame(client.socket, JSON.stringify({
-      type: 'command',
-      commandId,
+    const pendingLease = this.leases.acquire('pending_command', `${client.id}:${randomUUID()}`, timeoutMs + 1000);
+    try {
+      return await this.commandRouter.send(client, this.sendFrame.bind(this), command, payload, timeoutMs);
+    } finally {
+      this.leases.release(pendingLease.id);
+    }
+  }
+
+  private async sendCommandViaRemoteBroker(
+    projectPath: string,
+    context: BridgeContext,
+    command: string,
+    payload: Record<string, unknown>,
+    timeoutMs: number,
+    target: BridgeCommandTarget
+  ): Promise<BridgeReceipt> {
+    const response = await sendRemoteBrokerMessage(this.port, {
+      type: 'frontend_command',
+      projectPath,
+      context,
       command,
       payload,
       timeoutMs,
-    }));
-    return receiptPromise;
+      target,
+      authToken: this.resolveProjectAuthToken(projectPath),
+    }, timeoutMs);
+    if (response?.type !== 'frontend_receipt' || !response.receipt) {
+      if (response?.type === 'frontend_error' && response.error) {
+        throwRemoteBrokerError(response.error);
+      }
+      throw new Error(`Port ${this.port} is occupied, but the listener did not respond as a godot-devtool broker.`);
+    }
+    return response.receipt as BridgeReceipt;
   }
 
-  private findClient(projectPath: string, context: BridgeContext): BridgeClient | null {
-    return [...this.clients.values()].find((candidate) => (
-      candidate.context === context &&
-      normalizeProjectPath(candidate.projectPath) === normalizeProjectPath(projectPath)
-    )) ?? null;
+  private findClient(projectPath: string, context: BridgeContext, target: BridgeCommandTarget = {}): BridgeClient | null {
+    return resolveBridgeTarget(this.clients, projectPath, context, target);
   }
 
-  private async waitForClient(projectPath: string, context: BridgeContext, timeoutMs: number): Promise<BridgeClient | null> {
-    const existing = this.findClient(projectPath, context);
+  private async waitForClient(projectPath: string, context: BridgeContext, timeoutMs: number, target: BridgeCommandTarget): Promise<BridgeClient | null> {
+    const existing = this.findClient(projectPath, context, target);
     if (existing) return existing;
 
     const reconnectWaitMs = Math.min(
@@ -219,14 +234,16 @@ class WebSocketBridge extends EventEmitter {
       const onClient = (client: BridgeClient) => {
         if (
           client.context === context &&
-          normalizeProjectPath(client.projectPath) === normalizeProjectPath(projectPath)
+          normalizeProjectPath(client.projectPath) === normalizeProjectPath(projectPath) &&
+          (!target.sessionId || client.sessionId === target.sessionId) &&
+          (!target.runId || client.runId === target.runId)
         ) {
-          finish(client);
+          finish(this.findClient(projectPath, context, target));
         }
       };
       timer = setTimeout(() => finish(null), reconnectWaitMs);
       this.on('client', onClient);
-      const lateExisting = this.findClient(projectPath, context);
+      const lateExisting = this.findClient(projectPath, context, target);
       if (lateExisting) finish(lateExisting);
     });
   }
@@ -242,8 +259,9 @@ class WebSocketBridge extends EventEmitter {
       lastSeenAt: new Date().toISOString(),
       protocolVersion: null,
       sessionId: null,
+      runId: null,
     };
-    this.clients.set(client.id, client);
+    this.clients.add(client);
     let buffer = Buffer.alloc(0);
     socket.on('data', (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
@@ -254,8 +272,13 @@ class WebSocketBridge extends EventEmitter {
         this.handleMessage(client, frame.payload);
       }
     });
-    socket.on('close', () => this.clients.delete(client.id));
-    socket.on('error', () => this.clients.delete(client.id));
+    socket.on('close', () => this.unregisterClient(client.id));
+    socket.on('error', () => this.unregisterClient(client.id));
+  }
+
+  private unregisterClient(clientId: string): void {
+    this.clients.remove(clientId);
+    this.leases.releaseByOwner(clientId);
   }
 
   private handleMessage(client: BridgeClient, payload: string): void {
@@ -263,6 +286,18 @@ class WebSocketBridge extends EventEmitter {
     try {
       message = JSON.parse(payload);
     } catch {
+      return;
+    }
+    if (message.type === 'frontend_status') {
+      this.leases.acquire('frontend', client.id, 5000);
+      this.sendFrame(client.socket, JSON.stringify({
+        type: 'frontend_status_ack',
+        status: this.status(typeof message.projectPath === 'string' ? message.projectPath : undefined),
+      }));
+      return;
+    }
+    if (message.type === 'frontend_command') {
+      this.handleFrontendCommand(client, message);
       return;
     }
     if (message.type === 'hello') {
@@ -283,15 +318,19 @@ class WebSocketBridge extends EventEmitter {
       }
       client.protocolVersion = Number.isFinite(Number(message.protocolVersion)) ? Number(message.protocolVersion) : null;
       client.sessionId = typeof message.sessionId === 'string' ? message.sessionId : null;
+      client.runId = typeof message.runId === 'string' ? message.runId : null;
       client.acknowledgedAt = now;
       client.lastSeenAt = now;
+      this.leases.acquire(client.context, client.id);
       this.emit('client', client);
       this.sendFrame(client.socket, JSON.stringify({
         type: 'hello_ack',
+        brokerId: this.brokerId,
         context: client.context,
         projectPath: client.projectPath,
         protocolVersion: client.protocolVersion,
         sessionId: client.sessionId,
+        runId: client.runId,
         serverTime: now,
       }));
       return;
@@ -301,27 +340,70 @@ class WebSocketBridge extends EventEmitter {
       client.lastSeenAt = now;
       this.sendFrame(client.socket, JSON.stringify({
         type: 'heartbeat_ack',
+        brokerId: this.brokerId,
         context: client.context,
         sessionId: client.sessionId,
+        runId: client.runId,
         serverTime: now,
       }));
       return;
     }
     if (message.type === 'receipt') {
       client.lastSeenAt = new Date().toISOString();
-      const commandId = String(message.commandId ?? '');
-      const pending = this.pending.get(commandId);
-      if (!pending || pending.clientId !== client.id) return;
-      clearTimeout(pending.timer);
-      this.pending.delete(commandId);
-      pending.resolve({
-        commandId,
-        type: String(message.command ?? message.route ?? 'websocket'),
-        status: message.status === 'completed' ? 'completed' : 'failed',
-        finishedAt: new Date().toISOString(),
-        error: message.error ? String(message.error) : '',
-        result: message.result,
-      });
+      this.commandRouter.resolveReceipt(client, message);
+    }
+  }
+
+  private async handleFrontendCommand(client: BridgeClient, message: any): Promise<void> {
+    this.leases.acquire('frontend', client.id, Math.max(5000, Number(message.timeoutMs ?? 10000) + 1000));
+    try {
+      const projectPath = String(message.projectPath ?? '');
+      const expectedToken = this.resolveProjectAuthToken(projectPath);
+      const receivedToken = typeof message.authToken === 'string' ? message.authToken : '';
+      if (!expectedToken || receivedToken !== expectedToken) {
+        this.sendFrame(client.socket, JSON.stringify({
+          type: 'frontend_error',
+          commandId: String(message.commandId ?? ''),
+          error: {
+            ok: false,
+            code: 'unauthorized_frontend_command',
+            error: 'Frontend broker command rejected.',
+            guidance: ['Use the project bridge auth token from .godot-devtool/bridge-config.json when forwarding commands to a shared broker.'],
+          },
+        }));
+        return;
+      }
+      const receipt = await this.sendCommand(
+        projectPath,
+        message.context === 'runtime' ? 'runtime' : 'editor',
+        String(message.command ?? ''),
+        isRecord(message.payload) ? message.payload : {},
+        Number(message.timeoutMs ?? 10000),
+        isRecord(message.target) ? message.target : {}
+      );
+      this.sendFrame(client.socket, JSON.stringify({ type: 'frontend_receipt', receipt }));
+    } catch (error: any) {
+      if (error instanceof BridgeTargetAmbiguityError) {
+        this.sendFrame(client.socket, JSON.stringify({
+          type: 'frontend_error',
+          commandId: String(message.commandId ?? ''),
+          error: bridgeTargetAmbiguityPayload(error),
+        }));
+        return;
+      }
+      this.sendFrame(client.socket, JSON.stringify({
+        type: 'frontend_receipt',
+        receipt: {
+          commandId: String(message.commandId ?? ''),
+          type: String(message.command ?? 'frontend_command'),
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+          error: error?.message || String(error),
+          result: {},
+        },
+      }));
+    } finally {
+      this.leases.release(`frontend:${client.id}`);
     }
   }
 
@@ -375,10 +457,6 @@ class WebSocketBridge extends EventEmitter {
   }
 }
 
-function normalizeProjectPath(value: string | null | undefined): string {
-  return String(value ?? '').replace(/\\/g, '/').replace(/\/$/, '').toLowerCase();
-}
-
 const bridge = new WebSocketBridge();
 
 export function isBridgePortInUseError(error: unknown): boolean {
@@ -401,4 +479,27 @@ export function bridgePortInUseDetails(port: number): BridgePortConflictDetails 
 
 export function getWsBridge(): WebSocketBridge {
   return bridge;
+}
+
+function targetFromPayload(payload: Record<string, unknown>): BridgeCommandTarget {
+  return {
+    sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : undefined,
+    runId: typeof payload.runId === 'string' ? payload.runId : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function throwRemoteBrokerError(errorPayload: unknown): never {
+  if (isRecord(errorPayload) && errorPayload.code === 'bridge_target_ambiguous') {
+    const context = errorPayload.context === 'runtime' ? 'runtime' : 'editor';
+    const candidates = Array.isArray(errorPayload.candidates) ? errorPayload.candidates : [];
+    throw new BridgeTargetAmbiguityError(context, candidates as any);
+  }
+  if (isRecord(errorPayload) && typeof errorPayload.error === 'string') {
+    throw new Error(errorPayload.error);
+  }
+  throw new Error('Remote godot-devtool broker returned an error.');
 }

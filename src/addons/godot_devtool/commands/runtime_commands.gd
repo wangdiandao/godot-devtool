@@ -113,13 +113,16 @@ func _set_node_property(payload: Dictionary) -> Dictionary:
 	return _ok({"nodePath": str(node.get_path()), "propertyName": property_name})
 
 func _simulate_action(payload: Dictionary) -> Dictionary:
-	var action_name := str(payload.get("action", payload.get("actionName", "")))
+	var parameter_payload = payload.get("parameters", {})
+	if typeof(parameter_payload) != TYPE_DICTIONARY:
+		parameter_payload = {}
+	var action_name := str(payload.get("action", payload.get("actionName", payload.get("name", parameter_payload.get("action", parameter_payload.get("actionName", parameter_payload.get("name", "")))))))
 	if action_name == "":
 		return _err("action is required")
 	if not InputMap.has_action(action_name):
 		return _err("InputMap action does not exist: " + action_name)
-	var pressed := bool(payload.get("pressed", true))
-	var strength := clampf(float(payload.get("strength", 1.0)), 0.0, 1.0)
+	var pressed := bool(payload.get("pressed", parameter_payload.get("pressed", true)))
+	var strength := clampf(float(payload.get("strength", parameter_payload.get("strength", 1.0))), 0.0, 1.0)
 	if pressed:
 		Input.action_press(action_name, strength)
 	else:

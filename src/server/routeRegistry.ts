@@ -8,7 +8,18 @@ export interface RouteMetadata {
   riskLevel: 'read' | 'write' | 'destructive' | 'process';
   requiresEditor: boolean;
   requiresRuntime: boolean;
+  workflows: string[];
 }
+
+export const WORKFLOW_TOOL_FILTERS: Record<string, string[]> = {
+  project_setup: ['get_capabilities', 'get_godot_version', 'list_projects', 'get_project_info', 'plugin_install', 'plugin_status', 'plugin_cleanup_port'],
+  live_editor: ['plugin_status', 'list_bridge_sessions', 'resolve_bridge_target', 'plugin_reload', 'editor_get_selection', 'editor_select_node', 'editor_inspector_get_properties', 'editor_inspector_set_properties', 'editor_add_node', 'editor_delete_node', 'editor_rename_node', 'editor_move_node', 'editor_duplicate_node', 'editor_save_scene'],
+  runtime_test: ['plugin_status', 'run_project', 'stop_project', 'get_debug_output', 'list_run_instances', 'list_bridge_sessions', 'resolve_bridge_target', 'get_game_scene_tree', 'get_game_node_properties', 'set_game_node_property', 'simulate_action', 'simulate_sequence', 'get_game_screenshot', 'find_ui_elements'],
+  multi_instance: ['broker_status', 'list_bridge_sessions', 'list_run_instances', 'resolve_bridge_target', 'run_project', 'stop_project', 'stop_run_instance', 'get_debug_output', 'clear_debug_output', 'broker_cleanup_idle'],
+  release_verify: ['get_capabilities', 'broker_status', 'plugin_status', 'run_project_checks', 'get_project_info', 'get_script_index', 'get_resource_index', 'browser_visualizer_status'],
+};
+
+export const GET_CAPABILITIES_WORKFLOW_FILTERS = Object.keys(WORKFLOW_TOOL_FILTERS);
 
 const PROCESS_TOOLS = new Set([
   'launch_editor',
@@ -17,6 +28,12 @@ const PROCESS_TOOLS = new Set([
   'get_debug_output',
   'clear_debug_output',
   'get_godot_version',
+  'broker_status',
+  'list_bridge_sessions',
+  'list_run_instances',
+  'stop_run_instance',
+  'resolve_bridge_target',
+  'broker_cleanup_idle',
   'plugin_cleanup_port',
   'browser_visualizer_start',
   'browser_visualizer_status',
@@ -92,15 +109,26 @@ export function routeMetadataForTool(toolName: string): RouteMetadata {
   const canonical = compatibilityRoute?.canonicalTool && compatibilityRoute.canonicalTool !== 'compatibility_native'
     ? compatibilityRoute.canonicalTool
     : toolName;
-  const routeGroup = inferRouteGroup(canonical, toolName);
-  const transport = inferTransport(toolName, routeGroup);
+  const routeGroup = compatibilityRoute?.implementationStatus === 'runtime_bridge'
+    ? 'runtime'
+    : inferRouteGroup(canonical, toolName);
+  const transport = compatibilityRoute?.implementationStatus === 'runtime_bridge'
+    ? 'runtime_ws'
+    : inferTransport(toolName, routeGroup);
   return {
     routeGroup,
     transport,
     riskLevel: inferRiskLevel(toolName, compatibilityRoute?.riskLevel),
     requiresEditor: transport === 'editor_ws',
     requiresRuntime: transport === 'runtime_ws',
+    workflows: workflowsForTool(toolName),
   };
+}
+
+function workflowsForTool(toolName: string): string[] {
+  return Object.entries(WORKFLOW_TOOL_FILTERS)
+    .filter(([, toolNames]) => toolNames.includes(toolName))
+    .map(([workflow]) => workflow);
 }
 
 function inferTransport(toolName: string, routeGroup: string): ToolTransport {

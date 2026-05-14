@@ -375,10 +375,20 @@ export class GodotServer {
     } catch (err) {
       this.logDebug(`Error stopping WebSocket bridge: ${err}`);
     }
-    if (this.activeProcess) {
+    const runRegistry = (this as any).runRegistry;
+    if (runRegistry?.list && runRegistry?.stop) {
+      for (const run of runRegistry.list({ includeExited: false })) {
+        try {
+          runRegistry.stop(run);
+        } catch {}
+      }
+      this.activeProcess = runRegistry.getLatestActiveRun?.() ?? null;
+      this.lastRun = runRegistry.getLastRun?.() ?? this.lastRun;
+    } else if (this.activeProcess) {
       try {
         this.activeProcess.process.kill();
       } catch {}
+      this.activeProcess = null;
     }
   }
 }

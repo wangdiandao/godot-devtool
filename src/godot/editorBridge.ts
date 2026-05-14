@@ -399,6 +399,14 @@ async function readWebSocketStatus(projectPath: string, port: number): Promise<B
     if (!isBridgePortInUseError(error)) {
       throw error;
     }
+    try {
+      return {
+        websocket: await getWsBridge().remoteStatus(port, projectPath),
+        portConflict: null,
+      };
+    } catch {
+      // Fall through to occupied-port diagnostics when the listener is not a compatible broker.
+    }
     return {
       websocket: getWsBridge().status(projectPath),
       portConflict: bridgePortInUseDetails(port),
@@ -923,14 +931,19 @@ function editorBridgePluginScript(): string {
     '',
     'func _simulate_input(command_type: String, payload: Dictionary) -> Dictionary:',
     '\tif command_type == "simulate_action":',
-    '\t\tvar action_name := str(payload.get("action", payload.get("actionName", "")))',
+    '\t\tvar parameter_payload = payload.get("parameters", {})',
+    '\t\tif typeof(parameter_payload) != TYPE_DICTIONARY:',
+    '\t\t\tparameter_payload = {}',
+    '\t\tvar action_name := str(payload.get("action", payload.get("actionName", payload.get("name", parameter_payload.get("action", parameter_payload.get("actionName", parameter_payload.get("name", "")))))))',
     '\t\tif action_name == "":',
     '\t\t\treturn {"ok": false, "error": "action is required.", "result": {}}',
-    '\t\tif bool(payload.get("pressed", true)):',
-    '\t\t\tInput.action_press(action_name, float(payload.get("strength", 1.0)))',
+    '\t\tvar pressed := bool(payload.get("pressed", parameter_payload.get("pressed", true)))',
+    '\t\tvar strength := float(payload.get("strength", parameter_payload.get("strength", 1.0)))',
+    '\t\tif pressed:',
+    '\t\t\tInput.action_press(action_name, strength)',
     '\t\telse:',
     '\t\t\tInput.action_release(action_name)',
-    '\t\treturn {"ok": true, "error": "", "result": {"action": action_name, "pressed": bool(payload.get("pressed", true))}}',
+    '\t\treturn {"ok": true, "error": "", "result": {"action": action_name, "pressed": pressed, "strength": strength}}',
     '\treturn {"ok": false, "error": command_type + " is handled by the runtime autoload bridge while the game is running.", "result": {"command": command_type}}',
     '',
     'func _get_runtime_scene_tree() -> Dictionary:',
@@ -1287,13 +1300,16 @@ function runtimeBridgeScript(): string {
     '',
     'func _simulate_input(command_type: String, payload: Dictionary) -> Dictionary:',
     '\tif command_type == "simulate_action":',
-    '\t\tvar action_name := str(payload.get("action", payload.get("actionName", "")))',
+    '\t\tvar parameter_payload = payload.get("parameters", {})',
+    '\t\tif typeof(parameter_payload) != TYPE_DICTIONARY:',
+    '\t\t\tparameter_payload = {}',
+    '\t\tvar action_name := str(payload.get("action", payload.get("actionName", payload.get("name", parameter_payload.get("action", parameter_payload.get("actionName", parameter_payload.get("name", "")))))))',
     '\t\tif action_name == "":',
     '\t\t\treturn {"ok": false, "error": "action is required.", "result": {}}',
     '\t\tif not InputMap.has_action(action_name):',
     '\t\t\treturn {"ok": false, "error": "InputMap action does not exist: " + action_name, "result": {}}',
-    '\t\tvar pressed := bool(payload.get("pressed", true))',
-    '\t\tvar strength := clampf(float(payload.get("strength", 1.0)), 0.0, 1.0)',
+    '\t\tvar pressed := bool(payload.get("pressed", parameter_payload.get("pressed", true)))',
+    '\t\tvar strength := clampf(float(payload.get("strength", parameter_payload.get("strength", 1.0))), 0.0, 1.0)',
     '\t\tif pressed:',
     '\t\t\tInput.action_press(action_name, strength)',
     '\t\telse:',

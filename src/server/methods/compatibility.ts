@@ -760,7 +760,8 @@ class GodotServerCompatibilityMethods {
     }
 
     const timeoutMs = Number(args.timeoutMs ?? 10000);
-    const command = await enqueueRuntimeCommand(args.projectPath, { type: toolName, payload: args, timeoutMs });
+    const payload = this.normalizeRuntimeCompatibilityPayload(toolName, args);
+    const command = await enqueueRuntimeCommand(args.projectPath, { type: toolName, payload, timeoutMs });
     const receipt = await waitForRuntimeCommandReceipt(args.projectPath, command.commandId, timeoutMs);
     this.assertCompletedBridgeReceipt(toolName, receipt);
     return {
@@ -777,12 +778,37 @@ class GodotServerCompatibilityMethods {
     };
   }
 
+  private normalizeRuntimeCompatibilityPayload(toolName: string, args: any): OperationParams {
+    const payload: OperationParams = { ...(args ?? {}) };
+    if (toolName !== 'simulate_action') return payload;
+
+    const parameters = isPlainObject(payload.parameters) ? payload.parameters as OperationParams : {};
+    if (payload.action === undefined || payload.action === '') {
+      const alias = payload.actionName ?? payload.name ?? parameters.action ?? parameters.actionName ?? parameters.name;
+      if (alias !== undefined && alias !== '') {
+        payload.action = alias;
+      }
+    }
+
+    for (const key of ['pressed', 'strength']) {
+      if (payload[key] === undefined && parameters[key] !== undefined) {
+        payload[key] = parameters[key];
+      }
+    }
+
+    return payload;
+  }
+
 
   private assertCompletedBridgeReceipt(toolName: string, receipt: any): void {
     if (receipt.status === 'completed') return;
     const error = receipt.error ? `: ${receipt.error}` : '';
     throw new Error(`${toolName} failed through the WebSocket bridge${error}`);
   }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function registerGodotServerCompatibilityMethods(GodotServerCtor: any): void {

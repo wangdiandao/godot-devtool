@@ -38,6 +38,8 @@ const COMPATIBILITY_SCHEMA_PROPERTIES: Record<string, unknown> = {
   nodePaths: { type: 'array', items: { type: 'string' }, description: 'Node paths for batch operations' },
   propertyNames: { type: 'array', items: { type: 'string' }, description: 'Property names for read operations' },
   timeoutMs: { type: 'number', description: 'Timeout in milliseconds' },
+  runId: { type: 'string', description: 'Godot runtime run id for multi-instance runtime routes' },
+  sessionId: { type: 'string', description: 'Editor or runtime bridge session id for multi-session routing' },
   dryRun: { type: 'boolean', description: 'Preview changes without writing' },
   overwrite: { type: 'boolean', description: 'Allow overwriting existing files or resources' },
   confirm: { type: 'boolean', description: 'Confirm a destructive operation' },
@@ -52,7 +54,7 @@ export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.valu
     ...(canonicalName ? { canonicalName } : {}),
     inputSchema: {
       type: 'object',
-      properties: COMPATIBILITY_SCHEMA_PROPERTIES,
+      properties: compatibilitySchemaProperties(route),
       required: [],
     },
     compatibility: {
@@ -63,6 +65,37 @@ export const COMPATIBILITY_TOOL_DEFINITIONS: GodotToolDefinition[] = Object.valu
     },
   };
 });
+
+function compatibilitySchemaProperties(route: (typeof COMPATIBILITY_TOOL_ROUTES)[string]): Record<string, unknown> {
+  if (route.toolName !== 'simulate_action') return COMPATIBILITY_SCHEMA_PROPERTIES;
+  return {
+    ...COMPATIBILITY_SCHEMA_PROPERTIES,
+    action: {
+      type: 'string',
+      description: 'InputMap action name to press or release. `name` and `actionName` are accepted as aliases.',
+    },
+    actionName: {
+      type: 'string',
+      description: 'Alias for `action` when calling simulate_action.',
+    },
+    name: {
+      type: 'string',
+      description: 'Alias for `action` when calling simulate_action.',
+    },
+    pressed: {
+      type: 'boolean',
+      description: 'Whether the InputMap action is pressed. Defaults to true.',
+    },
+    strength: {
+      type: 'number',
+      description: 'InputMap action strength from 0 to 1. Defaults to 1.',
+    },
+    parameters: {
+      type: 'object',
+      description: 'Optional compatibility bag. `pressed` and `strength` are promoted when top-level values are omitted.',
+    },
+  };
+}
 
 function compatibilityDescription(route: (typeof COMPATIBILITY_TOOL_ROUTES)[string]): string {
   if (route.implementationStatus === 'runtime_bridge') {

@@ -1,4 +1,5 @@
 import type { GodotToolDefinition } from './types.js';
+import { GET_CAPABILITIES_WORKFLOW_FILTERS, WORKFLOW_TOOL_FILTERS } from '../../server/routeRegistry.js';
 
 export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   {
@@ -37,6 +38,10 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           type: 'number',
           description: 'Optional number of frames before Godot quits',
         },
+        runId: {
+          type: 'string',
+          description: 'Optional caller-provided run id. Defaults to a generated id.',
+        },
       },
       required: ['projectPath'],
     },
@@ -47,6 +52,10 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        projectPath: {
+          type: 'string',
+          description: 'Optional Godot project path used to select a run when multiple projects have recent output.',
+        },
         outputOffset: {
           type: 'number',
           description: 'Optional output line offset for windowed reads',
@@ -59,6 +68,10 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           type: 'number',
           description: 'Optional maximum number of recent lines to return from each stream',
         },
+        runId: {
+          type: 'string',
+          description: 'Optional Godot run instance id. Required when multiple runs are available.',
+        },
       },
       required: [],
     },
@@ -68,7 +81,16 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     description: 'Clear buffered output for the currently running Godot project',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: 'Optional Godot project path used to select a run when multiple projects have recent output.',
+        },
+        runId: {
+          type: 'string',
+          description: 'Optional Godot run instance id. Required when multiple runs are available.',
+        },
+      },
       required: [],
     },
   },
@@ -77,7 +99,16 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
     description: 'Stop the currently running Godot project',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        projectPath: {
+          type: 'string',
+          description: 'Optional Godot project path used to select a run when multiple projects are active.',
+        },
+        runId: {
+          type: 'string',
+          description: 'Optional Godot run instance id. Required when multiple runs are active.',
+        },
+      },
       required: [],
     },
   },
@@ -148,10 +179,92 @@ export const CORE_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           type: 'string',
           description: 'Optional case-insensitive search across tool name, description, route group, transport, risk level, and canonical name.',
         },
+        workflow: {
+          type: 'string',
+          enum: GET_CAPABILITIES_WORKFLOW_FILTERS,
+          description: 'Optional focused workflow filter for compact context. Use this instead of requesting all schemas.',
+          metadata: WORKFLOW_TOOL_FILTERS,
+        },
         compact: {
           type: 'boolean',
           description: 'Return compact JSON. Defaults to true; set false for pretty-printed JSON.',
         },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'broker_status',
+    description: 'Read the shared godot-devtool 3.0 WebSocket broker status, connected clients, pending commands, and leases',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Optional Godot project path used to filter sessions.' },
+        port: { type: 'number', description: 'Optional WebSocket broker port. Defaults to GODOT_DEVTOOL_WS_PORT or 8766.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'list_bridge_sessions',
+    description: 'List connected editor/runtime bridge sessions with sessionId, runId, project path, context, and last-seen time',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Optional Godot project path used to filter sessions.' },
+        context: { type: 'string', enum: ['editor', 'runtime'], description: 'Optional bridge context filter.' },
+        port: { type: 'number', description: 'Optional WebSocket broker port. Defaults to GODOT_DEVTOOL_WS_PORT or 8766.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'list_run_instances',
+    description: 'List Godot game/editor run instances managed by this MCP server',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Optional Godot project path used to filter run instances.' },
+        includeExited: { type: 'boolean', description: 'Include exited run instances. Defaults to true.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'stop_run_instance',
+    description: 'Stop one Godot run instance by runId',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Optional Godot project path guard for the run being stopped.' },
+        runId: { type: 'string', description: 'Godot run instance id returned by run_project.' },
+      },
+      required: ['runId'],
+    },
+  },
+  {
+    name: 'resolve_bridge_target',
+    description: 'Resolve the editor/runtime bridge target for a project and report ambiguity candidates without sending a command',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory.' },
+        context: { type: 'string', enum: ['editor', 'runtime'], description: 'Bridge target context.' },
+        sessionId: { type: 'string', description: 'Optional editor/runtime bridge session id.' },
+        runId: { type: 'string', description: 'Optional Godot runtime run id.' },
+        port: { type: 'number', description: 'Optional WebSocket broker port. Defaults to GODOT_DEVTOOL_WS_PORT or 8766.' },
+      },
+      required: ['projectPath', 'context'],
+    },
+  },
+  {
+    name: 'broker_cleanup_idle',
+    description: 'Stop the transient shared broker listener only when no clients, runs, or pending commands require it',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Optional Godot project path used to decide whether the broker is idle.' },
+        port: { type: 'number', description: 'Optional WebSocket broker port for status checks. Defaults to GODOT_DEVTOOL_WS_PORT or 8766.' },
       },
       required: [],
     },

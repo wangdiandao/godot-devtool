@@ -315,6 +315,18 @@ class GodotServerEditorMethods {
   }
 
 
+  private editorBridgeTargetPayload(args: any): Record<string, unknown> {
+    const target: Record<string, unknown> = {};
+    if (typeof args.sessionId === 'string' && args.sessionId.trim()) {
+      target.sessionId = args.sessionId.trim();
+    }
+    if (typeof args.runId === 'string' && args.runId.trim()) {
+      target.runId = args.runId.trim();
+    }
+    return target;
+  }
+
+
 
   private async handlePluginReload(args: any) {
     args = this.normalizeParameters(args || {});
@@ -324,7 +336,7 @@ class GodotServerEditorMethods {
     try {
       const command = await enqueueEditorCommand(args.projectPath, {
         type: 'plugin_reload',
-        payload: {},
+        payload: this.editorBridgeTargetPayload(args),
         timeoutMs: args.timeoutMs,
       });
       const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
@@ -355,14 +367,22 @@ class GodotServerEditorMethods {
     if (validationError) return validationError;
 
     try {
-      const status = await readEditorBridgeStatus(args.projectPath);
+      const timeoutMs = Number(args.timeoutMs ?? 10000);
+      const command = await enqueueEditorCommand(args.projectPath, {
+        type: 'editor_get_selection',
+        payload: this.editorBridgeTargetPayload(args),
+        timeoutMs,
+      });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+      this.assertCompletedBridgeReceipt('editor_get_selection', receipt);
+      const result = receipt.result && typeof receipt.result === 'object' ? receipt.result as any : {};
       return this.createJsonResponse({
-        ok: status.installed,
-        mode: 'godot_editor_file_bridge',
-        selection: (status.lastState?.selection as unknown[]) ?? [],
-        currentScene: status.lastState?.currentScene ?? null,
-        updatedAt: status.lastState?.updatedAt ?? null,
-        pendingCommands: status.pendingCommands,
+        ok: true,
+        mode: 'godot_editor_websocket_bridge',
+        command,
+        receipt,
+        selection: Array.isArray(result.selection) ? result.selection : [],
+        currentScene: result.currentScene ?? null,
       });
     } catch (error: any) {
       return this.createErrorResponse(
@@ -387,6 +407,7 @@ class GodotServerEditorMethods {
       const command = await enqueueEditorCommand(args.projectPath, {
         type: 'select_node',
         payload: {
+          ...this.editorBridgeTargetPayload(args),
           scenePath: args.scenePath ?? null,
           nodePath: args.nodePath,
         },
@@ -422,7 +443,7 @@ class GodotServerEditorMethods {
     try {
       const command = await enqueueEditorCommand(args.projectPath, {
         type: args.action,
-        payload: {},
+        payload: this.editorBridgeTargetPayload(args),
         timeoutMs: args.timeoutMs,
       });
       const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, Number(args.timeoutMs ?? 10000));
@@ -456,6 +477,7 @@ class GodotServerEditorMethods {
       const command = await enqueueEditorCommand(args.projectPath, {
         type: 'inspector_get_properties',
         payload: {
+          ...this.editorBridgeTargetPayload(args),
           scenePath: args.scenePath ?? null,
           nodePath: args.nodePath ?? null,
           propertyNames: args.propertyNames ?? [],
@@ -493,6 +515,7 @@ class GodotServerEditorMethods {
       const command = await enqueueEditorCommand(args.projectPath, {
         type: 'inspector_set_properties',
         payload: {
+          ...this.editorBridgeTargetPayload(args),
           scenePath: args.scenePath ?? null,
           nodePath: args.nodePath ?? null,
           properties: args.properties,
@@ -523,6 +546,7 @@ class GodotServerEditorMethods {
     const command = await enqueueEditorCommand(args.projectPath, {
       type: commandType,
       payload: {
+        ...this.editorBridgeTargetPayload(args),
         scenePath: args.scenePath ?? null,
         autoSave: args.autoSave === true,
         ...payload,

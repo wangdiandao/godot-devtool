@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.8.5-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -29,6 +29,10 @@ MCP client
 - Editor routes use the bundled WebSocket plugin for live selection, Inspector writes, UndoRedo scene mutations, scene save, and plugin reload.
 - Runtime routes use the installed autoload bridge for running-game scene tree, properties, input simulation, screenshots, and QA checks.
 - Browser visualizer routes serve a local read-only HTTP dashboard for bridge/client status and live-route orientation.
+- The local WebSocket listener is a shared broker, so multiple MCP clients or AI agents can use the same bridge port instead of each spawning an exclusive listener.
+- Editor and runtime sessions are identified by `projectPath`, `context`, `sessionId`, and `runId`; ambiguous live targets return candidates instead of guessing.
+- `run_project` creates tracked run instances. Use `list_run_instances`, `get_debug_output`, `stop_project`, and `stop_run_instance` with `runId` when multiple game instances are active.
+- `get_capabilities` supports focused workflow filters such as `project_setup`, `live_editor`, `runtime_test`, `multi_instance`, and `release_verify` to keep assistant context small.
 
 ## Requirements
 
@@ -41,12 +45,12 @@ MCP client
 
 1. Download the release build:
 
-   [godot-devtool-build-2.8.5.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v2.8.5/godot-devtool-build-2.8.5.zip)
+   [godot-devtool-build-3.0.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v3.0.0/godot-devtool-build-3.0.0.zip)
 
 2. Extract it to a stable path, for example:
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-2.8.5.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-3.0.0.zip" "E:\godot-devtool" -Force
    ```
 
 3. Confirm the server entry exists:
@@ -90,7 +94,7 @@ MCP client
    get_capabilities {"toolNames":["plugin_install","plugin_status","plugin_cleanup_port"],"includeSchemas":true}
    ```
 
-`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. The stdio MCP server starts without opening that port. Bridge tools open it on demand; editor-only calls release it during cleanup, while a project launched through `run_project` or an already connected runtime client keeps the listener open so runtime commands do not depend on a one-call reconnect window.
+`GODOT_DEVTOOL_WS_PORT` defaults to `8766`. The stdio MCP server starts without opening that port. Bridge tools open it on demand; editor-only calls release it during cleanup, while a project launched through `run_project` or an already connected runtime client keeps the listener open so runtime commands do not depend on a one-call reconnect window. If another `godot-devtool` process already owns the same port, broker-aware calls can forward through that listener instead of killing it.
 
 If another listener already holds the port while a bridge tool runs, use `plugin_status` and `plugin_cleanup_port` to inspect it. Only call `plugin_cleanup_port` with `kill=true` after confirming the listener is stale; switching ports creates a separate bridge and does not adopt editor clients connected to the old one.
 
@@ -201,7 +205,7 @@ Browser visualizer tools start, inspect, and stop a local read-only dashboard. U
 
 The table below is generated from the actual tool definitions so the README stays aligned with the MCP server.
 
-## All 228 Tools
+## All 234 Tools
 
 ### Project Tools (18)
 | Tool | Description |
@@ -280,12 +284,11 @@ The table below is generated from the actual tool definitions so the README stay
 | `tilemap_get_used_cells` | Get TileMap used cells using the tilemap implementation. |
 | `tilemap_set_cell` | Set TileMap cell using the tilemap implementation. |
 
-### Node Tools (19)
+### Node Tools (17)
 | Tool | Description |
 |------|-------------|
 | `add_node` | Add a node to an existing scene |
 | `delete_node` | Delete a non-root node from a Godot scene |
-| `find_nearby_nodes` | Runtime WebSocket compatibility route. Executes find_nearby_nodes through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `find_node_references` | Exact-name compatibility route for find_node_references. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `find_nodes_by_type` | Find nodes by type using the node_find implementation. |
 | `find_nodes_in_group` | Exact-name compatibility route for find_nodes_in_group. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
@@ -301,7 +304,6 @@ The table below is generated from the actual tool definitions so the README stay
 | `set_blend_tree_node` | Exact-name compatibility route for set_blend_tree_node. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `set_node_groups` | Exact-name compatibility route for set_node_groups. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `update_node_properties` | Update properties on a node in a Godot scene |
-| `wait_for_node` | Runtime WebSocket compatibility route. Executes wait_for_node through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 
 ### Script Tools (11)
 | Tool | Description |
@@ -373,7 +375,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `resource_save` | Save text-based Godot resource content with overwrite protection |
 | `update_export_preset` | Update fields or options for a configured Godot export preset |
 
-### Visual Tools (26)
+### Visual Tools (25)
 | Tool | Description |
 |------|-------------|
 | `apply_particle_preset` | Exact-name compatibility route for apply_particle_preset. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
@@ -382,7 +384,6 @@ The table below is generated from the actual tool definitions so the README stay
 | `create_shader` | Create shader using the shader implementation. |
 | `create_theme` | Create theme using the ui implementation. |
 | `edit_shader` | Exact-name compatibility route for edit_shader. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
-| `find_ui_elements` | Runtime WebSocket compatibility route. Executes find_ui_elements through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_particle_info` | Exact-name compatibility route for get_particle_info. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `get_shader_params` | Get shader params using the shader implementation. |
 | `get_theme_info` | Exact-name compatibility route for get_theme_info. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
@@ -403,19 +404,27 @@ The table below is generated from the actual tool definitions so the README stay
 | `shader` | Create, read, inspect, and configure ShaderMaterial parameters |
 | `ui` | Create Control nodes, reusable UI templates, themes, and automatic signal wiring |
 
-### Runtime Tools (21)
+### Runtime Tools (30)
 | Tool | Description |
 |------|-------------|
 | `assert_node_state` | Exact-name compatibility route for assert_node_state. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `assert_screen_text` | Exact-name compatibility route for assert_screen_text. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
+| `capture_frames` | Runtime WebSocket compatibility route. Executes capture_frames through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `click_button_by_text` | Runtime WebSocket compatibility route. Executes click_button_by_text through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `compare_screenshots` | Exact-name compatibility route for compare_screenshots. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `create_workflow_test_scene` | Create a small Godot scene for validating MCP scene/script/check workflows |
 | `execute_game_script` | Runtime WebSocket compatibility route. Executes execute_game_script through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `find_nearby_nodes` | Runtime WebSocket compatibility route. Executes find_nearby_nodes through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `find_ui_elements` | Runtime WebSocket compatibility route. Executes find_ui_elements through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_editor_screenshot` | Exact-name compatibility route for get_editor_screenshot. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `get_game_node_properties` | Runtime WebSocket compatibility route. Executes get_game_node_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_game_scene_tree` | Runtime WebSocket compatibility route. Executes get_game_scene_tree through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_game_screenshot` | Runtime WebSocket compatibility route. Executes get_game_screenshot through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `get_performance_monitors` | Runtime WebSocket compatibility route. Executes get_performance_monitors through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_test_report` | Exact-name compatibility route for get_test_report. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
+| `monitor_properties` | Runtime WebSocket compatibility route. Executes monitor_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `move_to` | Runtime WebSocket compatibility route. Executes move_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `navigate_to` | Runtime WebSocket compatibility route. Executes navigate_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `replay_recording` | Runtime WebSocket compatibility route. Executes replay_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `run_stress_test` | Exact-name compatibility route for run_stress_test. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `run_test_scenario` | Exact-name compatibility route for run_test_scenario. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
@@ -427,6 +436,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `simulate_sequence` | Runtime WebSocket compatibility route. Executes simulate_sequence through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `start_recording` | Runtime WebSocket compatibility route. Executes start_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `stop_recording` | Runtime WebSocket compatibility route. Executes stop_recording through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
+| `wait_for_node` | Runtime WebSocket compatibility route. Executes wait_for_node through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 
 ### Core Tools (39)
 | Tool | Description |
@@ -438,12 +448,12 @@ The table below is generated from the actual tool definitions so the README stay
 | `add_state_machine_transition` | Exact-name compatibility route for add_state_machine_transition. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `batch_get_properties` | Exact-name compatibility route for batch_get_properties. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `batch_set_property` | Exact-name compatibility route for batch_set_property. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
+| `broker_cleanup_idle` | Stop the transient shared broker listener only when no clients, runs, or pending commands require it |
+| `broker_status` | Read the shared godot-devtool 3.0 WebSocket broker status, connected clients, pending commands, and leases |
 | `browser_visualizer_start` | Start a local read-only browser dashboard for Godot editor/runtime bridge status and live-route guidance |
 | `browser_visualizer_status` | Read the local Browser visualizer URL, project filter, and connected editor/runtime bridge clients |
 | `browser_visualizer_stop` | Stop the local Browser visualizer HTTP dashboard |
-| `capture_frames` | Runtime WebSocket compatibility route. Executes capture_frames through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `clear_debug_output` | Clear buffered output for the currently running Godot project |
-| `click_button_by_text` | Runtime WebSocket compatibility route. Executes click_button_by_text through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `create_gameplay_prototype` | Create a high-level block-based gameplay prototype scaffold in a Godot project |
 | `detect_circular_dependencies` | Exact-name compatibility route for detect_circular_dependencies. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `generate_ci_snippet` | Generate GitHub Actions or GitLab CI snippets for Godot headless checks, export preflight, release export, and artifact archiving |
@@ -455,21 +465,21 @@ The table below is generated from the actual tool definitions so the README stay
 | `get_editor_errors` | Exact-name compatibility route for get_editor_errors. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `get_editor_performance` | Exact-name compatibility route for get_editor_performance. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `get_godot_version` | Get the installed Godot version |
-| `get_performance_monitors` | Runtime WebSocket compatibility route. Executes get_performance_monitors through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `get_rollback_suggestions` | Return honest rollback guidance for an operation, audit entry, or changed paths |
 | `get_safety_policy` | Read the project-local godot-devtool safety policy and default enforcement state |
-| `launch_editor` | Reuse an already connected Godot editor, launch one only when no bridge is connected, and refuse replacement launches during bridge port conflicts |
+| `launch_editor` | Reuse an already connected Godot editor for a project, launch one only when no bridge is connected, and refuse to open a replacement editor when the configured bridge port is occupied by another listener |
+| `list_bridge_sessions` | List connected editor/runtime bridge sessions with sessionId, runId, project path, context, and last-seen time |
+| `list_run_instances` | List Godot game/editor run instances managed by this MCP server |
 | `load_sprite` | Load a sprite into a Sprite2D node |
-| `monitor_properties` | Runtime WebSocket compatibility route. Executes monitor_properties through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `move_to` | Runtime WebSocket compatibility route. Executes move_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
-| `navigate_to` | Runtime WebSocket compatibility route. Executes navigate_to through the running Godot runtime bridge and returns a failed receipt when DevtoolRuntime is not connected. |
 | `preview_write_safety` | Preview safety policy and diff summary metadata for proposed writes or deletes |
 | `remove_state_machine_state` | Exact-name compatibility route for remove_state_machine_state. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `remove_state_machine_transition` | Exact-name compatibility route for remove_state_machine_transition. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
+| `resolve_bridge_target` | Resolve the editor/runtime bridge target for a project and report ambiguity candidates without sending a command |
 | `set_anchor_preset` | Exact-name compatibility route for set_anchor_preset. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `set_safety_policy` | Configure project write allowlists and blocked paths in .godot-devtool/safety.json |
 | `set_tree_parameter` | Exact-name compatibility route for set_tree_parameter. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 | `setup_camera_3d` | Exact-name compatibility route for setup_camera_3d. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
+| `stop_run_instance` | Stop one Godot run instance by runId |
 
 ## Which Route Should I Use?
 

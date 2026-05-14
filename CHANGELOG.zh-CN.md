@@ -6,11 +6,23 @@
 
 ## 未发布
 
-Runtime bridge listener 生命周期加固。
+无未发布变更。
 
+## 3.0.0
+
+共享 broker、多 Agent 和多游戏实例架构版本。
+
+- 围绕共享 WebSocket broker 重新设计实时工作流，让多个 MCP client 和 AI Agent 可以复用同一个端口，不再互相杀进程或误开替代编辑器。
+- 增加基于 `projectPath`、`context`、`sessionId`、`runId` 的 bridge session 定位、结构化歧义错误，以及 `broker_status`、`list_bridge_sessions`、`resolve_bridge_target`、`broker_cleanup_idle`。
+- 增加多游戏实例跟踪：支持生成或调用方指定的 `runId`、`list_run_instances`、`stop_run_instance`、按 run 读取 debug output、重复 `runId` 防护，以及 cleanup 停止全部活跃 managed run。
+- 为 `get_capabilities` 增加 `project_setup`、`live_editor`、`runtime_test`、`multi_instance`、`release_verify` workflow 过滤，在不减少工具的前提下降低上下文占用。
+- 从 3.0 实现开始就把内置 Godot addon 设计为薄入口脚本加 `editor/editor_bridge_client.gd`、`editor/status_dock.gd`、`runtime/runtime_client.gd`、`runtime/runtime_state_store.gd` 的文件结构。
+- 扩展 editor/runtime hello、heartbeat、receipt、runtime state 和 `GDT` dock，展示 `sessionId`、`runId`、`brokerId`、项目路径、插件版本和协议版本诊断。
 - 当 `run_project` 仍有活跃进程或 runtime client 已连接时保持 WebSocket bridge listener，并在没有 runtime 状态、`stop_project`、替代运行、进程退出或 server cleanup 时关闭它。
 - 修改 runtime compatibility 工具：不再因为初始 `plugin_status` stale 快照直接失败，而是等待 `DevtoolRuntime` 重新连接并返回真实命令 receipt。
-- 增加进程回归覆盖，验证 runtime 重连派发和项目运行期间 listener 持续存在。
+- 增加进程、工具定义、插件、runtime 和 roadmap 回归覆盖，验证 broker 转发、目标歧义、run 选择、重复 `runId` 拒绝、拆分 addon 文件和 runtime listener 生命周期。
+- 增加 3.0 开发计划和子 Agent 分工文档：`docs/superpowers/plans/2026-05-14-3.0.0-architecture.md`。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和本地 build metadata 同步到 `3.0.0`；本工作树按要求暂不执行 GitHub 发布。
 
 ## 2.8.5
 

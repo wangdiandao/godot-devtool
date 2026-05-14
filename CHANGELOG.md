@@ -6,11 +6,23 @@ All notable completed changes are tracked here. Future work is tracked in [ROADM
 
 ## Unreleased
 
-Runtime bridge listener lifecycle hardening.
+No unreleased changes.
 
+## Version 3.0.0
+
+Shared broker, multi-agent, and multi-instance architecture release.
+
+- Redesigned the live workflow around a shared WebSocket broker so multiple MCP clients and AI agents can use the same port without killing each other or opening replacement editors.
+- Added bridge session targeting with `projectPath`, `context`, `sessionId`, `runId`, structured ambiguity errors, `broker_status`, `list_bridge_sessions`, `resolve_bridge_target`, and `broker_cleanup_idle`.
+- Added multi-game-instance tracking with generated or caller-provided `runId`, `list_run_instances`, `stop_run_instance`, per-run debug output, duplicate `runId` protection, and cleanup that stops all active managed runs.
+- Added focused `get_capabilities` workflow filters for `project_setup`, `live_editor`, `runtime_test`, `multi_instance`, and `release_verify` to reduce context usage without removing tools.
+- Split the bundled Godot addon into thin entry scripts plus `editor/editor_bridge_client.gd`, `editor/status_dock.gd`, `runtime/runtime_client.gd`, and `runtime/runtime_state_store.gd` from the start of the 3.0 implementation.
+- Extended editor/runtime hello, heartbeat, receipts, runtime state, and the `GDT` dock with `sessionId`, `runId`, `brokerId`, project path, plugin version, and protocol version diagnostics.
 - Kept the WebSocket bridge listener alive while a `run_project` process is active or a runtime client is connected, then stopped it when no runtime state remains or on `stop_project`, replacement runs, process exit, or server cleanup.
 - Changed runtime compatibility tools to wait for `DevtoolRuntime` to reconnect and return a real command receipt instead of failing on an initial `plugin_status` stale snapshot.
-- Added process regression coverage for runtime reconnect dispatch and runtime listener persistence while a project is running.
+- Added process, tool-definition, plugin, runtime, and roadmap regression coverage for broker forwarding, target ambiguity, run selection, duplicate `runId` rejection, split addon files, and runtime listener persistence.
+- Added the 3.0 development plan and sub-agent work distribution under `docs/superpowers/plans/2026-05-14-3.0.0-architecture.md`.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and local build metadata to `3.0.0`; GitHub publication is intentionally not performed in this working tree.
 
 ## Version 2.8.5
 

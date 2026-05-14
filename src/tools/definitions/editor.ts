@@ -1,5 +1,10 @@
 import type { GodotToolDefinition } from './types.js';
 
+const EDITOR_BRIDGE_TARGET_PROPERTIES = {
+  sessionId: { type: 'string', description: 'Optional editor bridge session id. Required when multiple editor sessions match.' },
+  runId: { type: 'string', description: 'Optional associated run id for editor bridge target disambiguation.' },
+};
+
 export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   {
     name: 'plugin_install',
@@ -50,6 +55,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath'],
     },
@@ -93,6 +99,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory with editor bridge installed' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: [],
     },
@@ -115,6 +122,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           type: 'string',
           description: 'Node path to select',
         },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'scenePath', 'nodePath'],
     },
@@ -134,6 +142,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           type: 'string',
           description: 'Path to the Godot project directory with editor bridge installed',
         },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'action'],
     },
@@ -153,6 +162,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
           description: 'Optional property names. Defaults to all Inspector-visible properties.',
         },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath'],
     },
@@ -169,6 +179,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         properties: { type: 'object', description: 'Properties to write, using structured Variant values where needed' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live Inspector property write. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'properties'],
     },
@@ -187,6 +198,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         properties: { type: 'object', description: 'Optional Inspector properties to set on the new node before adding it' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live change. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'nodeType', 'nodeName'],
     },
@@ -202,6 +214,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         nodePath: { type: 'string', description: 'Path to the non-root node to delete' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live change. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'nodePath'],
     },
@@ -218,6 +231,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         newName: { type: 'string', description: 'New node name' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live change. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'nodePath', 'newName'],
     },
@@ -235,6 +249,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         position: { type: 'object', description: 'Optional position value, for example { "type": "Vector2", "value": [x, y] }' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live change. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'nodePath'],
     },
@@ -252,6 +267,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         parentNodePath: { type: 'string', description: 'Optional destination parent node path' },
         autoSave: { type: 'boolean', description: 'Save the edited scene after the live change. Defaults to false.' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath', 'nodePath'],
     },
@@ -265,6 +281,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
         projectPath: { type: 'string', description: 'Path to the Godot project directory with editor bridge installed' },
         scenePath: { type: 'string', description: 'Optional project-relative scene path to verify against the currently open editor scene' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },
       required: ['projectPath'],
     },

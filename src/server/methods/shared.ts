@@ -901,11 +901,28 @@ class GodotServerSharedMethods {
    */
   private async cleanup() {
     this.logDebug('Cleaning up resources');
-    if (this.activeProcess) {
-      this.logDebug('Killing active Godot process');
-      this.activeProcess.process.kill();
+    if (typeof this.getRunRegistry === 'function') {
+      const registry = this.getRunRegistry();
+      for (const run of registry.list({ includeExited: false })) {
+        try {
+          this.logDebug(`Killing active Godot process ${run.runId}`);
+          registry.stop(run);
+        } catch (err) {
+          this.logDebug(`Error killing Godot process ${run.runId}: ${err}`);
+        }
+      }
+      this.activeProcess = registry.getLatestActiveRun();
+      this.lastRun = registry.getLastRun();
+    } else if (this.activeProcess) {
+      try {
+        this.logDebug('Killing active Godot process');
+        this.activeProcess.process.kill();
+      } catch (err) {
+        this.logDebug(`Error killing active Godot process: ${err}`);
+      }
       this.activeProcess = null;
     }
+    this.runtimeBridgeOwnerProcess = null;
     await getBrowserVisualizer().stop();
     await getWsBridge().stop();
     await this.server.close();
