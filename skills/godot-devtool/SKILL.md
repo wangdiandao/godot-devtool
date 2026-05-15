@@ -324,3 +324,5 @@ For this MCP package itself, run build-heavy verifiers sequentially because they
     npm.cmd run verify:visualizer
     npm.cmd run verify:plugin
     npm.cmd run verify:all
+
+After a development branch passes the required verification gates, merge it into `main` before treating that branch as complete.

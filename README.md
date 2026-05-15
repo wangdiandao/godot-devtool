@@ -41,26 +41,22 @@ MCP client
 - An MCP client such as Codex, Claude Code, Cursor, Cline, Roo Code, VS Code Copilot, or another client that can launch stdio MCP servers.
 - A Godot project containing `project.godot`.
 
-## Install From Release Zip
+## Install From Local Build
 
-1. Download the release build:
-
-   [godot-devtool-build-3.0.0.zip](https://github.com/wangdiandao/godot-devtool/releases/download/v3.0.0/godot-devtool-build-3.0.0.zip)
-
-2. Extract it to a stable path, for example:
+1. Build from source, or extract a published release zip to a stable path. The release asset name for this version is `godot-devtool-build-3.0.0.zip`.
 
    ```powershell
    Expand-Archive ".\godot-devtool-build-3.0.0.zip" "E:\godot-devtool" -Force
    ```
 
-3. Confirm the server entry exists:
+2. Confirm the server entry exists:
 
    ```powershell
    Test-Path "E:\godot-devtool\build\index.js"
    Test-Path "E:\godot-devtool\build\addons\godot_devtool\plugin.gd"
    ```
 
-4. Add this MCP server to your client configuration:
+3. Add this MCP server to your client configuration:
 
    ```json
    {
@@ -86,7 +82,7 @@ MCP client
    env = { GODOT_PATH = "D:/Program Files/Godot/Godot_v4.x.exe", GODOT_DEVTOOL_WS_PORT = "8766" }
    ```
 
-5. Restart the MCP client and ask it to call:
+4. Restart the MCP client and ask it to call:
 
    ```text
    get_godot_version
@@ -494,19 +490,25 @@ The table below is generated from the actual tool definitions so the README stay
 Static and package checks:
 
 ```bash
+npx.cmd tsc --noEmit
 npm.cmd run build
 npm.cmd run verify:tools
 npm.cmd run verify:gdscripts
+npm.cmd run verify:visualizer
 npm.cmd run verify:plugin
-npm.cmd run verify:all
 ```
 
-Godot-backed checks require `GODOT_PATH`:
+Full release checks require `GODOT_PATH` and a local Godot runtime:
 
 ```bash
 npm.cmd run verify:runtime
+npm.cmd run verify:process
+npm.cmd run verify:security
+npm.cmd run verify:all
 npm.cmd run check:project -- "C:/path/to/your-godot-project"
 ```
+
+After a development branch passes the required verification gates, merge it into `main` before treating the branch as complete.
 
 ## Troubleshooting
 

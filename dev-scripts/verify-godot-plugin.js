@@ -17,15 +17,27 @@ const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
 try {
   for (const root of [sourceRoot, addonRoot]) {
     assert.ok(existsSync(join(root, 'plugin.cfg')), `Missing plugin.cfg in ${root}`);
+    assertUtf8NoBom(join(root, 'plugin.cfg'));
     assert.ok(existsSync(join(root, 'plugin.gd')), `Missing plugin.gd in ${root}`);
     assert.ok(existsSync(join(root, 'command_router.gd')), `Missing command_router.gd in ${root}`);
     assert.ok(existsSync(join(root, 'runtime_bridge.gd')), `Missing runtime_bridge.gd in ${root}`);
+    assert.ok(existsSync(join(root, 'editor', 'editor_bridge_client.gd')), `Missing editor bridge client in ${root}`);
+    assert.ok(existsSync(join(root, 'editor', 'status_dock.gd')), `Missing status dock in ${root}`);
+    assert.ok(existsSync(join(root, 'runtime', 'runtime_client.gd')), `Missing runtime client in ${root}`);
+    assert.ok(existsSync(join(root, 'runtime', 'runtime_state_store.gd')), `Missing runtime state store in ${root}`);
   }
 
   const routerSource = readFileSync(join(sourceRoot, 'command_router.gd'), 'utf8');
-  const pluginSource = readFileSync(join(sourceRoot, 'plugin.gd'), 'utf8');
+  const pluginEntrySource = readFileSync(join(sourceRoot, 'plugin.gd'), 'utf8');
   const pluginConfigSource = readFileSync(join(sourceRoot, 'plugin.cfg'), 'utf8');
   const runtimeSource = readFileSync(join(sourceRoot, 'runtime_bridge.gd'), 'utf8');
+  const editorClientSource = readFileSync(join(sourceRoot, 'editor', 'editor_bridge_client.gd'), 'utf8');
+  const statusDockSource = readFileSync(join(sourceRoot, 'editor', 'status_dock.gd'), 'utf8');
+  const runtimeClientSource = readFileSync(join(sourceRoot, 'runtime', 'runtime_client.gd'), 'utf8');
+  const runtimeStateStoreSource = readFileSync(join(sourceRoot, 'runtime', 'runtime_state_store.gd'), 'utf8');
+  const editorBridgeSource = [pluginEntrySource, editorClientSource, statusDockSource].join('\n');
+  const pluginSource = editorBridgeSource;
+  const runtimeBridgeSource = [runtimeSource, runtimeClientSource, runtimeStateStoreSource].join('\n');
 
   for (const commandFile of [
     'project_commands.gd',
@@ -48,49 +60,65 @@ try {
     assert.match(routerSource, new RegExp(commandFile.replace('.', '\\.')), `command_router.gd must preload ${commandFile}`);
   }
 
-  assert.match(pluginSource, /WebSocketPeer/, 'plugin.gd must use Godot WebSocketPeer');
-  assert.match(pluginSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `plugin.gd must report plugin version ${releaseVersion}`);
-  assert.match(runtimeSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `runtime_bridge.gd must report plugin version ${releaseVersion}`);
+  assert.match(pluginSource, /EditorBridgeClient/, 'plugin.gd must delegate to the editor bridge client');
+  assert.match(runtimeSource, /RuntimeClient/, 'runtime_bridge.gd must delegate to the runtime client');
+  assert.match(editorBridgeSource, /WebSocketPeer/, 'editor bridge client must use Godot WebSocketPeer');
+  assert.match(editorBridgeSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `editor bridge client must report plugin version ${releaseVersion}`);
+  assert.match(runtimeBridgeSource, new RegExp(`PLUGIN_VERSION := "${escapedReleaseVersion}"`), `runtime client must report plugin version ${releaseVersion}`);
   assert.match(pluginConfigSource, new RegExp(`version="${escapedReleaseVersion}"`), `plugin.cfg must report plugin version ${releaseVersion}`);
-  assert.match(pluginSource, /ws:\/\/127\.0\.0\.1/, 'plugin.gd must default to localhost WebSocket bridge');
-  assert.match(pluginSource, /add_control_to_dock/, 'plugin.gd must expose an editor dock for MCP status');
-  assert.match(pluginSource, /_dock\.name = "GDT"/, 'plugin.gd dock tab title must be GDT');
-  assert.match(pluginSource, /title\.text = "GDT"/, 'plugin.gd status dock heading must be GDT');
-  assert.match(pluginSource, /HANDSHAKE_PROTOCOL_VERSION/, 'plugin.gd must declare a versioned handshake protocol');
-  assert.match(pluginSource, /_session_id/, 'plugin.gd must include a stable editor session id in hello messages');
-  assert.match(pluginSource, /hello_ack/, 'plugin.gd must wait for a server hello_ack');
-  assert.match(pluginSource, /_hello_acknowledged/, 'plugin.gd must expose handshake acknowledgement state');
-  assert.match(pluginSource, /_last_heartbeat_ms/, 'plugin.gd must track heartbeat-backed registration state');
-  assert.match(pluginSource, /handshake_label/, 'plugin.gd status dock must show handshake state separately from socket state');
-  assert.match(pluginSource, /_primary_status_label/, 'plugin.gd status dock must show a primary bridge status summary');
-  assert.match(pluginSource, /_runtime_status_label/, 'plugin.gd status dock must show runtime bridge status separately from editor bridge status');
-  assert.match(pluginSource, /_transport_label/, 'plugin.gd status dock must show transport details separately from MCP server availability');
-  assert.match(pluginSource, /_create_status_section/, 'plugin.gd status dock must group status rows into readable sections');
-  assert.match(pluginSource, /_create_status_dot/, 'plugin.gd status dock must include visual status dots');
-  assert.match(pluginSource, /TranslationServer\.get_locale/, 'plugin.gd must read the Godot engine locale');
-  assert.match(pluginSource, /normalized_locale == "zh"/, 'plugin.gd must detect generic Chinese locales used by the Godot editor');
-  assert.match(pluginSource, /zh_cn|zh_hans|zh_sg/, 'plugin.gd must detect explicit Simplified Chinese locales');
-  assert.match(pluginSource, /MCP Server/, 'plugin.gd status dock must label MCP server state');
-  assert.match(pluginSource, /Ready via stdio/, 'plugin.gd status dock must clarify MCP server availability is via stdio');
-  assert.match(pluginSource, /Editor Bridge/, 'plugin.gd status dock must label the editor bridge separately');
-  assert.match(pluginSource, /Runtime Bridge/, 'plugin.gd status dock must label the runtime bridge separately');
-  assert.match(pluginSource, /Waiting for game/, 'plugin.gd status dock must explain runtime bridge idle state without implying MCP failure');
-  assert.match(pluginSource, /Transport/, 'plugin.gd status dock must label WebSocket as transport details');
-  assert.match(pluginSource, /Live Editor/, 'plugin.gd status dock must include a live editor section');
-  assert.match(pluginSource, /Current Scene/, 'plugin.gd status dock must show the current edited scene');
-  assert.match(pluginSource, /Selection/, 'plugin.gd status dock must show the current editor selection');
-  assert.match(pluginSource, /Live Edits/, 'plugin.gd status dock must show whether live editor mutations are available');
-  assert.match(pluginSource, /Save Mode/, 'plugin.gd status dock must show the editor save strategy');
-  assert.match(pluginSource, /Manual by default/, 'plugin.gd status dock must make manual-save behavior explicit');
-  assert.match(pluginSource, /Runtime Session/, 'plugin.gd status dock must show runtime session diagnostics');
-  assert.match(pluginSource, /Last Runtime Seen/, 'plugin.gd status dock must show runtime state freshness');
-  assert.match(pluginSource, /Activity/, 'plugin.gd status dock must group command and receipt details under Activity');
-  assert.match(pluginSource, /Last Result/, 'plugin.gd status dock must show the latest command result');
-  assert.doesNotMatch(pluginSource, /_save_scene_button/, 'plugin.gd dock must not expose a persistent Save Scene button');
+  assert.match(editorBridgeSource, /ws:\/\/127\.0\.0\.1/, 'editor bridge client must default to localhost WebSocket bridge');
+  assert.match(editorBridgeSource, /add_control_to_dock/, 'editor bridge client must expose an editor dock for MCP status');
+  assert.match(statusDockSource, /name = "GDT"/, 'status dock tab title must be GDT');
+  assert.match(statusDockSource, /title\.text = "GDT"/, 'status dock heading must be GDT');
+  assert.match(editorBridgeSource, /HANDSHAKE_PROTOCOL_VERSION/, 'editor bridge client must declare a versioned handshake protocol');
+  assert.match(editorBridgeSource, /_session_id/, 'editor bridge client must include a stable editor session id in hello messages');
+  assert.match(editorBridgeSource, /hello_ack/, 'editor bridge client must wait for a server hello_ack');
+  assert.match(editorBridgeSource, /_hello_acknowledged/, 'editor bridge client must expose handshake acknowledgement state');
+  assert.match(editorBridgeSource, /_last_heartbeat_ms/, 'editor bridge client must track heartbeat-backed registration state');
+  assert.match(editorBridgeSource, /handshake_label/, 'status dock must show handshake state separately from socket state');
+  assert.match(editorBridgeSource, /_primary_status_label/, 'status dock must show a primary bridge status summary');
+  assert.match(editorBridgeSource, /_runtime_status_label/, 'status dock must show runtime bridge status separately from editor bridge status');
+  assert.match(editorBridgeSource, /_connection_summary_label/, 'status dock must show a compact agent and instance summary');
+  assert.match(editorBridgeSource, /frontend_status/, 'editor bridge client must request broker status for agent and instance counts');
+  assert.match(editorBridgeSource, /frontend_status_ack/, 'editor bridge client must consume broker status acknowledgements');
+  assert.match(editorBridgeSource, /_agent_count/, 'status dock must derive connected agent count from broker status');
+  assert.match(editorBridgeSource, /_runtime_instance_count/, 'status dock must derive active runtime instance count from broker status');
+  assert.match(editorBridgeSource, /_editor_diagnostics_text/, 'status dock must keep editor transport/session diagnostics available without persistent rows');
+  assert.match(editorBridgeSource, /_runtime_diagnostics_text/, 'status dock must keep runtime session diagnostics available without persistent rows');
+  assert.match(editorBridgeSource, /_activity_summary/, 'status dock must collapse command and receipt details into one activity row');
+  assert.match(statusDockSource, /OVERRUN_TRIM_ELLIPSIS/, 'status dock must keep compact rows single-line with ellipsis overflow');
+  assert.doesNotMatch(statusDockSource, /_create_status_section/, 'status dock must not show verbose persistent sections by default');
+  assert.doesNotMatch(statusDockSource, /labels\["transport"\]|labels\["broker"\]|labels\["runtime_session"\]|labels\["last_error"\]/, 'status dock must not allocate persistent diagnostic rows for transport, broker, runtime session, or last error');
+  assert.match(statusDockSource, /_create_status_dot/, 'status dock must include visual status dots');
+  assert.match(editorBridgeSource, /TranslationServer\.get_locale/, 'editor bridge client must read the Godot engine locale');
+  assert.match(editorBridgeSource, /normalized_locale == "zh"/, 'editor bridge client must detect generic Chinese locales used by the Godot editor');
+  assert.match(editorBridgeSource, /zh_cn|zh_hans|zh_sg/, 'editor bridge client must detect explicit Simplified Chinese locales');
+  assert.match(editorBridgeSource, /MCP Server/, 'status dock must label MCP server state');
+  assert.match(editorBridgeSource, /Ready via stdio/, 'status dock must clarify MCP server availability is via stdio');
+  assert.match(editorBridgeSource, /Editor Bridge/, 'status dock must label the editor bridge separately');
+  assert.match(editorBridgeSource, /Runtime Bridge/, 'status dock must label the runtime bridge separately');
+  assert.match(editorBridgeSource, /Agent/, 'status dock must include an Agent count label');
+  assert.match(editorBridgeSource, /Instance/, 'status dock must include an instance count label');
+  assert.match(editorBridgeSource, /Waiting for game/, 'status dock must explain runtime bridge idle state without implying MCP failure');
+  assert.match(editorBridgeSource, /RUNTIME_STATE_STALE_SECONDS/, 'status dock must age out stale runtime-state files');
+  assert.match(editorBridgeSource, /Stale/, 'status dock must show stale runtime state distinctly from a live runtime');
+  assert.match(editorBridgeSource, /Transport/, 'status dock must keep WebSocket transport diagnostics in tooltips');
+  assert.match(editorBridgeSource, /Current Scene/, 'status dock must show the current edited scene');
+  assert.match(editorBridgeSource, /Selection/, 'status dock must show the current editor selection');
+  assert.match(editorBridgeSource, /Live Edits/, 'status dock must show whether live editor mutations are available');
+  assert.match(editorBridgeSource, /Save Mode/, 'status dock must show the editor save strategy');
+  assert.match(editorBridgeSource, /Manual by default/, 'status dock must make manual-save behavior explicit');
+  assert.match(editorBridgeSource, /Runtime Session/, 'status dock must show runtime session diagnostics');
+  assert.match(editorBridgeSource, /Last Runtime Seen/, 'status dock must show runtime state freshness');
+  assert.match(editorBridgeSource, /Activity/, 'status dock must group command and receipt details in a compact Activity row');
+  assert.match(editorBridgeSource, /Last Result/, 'status dock must show the latest command result');
+  assert.doesNotMatch(editorBridgeSource, /_save_scene_button/, 'status dock must not expose a persistent Save Scene button');
   assert.match(pluginSource, /MCP (服务|\\u670d\\u52a1)/, 'plugin.gd status dock must include Simplified Chinese server label');
   assert.match(pluginSource, /(通过 stdio 就绪|\\u901a\\u8fc7 stdio \\u5c31\\u7eea)/, 'plugin.gd status dock must include Simplified Chinese stdio availability text');
   assert.match(pluginSource, /(编辑器桥接|\\u7f16\\u8f91\\u5668\\u6865\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese editor bridge label');
   assert.match(pluginSource, /(运行时桥接|\\u8fd0\\u884c\\u65f6\\u6865\\u63a5)/, 'plugin.gd status dock must include Simplified Chinese runtime bridge label');
+  assert.match(pluginSource, /(连接状态|\\u8fde\\u63a5\\u72b6\\u6001)/, 'plugin.gd status dock must include Simplified Chinese connection summary label');
+  assert.match(pluginSource, /(实例|\\u5b9e\\u4f8b)/, 'plugin.gd status dock must include Simplified Chinese instance count label');
   assert.match(pluginSource, /(等待游戏运行|\\u7b49\\u5f85\\u6e38\\u620f\\u8fd0\\u884c)/, 'plugin.gd status dock must include Simplified Chinese runtime waiting text');
   assert.match(pluginSource, /(实时编辑器|\\u5b9e\\u65f6\\u7f16\\u8f91\\u5668)/, 'plugin.gd status dock must include Simplified Chinese live editor label');
   assert.match(pluginSource, /(当前场景|\\u5f53\\u524d\\u573a\\u666f)/, 'plugin.gd status dock must include Simplified Chinese current scene label');
@@ -103,9 +131,9 @@ try {
   assert.match(pluginSource, /(刷新状态|\\u5237\\u65b0\\u72b6\\u6001)/, 'plugin.gd status dock must include Simplified Chinese refresh action');
   assert.match(pluginSource, /Last Command/, 'plugin.gd status dock must show the most recent command');
   assert.match(pluginSource, /(最近命令|\\u6700\\u8fd1\\u547d\\u4ee4)/, 'plugin.gd status dock must include Simplified Chinese command label');
-  assertEditorEnterTreeInitiatesConnection(pluginSource);
-  assertConnectThrottleAllowsFirstAttempt(pluginSource, 'editor plugin');
-  assertDockStatusUpdatesAreStable(pluginSource);
+  assertEditorEnterTreeInitiatesConnection(editorClientSource, 'enter_tree');
+  assertConnectThrottleAllowsFirstAttempt(editorClientSource, 'editor bridge client');
+  assertDockStatusUpdatesAreStable(editorClientSource, 'process');
   assert.match(routerSource, /func dispatch_command/, 'command_router.gd must expose dispatch_command');
   assert.match(routerSource, /"unknown_command"/, 'command_router.gd must return structured unknown command errors');
   for (const liveEditorCommand of [
@@ -128,18 +156,18 @@ try {
   assert.match(editorCommandSource, /create_action\("godot-devtool delete node"\)/, 'live editor delete node must use UndoRedo');
   assert.match(editorCommandSource, /save_scene\(\)/, 'live editor save must call the editor save_scene API');
   assert.match(editorCommandSource, /edited\.get_path\(\)/, 'live editor node resolution must accept editor absolute node paths');
-  assert.match(runtimeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
-  assert.match(runtimeSource, /"type": "hello"/, 'runtime bridge must send a hello registration message');
-  assert.match(runtimeSource, /"context": "runtime"/, 'runtime bridge must register with context runtime');
-  assert.match(runtimeSource, /CONFIG_PATH := "res:\/\/\.godot-devtool\/bridge-config\.json"/, 'runtime bridge must read the installed WebSocket bridge config');
-  assert.match(runtimeSource, /STATE_PATH := "res:\/\/\.godot-devtool\/runtime-state\.json"/, 'runtime bridge must write diagnostic runtime state');
-  assert.match(runtimeSource, /_load_config/, 'runtime bridge must load the active bridge URL instead of hard-coding the development port');
-  assert.match(runtimeSource, /_write_runtime_state/, 'runtime bridge must expose connection and handshake diagnostics while the game runs');
-  assert.match(runtimeSource, /helloAttempts/, 'runtime bridge state must include hello attempt diagnostics');
-  assertRuntimeReadyConnectsBeforeStateWrite(runtimeSource);
-  assertConnectThrottleAllowsFirstAttempt(runtimeSource, 'runtime bridge');
+  assert.match(runtimeBridgeSource, /class_name GodotDevtoolRuntimeBridge/, 'runtime bridge must expose class_name GodotDevtoolRuntimeBridge');
+  assert.match(runtimeBridgeSource, /"type": "hello"/, 'runtime client must send a hello registration message');
+  assert.match(runtimeBridgeSource, /"context": "runtime"/, 'runtime client must register with context runtime');
+  assert.match(runtimeBridgeSource, /CONFIG_PATH := "res:\/\/\.godot-devtool\/bridge-config\.json"/, 'runtime client must read the installed WebSocket bridge config');
+  assert.match(runtimeBridgeSource, /STATE_PATH := "res:\/\/\.godot-devtool\/runtime-state\.json"/, 'runtime state store must write diagnostic runtime state');
+  assert.match(runtimeBridgeSource, /_load_config/, 'runtime client must load the active bridge URL instead of hard-coding the development port');
+  assert.match(runtimeBridgeSource, /_write_runtime_state/, 'runtime client must expose connection and handshake diagnostics while the game runs');
+  assert.match(runtimeBridgeSource, /helloAttempts/, 'runtime bridge state must include hello attempt diagnostics');
+  assertRuntimeReadyConnectsBeforeStateWrite(runtimeClientSource, 'ready');
+  assertConnectThrottleAllowsFirstAttempt(runtimeClientSource, 'runtime client');
   assertRuntimeScreenshotHandlesUnavailableImage(runtimeCommandSource);
-  assert.match(runtimeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
+  assert.match(runtimeBridgeSource, /get_game_scene_tree/, 'runtime bridge must implement runtime scene tree route');
   assertNoUntypedInferenceHazards(sourceRoot);
 
   await writeFile(
@@ -160,6 +188,10 @@ try {
   assert.ok(install.changedFiles.includes('addons/godot_devtool/plugin.gd'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/command_router.gd'));
   assert.ok(install.changedFiles.includes('addons/godot_devtool/runtime_bridge.gd'));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/editor/editor_bridge_client.gd'));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/editor/status_dock.gd'));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/runtime/runtime_client.gd'));
+  assert.ok(install.changedFiles.includes('addons/godot_devtool/runtime/runtime_state_store.gd'));
   assert.ok(existsSync(join(projectPath, 'addons', 'godot_devtool', 'commands', 'runtime_commands.gd')));
 
   const projectFile = await readFile(join(projectPath, 'project.godot'), 'utf8');
@@ -173,18 +205,25 @@ try {
   assert.equal(status.runtime.transport, 'runtime_ws');
 
   const installedPluginSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'plugin.gd'), 'utf8');
+  assertUtf8NoBom(join(projectPath, 'addons', 'godot_devtool', 'plugin.cfg'));
   const installedRuntimeSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'runtime_bridge.gd'), 'utf8');
+  const installedEditorClientSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'editor', 'editor_bridge_client.gd'), 'utf8');
+  const installedStatusDockSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'editor', 'status_dock.gd'), 'utf8');
+  const installedRuntimeClientSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'runtime', 'runtime_client.gd'), 'utf8');
+  const installedRuntimeStateStoreSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'runtime', 'runtime_state_store.gd'), 'utf8');
   const installedRuntimeCommandSource = readFileSync(join(projectPath, 'addons', 'godot_devtool', 'commands', 'runtime_commands.gd'), 'utf8');
-  assert.match(installedPluginSource, /dispatch_command/);
-  assert.match(installedRuntimeSource, /simulate_action/);
-  assert.match(installedRuntimeSource, /get_game_node_properties/);
-  assert.match(installedRuntimeSource, /get_game_screenshot/);
-  assert.match(installedRuntimeSource, /"context": "runtime"/);
-  assertEditorEnterTreeInitiatesConnection(installedPluginSource);
-  assertConnectThrottleAllowsFirstAttempt(installedPluginSource, 'installed editor plugin');
-  assertDockStatusUpdatesAreStable(installedPluginSource);
-  assertRuntimeReadyConnectsBeforeStateWrite(installedRuntimeSource);
-  assertConnectThrottleAllowsFirstAttempt(installedRuntimeSource, 'installed runtime bridge');
+  const installedEditorBridgeSource = [installedPluginSource, installedEditorClientSource, installedStatusDockSource].join('\n');
+  const installedRuntimeBridgeSource = [installedRuntimeSource, installedRuntimeClientSource, installedRuntimeStateStoreSource].join('\n');
+  assert.match(installedEditorBridgeSource, /dispatch_command/);
+  assert.match(installedRuntimeBridgeSource, /simulate_action/);
+  assert.match(installedRuntimeBridgeSource, /get_game_node_properties/);
+  assert.match(installedRuntimeBridgeSource, /get_game_screenshot/);
+  assert.match(installedRuntimeBridgeSource, /"context": "runtime"/);
+  assertEditorEnterTreeInitiatesConnection(installedEditorClientSource, 'enter_tree');
+  assertConnectThrottleAllowsFirstAttempt(installedEditorClientSource, 'installed editor bridge client');
+  assertDockStatusUpdatesAreStable(installedEditorClientSource, 'process');
+  assertRuntimeReadyConnectsBeforeStateWrite(installedRuntimeClientSource, 'ready');
+  assertConnectThrottleAllowsFirstAttempt(installedRuntimeClientSource, 'installed runtime client');
   assertRuntimeScreenshotHandlesUnavailableImage(installedRuntimeCommandSource);
 
   console.log('Verified Godot plugin router source, build output, and project installation.');
@@ -193,10 +232,23 @@ try {
   await rm(projectPath, { recursive: true, force: true });
 }
 
+function assertUtf8NoBom(filePath) {
+  const bytes = readFileSync(filePath);
+  assert.notDeepEqual(
+    Array.from(bytes.subarray(0, 3)),
+    [0xef, 0xbb, 0xbf],
+    `${filePath} must be UTF-8 without BOM so Godot can read the [plugin] script field`
+  );
+}
+
 function assertNoUntypedInferenceHazards(root) {
   const files = [
     join(root, 'plugin.gd'),
     join(root, 'runtime_bridge.gd'),
+    join(root, 'editor', 'editor_bridge_client.gd'),
+    join(root, 'editor', 'status_dock.gd'),
+    join(root, 'runtime', 'runtime_client.gd'),
+    join(root, 'runtime', 'runtime_state_store.gd'),
     join(root, 'commands', 'runtime_commands.gd'),
   ];
   const hazards = [
@@ -217,8 +269,8 @@ function assertNoUntypedInferenceHazards(root) {
   }
 }
 
-function assertRuntimeReadyConnectsBeforeStateWrite(source) {
-  const readyBody = extractGdscriptFunctionBody(source, '_ready');
+function assertRuntimeReadyConnectsBeforeStateWrite(source, functionName = '_ready') {
+  const readyBody = extractGdscriptFunctionBody(source, functionName);
   assert.ok(readyBody.includes('_load_config()'), 'runtime bridge _ready must load bridge config before connecting');
   assert.ok(readyBody.includes('_try_connect()'), 'runtime bridge _ready must initiate the first WebSocket connection');
   assert.ok(
@@ -231,8 +283,8 @@ function assertRuntimeReadyConnectsBeforeStateWrite(source) {
   );
 }
 
-function assertEditorEnterTreeInitiatesConnection(source) {
-  const enterTreeBody = extractGdscriptFunctionBody(source, '_enter_tree');
+function assertEditorEnterTreeInitiatesConnection(source, functionName = '_enter_tree') {
+  const enterTreeBody = extractGdscriptFunctionBody(source, functionName);
   assert.ok(enterTreeBody.includes('_load_config()'), 'plugin.gd _enter_tree must load bridge config before connecting');
   assert.ok(enterTreeBody.includes('_try_connect()'), 'plugin.gd _enter_tree must initiate the first WebSocket connection');
   assert.ok(
@@ -257,9 +309,9 @@ function assertConnectThrottleAllowsFirstAttempt(source, label) {
   );
 }
 
-function assertDockStatusUpdatesAreStable(source) {
+function assertDockStatusUpdatesAreStable(source, processFunctionName = '_process') {
   assert.match(source, /STATUS_REFRESH_INTERVAL_MS := \d+/, 'plugin.gd dock status refresh must be throttled');
-  const processBody = extractGdscriptFunctionBody(source, '_process');
+  const processBody = extractGdscriptFunctionBody(source, processFunctionName);
   assert.ok(
     processBody.trimEnd().endsWith('_update_status_panel_if_due()'),
     'plugin.gd _process must use a throttled status-panel refresh instead of rewriting the dock every frame'
@@ -286,6 +338,14 @@ function assertDockStatusUpdatesAreStable(source) {
 
   const updateBody = extractGdscriptFunctionBody(source, '_update_status_panel');
   assert.ok(updateBody.includes('_set_button_text'), 'plugin.gd dock buttons must use idempotent text/tooltip updates');
+  assert.ok(updateBody.includes('_set_label_tooltip'), 'plugin.gd compact dock must keep diagnostics available through label tooltips');
+  assert.ok(updateBody.includes('_set_control_visible'), 'plugin.gd compact dock must hide empty optional rows');
+
+  const tooltipBody = extractGdscriptFunctionBody(source, '_set_label_tooltip');
+  assert.ok(tooltipBody.includes('label.tooltip_text == next_tooltip'), 'plugin.gd dock label tooltips must avoid assigning unchanged tooltip text');
+
+  const visibilityBody = extractGdscriptFunctionBody(source, '_set_control_visible');
+  assert.ok(visibilityBody.includes('control.visible == next_visible'), 'plugin.gd dock optional rows must avoid assigning unchanged visibility');
 
   const buttonBody = extractGdscriptFunctionBody(source, '_set_button_text');
   assert.ok(buttonBody.includes('button.text != next_text'), 'plugin.gd dock buttons must avoid assigning unchanged text');

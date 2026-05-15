@@ -21,6 +21,7 @@ try {
 
   rmSync(assetPath, { force: true });
   runReleaseGuards(tag);
+  ensureReleaseTag(tag);
   createZip(assetPath);
 
   if (!releaseExists(repo, tag)) {
@@ -72,14 +73,22 @@ function runReleaseGuards(releaseTag) {
   try {
     tagSha = execFileSync('git', ['rev-parse', `refs/tags/${releaseTag}^{}`], { encoding: 'utf8' }).trim();
   } catch {
-    execFileSync('git', ['tag', releaseTag, headSha], { stdio: 'inherit' });
-    tagSha = headSha;
+    tagSha = '';
   }
-  if (tagSha !== headSha) {
+  if (tagSha && tagSha !== headSha) {
     throw new Error(`Refusing to publish ${releaseTag}: tag points to ${tagSha}, but HEAD is ${headSha}.`);
   }
 
   execFileSync(npmCommand, [...npmRunArgs, 'verify:all'], { stdio: 'inherit' });
+}
+
+function ensureReleaseTag(releaseTag) {
+  const headSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  try {
+    execFileSync('git', ['rev-parse', `refs/tags/${releaseTag}^{}`], { stdio: 'ignore' });
+  } catch {
+    execFileSync('git', ['tag', releaseTag, headSha], { stdio: 'inherit' });
+  }
 }
 
 function createZip(destination) {

@@ -113,14 +113,17 @@ try {
   assert.deepEqual(bridgeStatus.recentReceipts, []);
 
   const bridgeScript = await readFile(join(projectPath, 'addons/godot_devtool/plugin.gd'), 'utf8');
-  assert.match(bridgeScript, /WebSocketPeer/);
-  assert.match(bridgeScript, /dispatch_command/);
+  const editorClientScript = await readFile(join(projectPath, 'addons/godot_devtool/editor/editor_bridge_client.gd'), 'utf8');
+  assert.match([bridgeScript, editorClientScript].join('\n'), /WebSocketPeer/);
+  assert.match([bridgeScript, editorClientScript].join('\n'), /dispatch_command/);
   const runtimeScript = await readFile(join(projectPath, 'addons/godot_devtool/runtime_bridge.gd'), 'utf8');
-  assert.match(runtimeScript, /class_name GodotDevtoolRuntimeBridge/);
-  assert.match(runtimeScript, /"context": "runtime"/);
-  assert.match(runtimeScript, /get_game_scene_tree/);
-  assert.match(runtimeScript, /simulate_action/);
-  assert.match(runtimeScript, /get_game_screenshot/);
+  const runtimeClientScript = await readFile(join(projectPath, 'addons/godot_devtool/runtime/runtime_client.gd'), 'utf8');
+  const runtimeBridgeScript = [runtimeScript, runtimeClientScript].join('\n');
+  assert.match(runtimeBridgeScript, /class_name GodotDevtoolRuntimeBridge/);
+  assert.match(runtimeBridgeScript, /"context": "runtime"/);
+  assert.match(runtimeBridgeScript, /get_game_scene_tree/);
+  assert.match(runtimeBridgeScript, /simulate_action/);
+  assert.match(runtimeBridgeScript, /get_game_screenshot/);
 
   const graph = await dependencies.buildResourceDependencyGraph(projectPath);
   assert.ok(graph.nodes.some((node) => node.path === 'res://scripts/player.gd'));
@@ -254,6 +257,7 @@ try {
     tsconfigRaw,
     packageRaw,
     skillRaw,
+    planRaw,
     gitignore,
   ] = await Promise.all([
     readRepoFile('README.md'),
@@ -266,6 +270,7 @@ try {
     readRepoFile('tsconfig.json'),
     readRepoFile('package.json'),
     readRepoFile('skills/godot-devtool/SKILL.md'),
+    readRepoFile('docs/superpowers/plans/2026-05-14-3.0.0-architecture.md'),
     readRepoFile('.gitignore'),
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
@@ -438,10 +443,10 @@ try {
 
   assert.match(readme, new RegExp(`version-${escapedReleaseVersion}`));
   assert.match(readmeZh, new RegExp(`version-${escapedReleaseVersion}`));
-  assert.match(readme, /Install From Release Zip/);
-  assert.match(readme, new RegExp(`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip`));
-  assert.match(readmeZh, /从 Release Zip 安装/);
-  assert.match(readmeZh, new RegExp(`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip`));
+  assert.match(readme, /Install From Local Build/);
+  assert.match(readme, new RegExp(`release asset name for this version is \`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip\``));
+  assert.match(readmeZh, /从本地构建安装/);
+  assert.match(readmeZh, new RegExp(`release asset 名称是 \`godot-devtool-build-${escapedLatestReleaseZipVersion}\\.zip\``));
   assert.match(readme, /## What It Can Do/);
   assert.match(readme, /## All \d+ Tools/);
   assert.match(readme, /### Project Tools \(\d+\)/);
@@ -495,6 +500,11 @@ try {
   assert.match(readme, /The stdio MCP server starts without opening that port/);
   assert.match(readme, /`run_project` or an already connected runtime client keeps the listener open/);
   assert.match(readme, /editor-only calls release it during cleanup/);
+  assert.match(readme, /shared broker/);
+  assert.match(readme, /multiple MCP clients or AI agents/);
+  assert.match(readme, /list_run_instances/);
+  assert.match(readme, /workflow filters/);
+  assert.match(readme, /After a development branch passes the required verification gates, merge it into `main`/);
   assert.doesNotMatch(readme, /GODOT_DEVTOOL_WS_LIFETIME|long-lived bridge|session lifetime/i);
   assert.match(readme, /switching ports creates a separate bridge/);
   assert.match(readmeZh, /默认调用只返回轻量工具目录/);
@@ -503,6 +513,11 @@ try {
   assert.match(readmeZh, /stdio MCP server 仍会启动但不会立即打开该端口/);
   assert.match(readmeZh, /`run_project` 启动的项目或已经连接的 runtime client 会保持 listener/);
   assert.match(readmeZh, /纯 editor 调用会在清理阶段释放监听/);
+  assert.match(readmeZh, /共享 broker/);
+  assert.match(readmeZh, /多个 MCP client 或 AI Agent/);
+  assert.match(readmeZh, /list_run_instances/);
+  assert.match(readmeZh, /workflow 过滤/);
+  assert.match(readmeZh, /开发分支完成并通过必要验证后，必须合并到 `main`/);
   assert.doesNotMatch(readmeZh, /GODOT_DEVTOOL_WS_LIFETIME|长期监听|session lifetime/i);
   assert.match(readmeZh, /单纯换端口会创建另一套 bridge/);
   assert.match(readmeZh, /## 能做什么/);
@@ -525,11 +540,19 @@ try {
   assert.match(skillRaw, /E:\/godot-devtool\/build\/index\.js/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 228 tools are discoverable through `get_capabilities`/);
+  assert.match(skillRaw, /All 234 tools are discoverable through `get_capabilities`/);
+  assert.match(skillRaw, /workflow.*routeGroup.*toolNames/);
+  assert.match(skillRaw, /list_bridge_sessions/);
+  assert.match(skillRaw, /resolve_bridge_target/);
+  assert.match(skillRaw, /list_run_instances/);
+  assert.match(skillRaw, /stop_run_instance/);
+  assert.match(skillRaw, /shared broker/);
+  assert.match(skillRaw, /Multiple game instances are tracked by `runId`/);
   assert.match(skillRaw, /lightweight index without input schemas/);
   assert.match(skillRaw, /Unfiltered schema requests are rejected/);
   assert.match(skillRaw, /Editor-only calls release the listener in cleanup/);
   assert.match(skillRaw, /`run_project` or an already connected runtime client keeps the listener alive/);
+  assert.match(skillRaw, /After a development branch passes the required verification gates, merge it into `main`/);
   assert.doesNotMatch(skillRaw, /GODOT_DEVTOOL_WS_LIFETIME|long-lived bridge|session lifetime/i);
   assert.match(skillRaw, /If a bridge tool reports that the WebSocket bridge port is occupied/);
   assert.match(skillRaw, /new MCP process cannot command editor clients connected to the old listener/);
@@ -559,6 +582,12 @@ try {
   const publishScript = await readRepoFile('dev-scripts/publish-github-release.js');
   assert.match(publishScript, /scripts', 'build\.js'/);
   assert.match(publishScript, /zip', \['-r', destination, 'build', 'scripts'\]/);
+  assert.ok(
+    publishScript.indexOf("runReleaseGuards(tag);") >= 0 &&
+    publishScript.indexOf("ensureReleaseTag(tag);") > publishScript.indexOf("runReleaseGuards(tag);"),
+    'release guards, including verify:all, must run before local tag creation'
+  );
+  assert.equal(existsSync(join(process.cwd(), 'build/generated/version.js')), false);
   assert.deepEqual(readdirSync(join(process.cwd(), 'scripts')).filter((entry) => !entry.startsWith('.')).sort(), ['build.js']);
   assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-godot-plugin.js')));
   assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-browser-visualizer.js')));
@@ -591,6 +620,16 @@ try {
   assert.doesNotMatch(roadmapZh, /### 1\.3\.0/);
   assert.match(roadmap, /## Future Versions/);
   assert.match(roadmapZh, /## 未来计划/);
+  assert.match(roadmap, /3\.0\.0 architecture scope/);
+  assert.match(roadmapZh, /3\.0\.0/);
+  assert.match(planRaw, /Status: completed locally, not pushed or published/);
+  assert.match(planRaw, /Worker A/);
+  assert.match(planRaw, /Worker B/);
+  assert.match(planRaw, /Worker C/);
+  assert.match(planRaw, /Worker D/);
+  assert.match(planRaw, /Shared MCP broker/);
+  assert.match(planRaw, /Multiple game instances/);
+  assert.match(planRaw, /After a development branch passes the required verification gates, merge it into `main`/);
 
   assert.doesNotMatch(license, /Solomon Elias|Coding-Solo|godot-mcp/i);
   assert.doesNotMatch(roadmap, /Coding-Solo|godot-mcp|Solomon Elias/i);

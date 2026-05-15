@@ -10,6 +10,8 @@ const buildDir = path.join(__dirname, '..', 'build');
 // Make the build/index.js file executable
 fs.chmodSync(path.join(buildDir, 'index.js'), '755');
 
+removeStaleCompiledOutputs();
+
 for (const staleBuildArtifact of [
   'survivors_behavior_test.log',
   'visual_probe.gd',
@@ -69,3 +71,57 @@ try {
 }
 
 console.log('Build scripts completed successfully!');
+
+function removeStaleCompiledOutputs() {
+  const srcDir = path.join(__dirname, '..', 'src');
+  const expectedCompiledFiles = new Set(
+    listFiles(srcDir)
+      .filter((filePath) => filePath.endsWith('.ts'))
+      .map((filePath) => {
+        const relativeSource = path.relative(srcDir, filePath);
+        return normalizeBuildRelative(relativeSource.replace(/\.ts$/, '.js'));
+      })
+  );
+
+  for (const filePath of listFiles(buildDir)) {
+    const relativeBuildPath = normalizeBuildRelative(path.relative(buildDir, filePath));
+    if (relativeBuildPath.startsWith('addons/') || relativeBuildPath.startsWith('scripts/') || relativeBuildPath.startsWith('skills/')) {
+      continue;
+    }
+    if (filePath.endsWith('.js') && !expectedCompiledFiles.has(relativeBuildPath)) {
+      fs.removeSync(filePath);
+    }
+  }
+
+  removeEmptyDirectories(buildDir);
+}
+
+function listFiles(directory) {
+  if (!fs.existsSync(directory)) return [];
+  const result = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      result.push(...listFiles(entryPath));
+    } else if (entry.isFile()) {
+      result.push(entryPath);
+    }
+  }
+  return result;
+}
+
+function removeEmptyDirectories(directory) {
+  if (!fs.existsSync(directory)) return;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      removeEmptyDirectories(path.join(directory, entry.name));
+    }
+  }
+  if (directory !== buildDir && fs.readdirSync(directory).length === 0) {
+    fs.removeSync(directory);
+  }
+}
+
+function normalizeBuildRelative(relativePath) {
+  return relativePath.split(path.sep).join('/');
+}

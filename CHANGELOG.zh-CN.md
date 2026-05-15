@@ -22,6 +22,7 @@
 - 修改 runtime compatibility 工具：不再因为初始 `plugin_status` stale 快照直接失败，而是等待 `DevtoolRuntime` 重新连接并返回真实命令 receipt。
 - 增加进程、工具定义、插件、runtime 和 roadmap 回归覆盖，验证 broker 转发、目标歧义、run 选择、重复 `runId` 拒绝、拆分 addon 文件和 runtime listener 生命周期。
 - 增加 3.0 开发计划和子 Agent 分工文档：`docs/superpowers/plans/2026-05-14-3.0.0-architecture.md`。
+- 加固 build 和 release 工作流：清理 `build/` 中的陈旧编译文件，在创建本地 tag 前先执行发布验证，并要求验证通过的开发分支合并回 `main`。
 - 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和本地 build metadata 同步到 `3.0.0`；本工作树按要求暂不执行 GitHub 发布。
 
 ## 2.8.5

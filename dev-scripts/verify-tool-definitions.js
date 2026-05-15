@@ -21,6 +21,23 @@ function readSourceTree(relativeDirectory) {
 }
 
 const requiredFiles = [
+  'src/server/broker/types.ts',
+  'src/server/broker/brokerServer.ts',
+  'src/server/broker/brokerClientRegistry.ts',
+  'src/server/broker/brokerLeases.ts',
+  'src/server/broker/brokerCommandRouter.ts',
+  'src/server/broker/brokerStatus.ts',
+  'src/server/targets/ambiguity.ts',
+  'src/server/targets/sessionRegistry.ts',
+  'src/server/targets/targetResolver.ts',
+  'src/server/runs/types.ts',
+  'src/server/runs/runRegistry.ts',
+  'src/server/runs/runProcess.ts',
+  'src/server/runs/runOutput.ts',
+  'src/server/runs/runStatus.ts',
+  'src/godot/bridge/bridgeConfig.ts',
+  'src/godot/bridge/editorBridgeClient.ts',
+  'src/godot/bridge/runtimeBridgeClient.ts',
   'src/tools/definitions/core.ts',
   'src/tools/definitions/project.ts',
   'src/tools/definitions/editor.ts',
@@ -74,6 +91,37 @@ for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload', 
 for (const requiredName of ['browser_visualizer_start', 'browser_visualizer_status', 'browser_visualizer_stop']) {
   if (!toolsByName.has(requiredName)) {
     console.error(`Missing Browser visualizer tool: ${requiredName}`);
+    process.exit(1);
+  }
+}
+for (const requiredName of [
+  'broker_status',
+  'list_bridge_sessions',
+  'list_run_instances',
+  'stop_run_instance',
+  'resolve_bridge_target',
+  'broker_cleanup_idle',
+]) {
+  if (!toolsByName.has(requiredName)) {
+    console.error(`Missing 3.0 broker/run management tool: ${requiredName}`);
+    process.exit(1);
+  }
+}
+
+const capabilitiesTool = toolsByName.get('get_capabilities');
+if (!capabilitiesTool?.inputSchema?.properties?.workflow) {
+  console.error('get_capabilities must expose workflow filtering for 3.0 context compression');
+  process.exit(1);
+}
+const runProjectTool = toolsByName.get('run_project');
+if (!runProjectTool?.inputSchema?.properties?.runId) {
+  console.error('run_project must expose optional runId for 3.0 multi-instance tracking');
+  process.exit(1);
+}
+for (const toolName of ['get_debug_output', 'clear_debug_output', 'stop_project', 'stop_run_instance']) {
+  const tool = toolsByName.get(toolName);
+  if (!tool?.inputSchema?.properties?.runId) {
+    console.error(`${toolName} must expose runId for 3.0 multi-instance targeting`);
     process.exit(1);
   }
 }
@@ -364,6 +412,43 @@ for (const runtimeToolName of [
     console.error(`${runtimeToolName} must describe runtime bridge execution instead of completion receipts`);
     process.exit(1);
   }
+  if (!tool.inputSchema?.properties?.runId || !tool.inputSchema?.properties?.sessionId) {
+    console.error(`${runtimeToolName} must expose runId and sessionId for 3.0 runtime target disambiguation`);
+    process.exit(1);
+  }
+  if (runtimeToolName === 'simulate_action') {
+    for (const propertyName of ['action', 'actionName', 'name', 'pressed', 'strength']) {
+      if (!tool.inputSchema?.properties?.[propertyName]) {
+        console.error(`simulate_action must expose ${propertyName} in its focused runtime input schema`);
+        process.exit(1);
+      }
+    }
+    if (!String(tool.inputSchema.properties.action.description).includes('InputMap action name')) {
+      console.error('simulate_action action schema must describe the InputMap action name');
+      process.exit(1);
+    }
+  }
+}
+
+for (const editorToolName of [
+  'plugin_reload',
+  'editor_get_selection',
+  'editor_select_node',
+  'editor_undo_redo',
+  'editor_inspector_get_properties',
+  'editor_inspector_set_properties',
+  'editor_add_node',
+  'editor_delete_node',
+  'editor_rename_node',
+  'editor_move_node',
+  'editor_duplicate_node',
+  'editor_save_scene',
+]) {
+  const tool = toolsByName.get(editorToolName);
+  if (!tool?.inputSchema?.properties?.sessionId) {
+    console.error(`${editorToolName} must expose sessionId for 3.0 editor target disambiguation`);
+    process.exit(1);
+  }
 }
 
 for (const nativeQaToolName of [
@@ -410,6 +495,10 @@ if (!serverSource.includes('await getWsBridge().stop()')) {
 }
 if (!serverSource.includes('await getBrowserVisualizer().stop()')) {
   console.error('GodotServer.cleanup must stop the Browser visualizer');
+  process.exit(1);
+}
+if (!serverSource.includes('RunRegistry') || !serverSource.includes('resolveBridgeTarget')) {
+  console.error('GodotServer 3.0 methods must use dedicated run registry and target resolver modules');
   process.exit(1);
 }
 const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.ts'), 'utf8');

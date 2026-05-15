@@ -174,8 +174,9 @@ function verifyRuntimeBridgeSources() {
     'utf8'
   );
   const sourceRuntimeBridge = readFileSync(join(process.cwd(), 'src', 'addons', 'godot_devtool', 'runtime_bridge.gd'), 'utf8');
+  const sourceRuntimeClient = readFileSync(join(process.cwd(), 'src', 'addons', 'godot_devtool', 'runtime', 'runtime_client.gd'), 'utf8');
   const sourceCommandRouter = readFileSync(join(process.cwd(), 'src', 'addons', 'godot_devtool', 'command_router.gd'), 'utf8');
-  const sourceAddonRuntime = [sourceRuntimeCommands, sourceRuntimeBridge, sourceCommandRouter].join('\n');
+  const sourceAddonRuntime = [sourceRuntimeCommands, sourceRuntimeBridge, sourceRuntimeClient, sourceCommandRouter].join('\n');
   const installedBridgeGenerator = readFileSync(join(process.cwd(), 'src', 'godot', 'editorBridge.ts'), 'utf8');
 
   for (const [label, source] of [
@@ -184,6 +185,8 @@ function verifyRuntimeBridgeSources() {
   ]) {
     assert.match(source, /Input\.parse_input_event/, `${label} must inject key and mouse input through Input.parse_input_event`);
     assert.match(source, /InputMap\.has_action/, `${label} must validate simulate_action names against InputMap`);
+    assert.match(source, /payload\.get\("name"/, `${label} must accept name as a simulate_action action alias`);
+    assert.match(source, /parameter_payload\.get\("pressed"/, `${label} must accept parameters.pressed for simulate_action`);
     assert.match(source, /InputEventKey\.new/, `${label} must create InputEventKey for simulate_key`);
     assert.match(source, /InputEventMouseButton\.new/, `${label} must create InputEventMouseButton for simulate_mouse_click`);
     assert.match(source, /InputEventMouseMotion\.new/, `${label} must create InputEventMouseMotion for simulate_mouse_move`);
