@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.zh-CN.md)
+[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](CHANGELOG.zh-CN.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -43,10 +43,10 @@ MCP client
 
 ## 从本地构建安装
 
-1. 从源码构建，或把已发布的 release zip 解压到稳定路径。本版本的 release asset 名称是 `godot-devtool-build-3.0.0.zip`。
+1. 从源码构建，或把已发布的 release zip 解压到稳定路径。本版本的 release asset 名称是 `godot-devtool-build-3.0.1.zip`。
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-3.0.0.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-3.0.1.zip" "E:\godot-devtool" -Force
    ```
 
 2. 确认 server 入口和插件文件存在：

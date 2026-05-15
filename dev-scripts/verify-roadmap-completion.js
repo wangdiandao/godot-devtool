@@ -622,7 +622,7 @@ try {
   assert.match(roadmapZh, /## 未来计划/);
   assert.match(roadmap, /3\.0\.0 architecture scope/);
   assert.match(roadmapZh, /3\.0\.0/);
-  assert.match(planRaw, /Status: completed locally, not pushed or published/);
+  assert.match(planRaw, /Status: completed, merged to main, and published in 3\.0\.1\./);
   assert.match(planRaw, /Worker A/);
   assert.match(planRaw, /Worker B/);
   assert.match(planRaw, /Worker C/);

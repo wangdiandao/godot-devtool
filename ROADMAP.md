@@ -2,7 +2,7 @@
 
 English | [中文](ROADMAP.zh-CN.md)
 
-Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md). This file only tracks future work after `3.0.0`.
+Completed releases are tracked in [CHANGELOG.md](CHANGELOG.md). This file only tracks future work after `3.0.1`.
 
 The 3.0.0 architecture scope for shared broker usage, multi-agent MCP clients, multi-game instances, context-budget filtering, port cleanup, and split addon files is complete locally and is documented in [docs/superpowers/plans/2026-05-14-3.0.0-architecture.md](docs/superpowers/plans/2026-05-14-3.0.0-architecture.md).
 

@@ -25,6 +25,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Local visual verification screenshots
+/dock-*.png
+
 # OS and editor state
 .DS_Store
 Thumbs.db

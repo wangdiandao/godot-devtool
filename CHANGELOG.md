@@ -8,6 +8,14 @@ All notable completed changes are tracked here. Future work is tracked in [ROADM
 
 No unreleased changes.
 
+## Version 3.0.1
+
+Release workflow cleanup patch.
+
+- Hardened the build and release workflow so stale compiled files are removed from `build/`, release verification runs before local tag creation, and verified development branches are merged back to `main`.
+- Removed local dock screenshot artifacts from the working tree and ignored future `dock-*.png` visual verification captures.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and local build metadata to `3.0.1`.
+
 ## Version 3.0.0
 
 Shared broker, multi-agent, and multi-instance architecture release.
@@ -22,8 +30,7 @@ Shared broker, multi-agent, and multi-instance architecture release.
 - Changed runtime compatibility tools to wait for `DevtoolRuntime` to reconnect and return a real command receipt instead of failing on an initial `plugin_status` stale snapshot.
 - Added process, tool-definition, plugin, runtime, and roadmap regression coverage for broker forwarding, target ambiguity, run selection, duplicate `runId` rejection, split addon files, and runtime listener persistence.
 - Added the 3.0 development plan and sub-agent work distribution under `docs/superpowers/plans/2026-05-14-3.0.0-architecture.md`.
-- Hardened the build and release workflow so stale compiled files are removed from `build/`, release verification runs before local tag creation, and verified development branches are merged back to `main`.
-- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and local build metadata to `3.0.0`; GitHub publication is intentionally not performed in this working tree.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and local build metadata to `3.0.0`.
 
 ## Version 2.8.5
 

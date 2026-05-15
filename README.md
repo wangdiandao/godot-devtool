@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -43,10 +43,10 @@ MCP client
 
 ## Install From Local Build
 
-1. Build from source, or extract a published release zip to a stable path. The release asset name for this version is `godot-devtool-build-3.0.0.zip`.
+1. Build from source, or extract a published release zip to a stable path. The release asset name for this version is `godot-devtool-build-3.0.1.zip`.
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-3.0.0.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-3.0.1.zip" "E:\godot-devtool" -Force
    ```
 
 2. Confirm the server entry exists:
