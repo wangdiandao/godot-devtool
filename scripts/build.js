@@ -56,15 +56,22 @@ try {
   fs.copySync(sourceAddonDir, buildAddonDir);
   console.log('Successfully copied godot-devtool Godot addon into build output');
 
-  const sourceSkillDir = path.join(__dirname, '..', 'skills', 'godot-devtool');
-  const buildSkillDir = path.join(buildDir, 'skills', 'godot-devtool');
-  fs.removeSync(buildSkillDir);
-  fs.ensureDirSync(buildSkillDir);
-  fs.copyFileSync(
-    path.join(sourceSkillDir, 'SKILL.md'),
-    path.join(buildSkillDir, 'SKILL.md')
-  );
-  console.log('Successfully copied godot-devtool skill into build output');
+  const sourceSkillsDir = path.join(__dirname, '..', 'skills');
+  const buildSkillsDir = path.join(buildDir, 'skills');
+  fs.removeSync(buildSkillsDir);
+  fs.copySync(sourceSkillsDir, buildSkillsDir, {
+    filter: (sourcePath) => {
+      const stat = fs.statSync(sourcePath);
+      return stat.isDirectory() || path.basename(sourcePath) === 'SKILL.md';
+    },
+  });
+  console.log('Successfully copied godot-devtool skills into build output');
+
+  copyBundleFile('plugin.json');
+  copyBundleDirectory('.codex-plugin');
+  copyBundleDirectory('.claude-plugin');
+  copyBundleDirectory('agents');
+  console.log('Successfully copied plugin bundle metadata into build output');
 } catch (error) {
   console.error('Error copying scripts:', error);
   process.exit(1);
@@ -124,4 +131,19 @@ function removeEmptyDirectories(directory) {
 
 function normalizeBuildRelative(relativePath) {
   return relativePath.split(path.sep).join('/');
+}
+
+function copyBundleFile(relativePath) {
+  const sourcePath = path.join(__dirname, '..', relativePath);
+  const targetPath = path.join(buildDir, relativePath);
+  fs.removeSync(targetPath);
+  fs.ensureDirSync(path.dirname(targetPath));
+  fs.copyFileSync(sourcePath, targetPath);
+}
+
+function copyBundleDirectory(relativePath) {
+  const sourcePath = path.join(__dirname, '..', relativePath);
+  const targetPath = path.join(buildDir, relativePath);
+  fs.removeSync(targetPath);
+  fs.copySync(sourcePath, targetPath);
 }

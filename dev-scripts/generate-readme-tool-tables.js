@@ -224,6 +224,7 @@ const EXACT_ZH = {
   plugin_cleanup_port: '显式检查并可选择停止指定端口上的旧 godot-devtool WebSocket bridge 监听进程。',
   plugin_status: '读取插件安装状态、WebSocket 配置和连接状态。',
   plugin_reload: '通过 WebSocket bridge 重载 godot-devtool 编辑器插件。',
+  plugin_dock_status: '通过 live editor bridge 返回 GDT Dock 的标签、提示、状态点、按钮、可见性和 editor/runtime 诊断。',
   editor_add_node: '通过实时编辑器 bridge 和 UndoRedo 向当前打开的场景添加节点。',
   editor_delete_node: '通过实时编辑器 bridge 和 UndoRedo 删除当前打开场景中的非根节点。',
   editor_rename_node: '通过实时编辑器 bridge 和 UndoRedo 重命名当前打开场景中的节点。',

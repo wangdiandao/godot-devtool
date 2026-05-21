@@ -52,6 +52,7 @@ import {
 } from '../../godot/editorSession.js';
 import {
   enqueueEditorCommand,
+  enqueueEditorReadCommand,
   enqueueRuntimeCommand,
   installEditorBridge,
   readEditorBridgeStatus,
@@ -351,6 +352,45 @@ class GodotServerEditorMethods {
       return this.createErrorResponse(
         `Failed to reload plugin: ${error?.message || 'Unknown error'}`,
         ['Install and enable the godot-devtool plugin, then confirm the WebSocket bridge is connected']
+      );
+    }
+  }
+
+
+  private async handlePluginDockStatus(args: any) {
+    args = this.normalizeParameters(args || {});
+    const validationError = this.validateProjectArgs(args);
+    if (validationError) return validationError;
+
+    try {
+      const timeoutMs = Number(args.timeoutMs ?? 10000);
+      const command = await enqueueEditorReadCommand(args.projectPath, {
+        type: 'plugin_dock_status',
+        payload: this.editorBridgeTargetPayload(args),
+        timeoutMs,
+      });
+      const receipt = await waitForEditorCommandReceipt(args.projectPath, command.commandId, timeoutMs);
+      this.assertCompletedBridgeReceipt('plugin_dock_status', receipt);
+      const result = receipt.result && typeof receipt.result === 'object' ? receipt.result as any : {};
+      return this.createJsonResponse({
+        ok: true,
+        mode: 'godot_editor_websocket_bridge',
+        command,
+        receipt,
+        dock: result,
+        guidance: [
+          'Use plugin_status when the editor bridge is missing or disconnected.',
+          'Use launch_editor or plugin_reload to reconnect the Godot editor before retrying.',
+        ],
+      });
+    } catch (error: any) {
+      return this.createErrorResponse(
+        `Failed to read plugin Dock status: ${error?.message || 'Unknown error'}`,
+        [
+          'Call plugin_status to confirm the addon is installed and an editor bridge client is connected',
+          'Open the Godot editor with launch_editor if no editor client is connected',
+          'Run plugin_reload after changing the installed addon files',
+        ]
       );
     }
   }

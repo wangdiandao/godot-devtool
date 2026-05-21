@@ -5,7 +5,7 @@ const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
 const RUNTIME_STATE_PATH := "res://.godot-devtool/runtime-state.json"
 const CommandRouter := preload("res://addons/godot_devtool/command_router.gd")
 const StatusDock := preload("res://addons/godot_devtool/editor/status_dock.gd")
-const PLUGIN_VERSION := "3.0.1"
+const PLUGIN_VERSION := "3.1.0"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
@@ -88,6 +88,52 @@ func process(_delta: float) -> void:
 	while _socket.get_available_packet_count() > 0:
 		_handle_packet(_socket.get_packet().get_string_from_utf8())
 	_update_status_panel_if_due()
+
+func dock_status() -> Dictionary:
+	_update_status_panel()
+	var runtime_state := _read_runtime_state()
+	return {
+		"version": PLUGIN_VERSION,
+		"name": str(_dock.name) if _dock else "GDT",
+		"visible": bool(_dock.visible) if _dock else false,
+		"bridgeUrl": _bridge_url,
+		"sessionId": _session_id,
+		"runId": _run_id,
+		"brokerId": _broker_id,
+		"labels": _collect_label_state(),
+		"dots": _collect_dot_state(),
+		"buttons": _collect_button_state(),
+		"diagnostics": {
+			"editor": {
+				"connected": _connected,
+				"helloAcknowledged": _hello_acknowledged,
+				"level": _editor_status_level(),
+				"text": _handshake_status_text(),
+				"transport": _bridge_url,
+				"lastHeartbeatMs": _last_heartbeat_ms
+			},
+			"runtime": {
+				"connected": _runtime_state_is_connected(runtime_state),
+				"stale": _runtime_state_is_stale(runtime_state),
+				"level": _runtime_bridge_level(runtime_state),
+				"text": _runtime_bridge_text(runtime_state),
+				"state": runtime_state
+			},
+			"connection": {
+				"level": _connection_summary_level(runtime_state),
+				"text": _connection_summary_text(runtime_state),
+				"agentCount": _agent_count(),
+				"runtimeInstanceCount": _runtime_instance_count(runtime_state)
+			},
+			"currentScene": _current_scene_text(),
+			"selection": _selection_summary(),
+			"activity": _activity_summary(),
+			"lastCommand": _last_command,
+			"lastReceipt": _ui_text(_last_receipt_key),
+			"lastError": _last_error,
+			"brokerStatus": _broker_status
+		}
+	}
 
 func _create_status_dock() -> void:
 	_dock = StatusDock.new()
@@ -494,6 +540,11 @@ func _broker_clients() -> Array:
 func _runtime_state_is_connected(state: Dictionary) -> bool:
 	if state.is_empty() or _runtime_state_is_stale(state):
 		return false
+	if _broker_status.has("clients"):
+		for client in _broker_clients():
+			if typeof(client) == TYPE_DICTIONARY and str(client.get("context", "")) == "runtime":
+				return true
+		return false
 	return bool(state.get("connected", false)) or bool(state.get("registered", false)) or bool(state.get("helloAcknowledged", false))
 
 func _runtime_state_is_stale(state: Dictionary) -> bool:
@@ -569,6 +620,68 @@ func _read_runtime_state() -> Dictionary:
 		return {}
 	var parsed = JSON.parse_string(file.get_as_text())
 	return parsed if typeof(parsed) == TYPE_DICTIONARY else {}
+
+func _collect_label_state() -> Dictionary:
+	var result := {}
+	if not _dock:
+		return result
+	for key in _dock.labels.keys():
+		var label: Label = _dock.labels[key]
+		result[str(key)] = {
+			"text": label.text if label else "",
+			"tooltip": label.tooltip_text if label else "",
+			"visible": bool(label.visible) if label else false
+		}
+	return result
+
+func _collect_dot_state() -> Dictionary:
+	var result := {}
+	if not _dock:
+		return result
+	for key in _dock.dots.keys():
+		var dot: ColorRect = _dock.dots[key]
+		var color := dot.color if dot else Color(0.55, 0.62, 0.72)
+		result[str(key)] = {
+			"level": _dot_level(color),
+			"color": _color_state(color),
+			"visible": bool(dot.visible) if dot else false
+		}
+	return result
+
+func _collect_button_state() -> Dictionary:
+	var result := {}
+	if not _dock:
+		return result
+	for key in _dock.buttons.keys():
+		var button: Button = _dock.buttons[key]
+		result[str(key)] = {
+			"text": button.text if button else "",
+			"tooltip": button.tooltip_text if button else "",
+			"visible": bool(button.visible) if button else false,
+			"disabled": bool(button.disabled) if button else true
+		}
+	return result
+
+func _color_state(color: Color) -> Dictionary:
+	return {
+		"r": color.r,
+		"g": color.g,
+		"b": color.b,
+		"a": color.a,
+		"hex": color.to_html(true)
+	}
+
+func _dot_level(color: Color) -> String:
+	if _color_close(color, Color(0.39, 0.82, 0.56)):
+		return "ok"
+	if _color_close(color, Color(0.94, 0.78, 0.36)):
+		return "warn"
+	if _color_close(color, Color(1.0, 0.48, 0.45)):
+		return "error"
+	return "unknown"
+
+func _color_close(left: Color, right: Color) -> bool:
+	return abs(left.r - right.r) < 0.01 and abs(left.g - right.g) < 0.01 and abs(left.b - right.b) < 0.01 and abs(left.a - right.a) < 0.01
 
 func _set_status_dot(dot: ColorRect, level: String) -> void:
 	if not dot:

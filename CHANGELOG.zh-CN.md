@@ -8,6 +8,15 @@
 
 无未发布变更。
 
+## 3.1.0
+
+IDE 风格 Agent 和插件包发布。
+
+- 增加 WinUI 风格插件包 metadata：根 `plugin.json`、Codex 插件 metadata 和 Claude Code 插件 metadata。
+- 增加可由用户调用的 `godot-dev` Agent，把 Godot 开发任务路由到 MCP server、紧凑入口 Skill 和聚焦 workflow Skill。
+- 扩展 build 与验证，确保 release 输出包含同步的插件 manifest、Agent 文件和 Skill。
+- 将 package、插件、Skill、README、CHANGELOG、ROADMAP、验证 metadata 和本地 build metadata 同步到 `3.1.0`。
+
 ## 3.0.1
 
 Release 工作流清理补丁。

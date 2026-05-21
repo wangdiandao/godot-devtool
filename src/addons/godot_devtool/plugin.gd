@@ -15,3 +15,6 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_client.process(delta)
+
+func get_devtool_dock_status() -> Dictionary:
+	return _client.dock_status()

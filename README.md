@@ -1,7 +1,7 @@
 ﻿# godot-devtool
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](CHANGELOG.md)
 [![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)](https://godotengine.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-111827.svg)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
@@ -41,12 +41,23 @@ MCP client
 - An MCP client such as Codex, Claude Code, Cursor, Cline, Roo Code, VS Code Copilot, or another client that can launch stdio MCP servers.
 - A Godot project containing `project.godot`.
 
+## Codex And Claude Plugin Bundle
+
+The repository is also packaged like an IDE plugin bundle for agentic coding tools:
+
+- [plugin.json](plugin.json) exposes the shared plugin metadata, `agents/`, and `skills/`.
+- [.codex-plugin/plugin.json](.codex-plugin/plugin.json) exposes Codex marketplace/interface metadata.
+- [.claude-plugin/plugin.json](.claude-plugin/plugin.json) exposes Claude Code plugin metadata.
+- [agents/godot-dev.agent.md](agents/godot-dev.agent.md) is the user-invocable `godot-dev` Agent. It routes work through [skills/godot-devtool/SKILL.md](skills/godot-devtool/SKILL.md) and the focused workflow skills.
+
+`npm run build` copies these manifests, the Agent, and all Skills into `build/` so a release zip contains the MCP server plus the IDE-style guidance layer.
+
 ## Install From Local Build
 
-1. Build from source, or extract a published release zip to a stable path. The release asset name for this version is `godot-devtool-build-3.0.1.zip`.
+1. Build from source, or extract a published release zip to a stable path. The release asset name for this version is `godot-devtool-build-3.1.0.zip`.
 
    ```powershell
-   Expand-Archive ".\godot-devtool-build-3.0.1.zip" "E:\godot-devtool" -Force
+   Expand-Archive ".\godot-devtool-build-3.1.0.zip" "E:\godot-devtool" -Force
    ```
 
 2. Confirm the server entry exists:
@@ -201,7 +212,7 @@ Browser visualizer tools start, inspect, and stop a local read-only dashboard. U
 
 The table below is generated from the actual tool definitions so the README stays aligned with the MCP server.
 
-## All 234 Tools
+## All 235 Tools
 
 ### Project Tools (18)
 | Tool | Description |
@@ -316,7 +327,7 @@ The table below is generated from the actual tool definitions so the README stay
 | `script_create` | Create a GDScript file inside a Godot project |
 | `script_write` | Write full GDScript content with overwrite protection |
 
-### Editor Tools (16)
+### Editor Tools (17)
 | Tool | Description |
 |------|-------------|
 | `editor_add_node` | Add a node to the currently open editor scene through UndoRedo without externally rewriting the scene file |
@@ -331,9 +342,10 @@ The table below is generated from the actual tool definitions so the README stay
 | `editor_select_node` | Select a node in the live Godot editor when an editor bridge is available |
 | `editor_undo_redo` | Perform undo or redo in the live Godot editor when an editor bridge is available |
 | `plugin_cleanup_port` | Explicitly inspect and optionally stop stale godot-devtool WebSocket bridge listeners on a local port |
-| `plugin_install` | Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project |
-| `plugin_reload` | Reload the godot-devtool v2 editor plugin through the WebSocket bridge |
-| `plugin_status` | Read godot-devtool v2 plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics |
+| `plugin_dock_status` | Return machine-readable godot-devtool Dock labels, tooltips, status dots, buttons, visibility, and bridge diagnostics from the live editor |
+| `plugin_install` | Install the godot-devtool WebSocket editor/runtime plugin into a Godot project |
+| `plugin_reload` | Reload the godot-devtool editor plugin through the WebSocket bridge |
+| `plugin_status` | Read godot-devtool plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics |
 | `reload_plugin` | Exact-name compatibility route for reload_plugin. Executes through its registered compatibility implementation and returns a structured error when required project, editor, or runtime state is unavailable. |
 
 ### Filesystem Tools (11)

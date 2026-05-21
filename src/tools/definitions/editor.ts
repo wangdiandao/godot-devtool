@@ -8,7 +8,7 @@ const EDITOR_BRIDGE_TARGET_PROPERTIES = {
 export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   {
     name: 'plugin_install',
-    description: 'Install the godot-devtool v2 WebSocket editor/runtime plugin into a Godot project',
+    description: 'Install the godot-devtool WebSocket editor/runtime plugin into a Godot project',
     inputSchema: {
       type: 'object',
       properties: {
@@ -21,7 +21,7 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'plugin_status',
-    description: 'Read godot-devtool v2 plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics',
+    description: 'Read godot-devtool plugin installation status, WebSocket bridge configuration, connected clients, and occupied-port diagnostics',
     inputSchema: {
       type: 'object',
       properties: {
@@ -49,11 +49,24 @@ export const EDITOR_TOOL_DEFINITIONS: GodotToolDefinition[] = [
   },
   {
     name: 'plugin_reload',
-    description: 'Reload the godot-devtool v2 editor plugin through the WebSocket bridge',
+    description: 'Reload the godot-devtool editor plugin through the WebSocket bridge',
     inputSchema: {
       type: 'object',
       properties: {
         projectPath: { type: 'string', description: 'Path to the Godot project directory' },
+        timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
+        ...EDITOR_BRIDGE_TARGET_PROPERTIES,
+      },
+      required: ['projectPath'],
+    },
+  },
+  {
+    name: 'plugin_dock_status',
+    description: 'Return machine-readable godot-devtool Dock labels, tooltips, status dots, buttons, visibility, and bridge diagnostics from the live editor',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectPath: { type: 'string', description: 'Path to the Godot project directory with the editor bridge installed' },
         timeoutMs: { type: 'number', description: 'Command timeout in milliseconds. Defaults to 10000.' },
         ...EDITOR_BRIDGE_TARGET_PROPERTIES,
       },

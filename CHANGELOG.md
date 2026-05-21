@@ -8,6 +8,15 @@ All notable completed changes are tracked here. Future work is tracked in [ROADM
 
 No unreleased changes.
 
+## Version 3.1.0
+
+IDE-style Agent and plugin bundle release.
+
+- Added WinUI-style plugin bundle metadata with root `plugin.json`, Codex plugin metadata, and Claude Code plugin metadata.
+- Added a user-invocable `godot-dev` Agent that routes Godot development through the MCP server, the compact router Skill, and the focused workflow Skills.
+- Extended build and verification so the release output contains synchronized plugin manifests, Agent files, and Skills.
+- Synchronized package, plugin, Skill, README, CHANGELOG, ROADMAP, verification metadata, and local build metadata to `3.1.0`.
+
 ## Version 3.0.1
 
 Release workflow cleanup patch.

@@ -8,6 +8,7 @@ export function createEditorToolHandlers(host: ToolHandlerHost): ToolHandlerMap 
     plugin_status: (args) => host.handleEditorBridgeStatus(args),
     plugin_cleanup_port: (args) => host.handlePluginCleanupPort(args),
     plugin_reload: (args) => host.handlePluginReload(args),
+    plugin_dock_status: (args) => host.handlePluginDockStatus(args),
     editor_get_selection: (args) => host.handleEditorGetSelection(args),
     editor_select_node: (args) => host.handleEditorSelectNode(args),
     editor_undo_redo: (args) => host.handleEditorUndoRedo(args),

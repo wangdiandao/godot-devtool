@@ -4,6 +4,7 @@ extends RefCounted
 func routes() -> Dictionary:
 	return {
 		"plugin_reload": true,
+		"plugin_dock_status": true,
 		"reload_plugin": true,
 		"editor_get_selection": true,
 		"select_node": true,
@@ -29,6 +30,8 @@ func dispatch(command_name: String, payload: Dictionary, plugin: EditorPlugin) -
 	match command_name:
 		"plugin_reload", "reload_plugin":
 			return _ok({"reloaded": true})
+		"plugin_dock_status":
+			return _plugin_dock_status(plugin)
 		"editor_get_selection":
 			return _ok(_selection(plugin))
 		"select_node", "editor_select_node":
@@ -72,6 +75,13 @@ func _selection(plugin: EditorPlugin) -> Dictionary:
 	for node in plugin.get_editor_interface().get_selection().get_selected_nodes():
 		selected.append(str(node.get_path()))
 	return {"selection": selected}
+
+func _plugin_dock_status(plugin: EditorPlugin) -> Dictionary:
+	if plugin != null and plugin.has_method("get_devtool_dock_status"):
+		var status = plugin.call("get_devtool_dock_status")
+		if typeof(status) == TYPE_DICTIONARY:
+			return _ok(status)
+	return _err("Dock status is not available from this editor plugin instance")
 
 func _select_node(payload: Dictionary, plugin: EditorPlugin) -> Dictionary:
 	var node := _resolve_editor_node(payload, plugin)

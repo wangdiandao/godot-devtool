@@ -2,7 +2,7 @@
 
 [English](ROADMAP.md) | 中文
 
-已完成版本记录在 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。本文件只记录 `3.0.1` 之后的未来工作。
+已完成版本记录在 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。本文件只记录 `3.1.0` 之后的未来工作。
 
 3.0.0 的共享 broker、多 Agent MCP client、多游戏实例、上下文过滤、端口清理和拆分 addon 文件结构已经在本地完成；开发计划和分工记录见 [docs/superpowers/plans/2026-05-14-3.0.0-architecture.md](docs/superpowers/plans/2026-05-14-3.0.0-architecture.md)。
 

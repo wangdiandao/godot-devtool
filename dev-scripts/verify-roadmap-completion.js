@@ -275,6 +275,14 @@ try {
   ]);
   const tsconfig = JSON.parse(tsconfigRaw);
   const packageJson = JSON.parse(packageRaw);
+  const pluginManifest = JSON.parse(await readRepoFile('plugin.json'));
+  const codexPluginManifest = JSON.parse(await readRepoFile('.codex-plugin/plugin.json'));
+  const claudePluginManifest = JSON.parse(await readRepoFile('.claude-plugin/plugin.json'));
+  const buildPluginManifest = JSON.parse(await readRepoFile('build/plugin.json'));
+  const buildCodexPluginManifest = JSON.parse(await readRepoFile('build/.codex-plugin/plugin.json'));
+  const buildClaudePluginManifest = JSON.parse(await readRepoFile('build/.claude-plugin/plugin.json'));
+  const agentRaw = await readRepoFile('agents/godot-dev.agent.md');
+  const buildAgentRaw = await readRepoFile('build/agents/godot-dev.agent.md');
   const releaseVersion = packageJson.version;
   const escapedReleaseVersion = releaseVersion.replaceAll('.', '\\.');
   const latestReleaseZipVersion = releaseVersion;
@@ -295,6 +303,11 @@ try {
   assert.equal(Object.hasOwn(capabilities.tools[0], 'inputSchema'), false);
   assert.ok(capabilities.routeGroups.some((entry) => entry.name === 'scene' && entry.count > 0));
   assert.ok(capabilities.transports.some((entry) => entry.name === 'runtime_ws' && entry.count > 0));
+  assert.ok(capabilities.workflows.some((entry) => entry.name === 'live_editor' && entry.count > 0));
+  assert.ok(capabilities.workflows.some((entry) => entry.name === 'runtime_test' && entry.count > 0));
+  const defaultDockStatusTool = capabilities.tools.find((tool) => tool.name === 'plugin_dock_status');
+  assert.ok(defaultDockStatusTool);
+  assert.deepEqual(defaultDockStatusTool.workflows, ['live_editor']);
   const unfilteredSchemaResponse = server.handleGetCapabilities({ includeSchemas: true });
   assert.equal(unfilteredSchemaResponse.isError, true);
   assert.match(unfilteredSchemaResponse.content[0].text, /requires routeGroup, transport, riskLevel, toolNames, or query/);
@@ -310,6 +323,15 @@ try {
   }).content[0].text);
   assert.deepEqual(focusedCapabilities.tools.map((tool) => tool.name), ['get_capabilities', 'plugin_status']);
   assert.ok(focusedCapabilities.tools.every((tool) => tool.inputSchema));
+  const liveEditorCapabilities = JSON.parse(server.handleGetCapabilities({
+    workflow: 'live_editor',
+    includeSchemas: true,
+  }).content[0].text);
+  const liveEditorDockStatusTool = liveEditorCapabilities.tools.find((tool) => tool.name === 'plugin_dock_status');
+  assert.ok(liveEditorDockStatusTool);
+  assert.ok(liveEditorDockStatusTool.inputSchema);
+  assert.equal(liveEditorDockStatusTool.transport, 'editor_ws');
+  assert.deepEqual(liveEditorDockStatusTool.workflows, ['live_editor']);
 
   const shaderTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'shader');
   const materialTool = toolDefinitions.GODOT_TOOL_DEFINITIONS.find((tool) => tool.name === 'material');
@@ -467,6 +489,10 @@ try {
   assert.match(readmeZh, /generate_ci_snippet/);
   assert.match(readme, /plugin_install/);
   assert.match(readmeZh, /plugin_install/);
+  assert.match(readme, /plugin_dock_status/);
+  assert.match(readmeZh, /plugin_dock_status/);
+  assert.doesNotMatch(readme, /godot-devtool v2/i);
+  assert.doesNotMatch(readmeZh, /godot-devtool v2/i);
   assert.match(readme, /editor_add_node/);
   assert.match(readmeZh, /editor_add_node/);
   assert.match(readme, /editor_save_scene/);
@@ -525,6 +551,16 @@ try {
   assert.doesNotMatch(readmeZh, /转接 audio|转接到 `audio`/i);
   assert.match(readme, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
   assert.match(readmeZh, /\[skills\/godot-devtool\/SKILL\.md\]\(skills\/godot-devtool\/SKILL\.md\)/);
+  assert.match(readme, /\[plugin\.json\]\(plugin\.json\)/);
+  assert.match(readme, /\[\.codex-plugin\/plugin\.json\]\(\.codex-plugin\/plugin\.json\)/);
+  assert.match(readme, /\[\.claude-plugin\/plugin\.json\]\(\.claude-plugin\/plugin\.json\)/);
+  assert.match(readme, /\[agents\/godot-dev\.agent\.md\]\(agents\/godot-dev\.agent\.md\)/);
+  assert.match(readme, /IDE-style guidance layer/);
+  assert.match(readmeZh, /\[plugin\.json\]\(plugin\.json\)/);
+  assert.match(readmeZh, /\[\.codex-plugin\/plugin\.json\]\(\.codex-plugin\/plugin\.json\)/);
+  assert.match(readmeZh, /\[\.claude-plugin\/plugin\.json\]\(\.claude-plugin\/plugin\.json\)/);
+  assert.match(readmeZh, /\[agents\/godot-dev\.agent\.md\]\(agents\/godot-dev\.agent\.md\)/);
+  assert.match(readmeZh, /IDE 风格的引导层/);
 
   assert.match(skillRaw, /^name: godot-devtool$/m);
   assert.match(skillRaw, /mcp_server: "godot-devtool"/);
@@ -540,8 +576,21 @@ try {
   assert.match(skillRaw, /E:\/godot-devtool\/build\/index\.js/);
   assert.match(skillRaw, /plugin_install/);
   assert.match(skillRaw, /runtime_ws/);
-  assert.match(skillRaw, /All 234 tools are discoverable through `get_capabilities`/);
+  assert.match(skillRaw, new RegExp(`All ${toolDefinitions.GODOT_TOOL_DEFINITIONS.length} tools are discoverable through ` + '`get_capabilities`'));
   assert.match(skillRaw, /workflow.*routeGroup.*toolNames/);
+  for (const splitSkill of [
+    'godot-devtool-project-setup',
+    'godot-devtool-live-editor',
+    'godot-devtool-runtime-test',
+    'godot-devtool-scene-authoring',
+    'godot-devtool-release-verify',
+  ]) {
+    assert.match(skillRaw, new RegExp(splitSkill));
+    assert.ok(existsSync(join(process.cwd(), 'skills', splitSkill, 'SKILL.md')));
+    assert.ok(existsSync(join(process.cwd(), 'build', 'skills', splitSkill, 'SKILL.md')));
+    assert.match(await readRepoFile(`skills/${splitSkill}/SKILL.md`), new RegExp(`version: "${escapedReleaseVersion}"`));
+    assert.match(await readRepoFile(`build/skills/${splitSkill}/SKILL.md`), new RegExp(`version: "${escapedReleaseVersion}"`));
+  }
   assert.match(skillRaw, /list_bridge_sessions/);
   assert.match(skillRaw, /resolve_bridge_target/);
   assert.match(skillRaw, /list_run_instances/);
@@ -572,12 +621,14 @@ try {
   assert.equal(existsSync(join(process.cwd(), 'skills/godot-devtool/agents/openai.yaml')), false);
   assert.equal(packageJson.scripts['check:project'], 'npm run build && node dev-scripts/check-project.js');
   assert.equal(packageJson.scripts['verify:tools'], 'npm run build && node dev-scripts/verify-tool-definitions.js');
+  assert.equal(packageJson.scripts['verify:skill'], 'npm run build && node dev-scripts/verify-skill-sync.js');
+  assert.equal(packageJson.scripts['sync:skill'], 'npm run build && node dev-scripts/sync-installed-skill.js');
   assert.equal(packageJson.scripts['verify:visualizer'], 'npm run build && node dev-scripts/verify-browser-visualizer.js');
   assert.equal(packageJson.scripts['verify:plugin'], 'npm run build && node dev-scripts/verify-godot-plugin.js');
   assert.equal(packageJson.scripts['verify:runtime'], 'npm run build && node dev-scripts/verify-godot-runtime.js');
   assert.equal(packageJson.scripts['verify:process'], 'npm run build && node dev-scripts/verify-process-handling.js');
   assert.equal(packageJson.scripts['verify:security'], 'npm run build && node dev-scripts/verify-security-hardening.js');
-  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:process && npm run verify:security');
+  assert.equal(packageJson.scripts['verify:all'], 'npm run verify:tools && npm run verify:skill && npm run verify:gdscripts && npm run verify:visualizer && npm run verify:plugin && npm run verify:roadmap && npm run verify:runtime && npm run verify:process && npm run verify:security');
   assert.equal(packageJson.scripts['release:github'], 'npm run build && node dev-scripts/publish-github-release.js');
   const publishScript = await readRepoFile('dev-scripts/publish-github-release.js');
   assert.match(publishScript, /scripts', 'build\.js'/);
@@ -592,6 +643,33 @@ try {
   assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-godot-plugin.js')));
   assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-browser-visualizer.js')));
   assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-godot-runtime.js')));
+  assert.ok(existsSync(join(process.cwd(), 'dev-scripts/verify-skill-sync.js')));
+  assert.ok(existsSync(join(process.cwd(), 'dev-scripts/sync-installed-skill.js')));
+  assert.equal(pluginManifest.name, 'godot-devtool');
+  assert.equal(pluginManifest.version, releaseVersion);
+  assert.equal(pluginManifest.agents, 'agents/');
+  assert.deepEqual(pluginManifest.skills, ['skills/']);
+  assert.equal(codexPluginManifest.name, 'godot-devtool');
+  assert.equal(codexPluginManifest.version, releaseVersion);
+  assert.equal(codexPluginManifest.skills, './skills/');
+  assert.equal(codexPluginManifest.interface.displayName, 'Godot Devtool');
+  assert.ok(codexPluginManifest.interface.capabilities.includes('agents'));
+  assert.ok(codexPluginManifest.interface.defaultPrompt.includes('godot-dev'));
+  assert.equal(claudePluginManifest.name, 'godot-devtool');
+  assert.equal(claudePluginManifest.version, releaseVersion);
+  assert.deepEqual(buildPluginManifest, pluginManifest);
+  assert.deepEqual(buildCodexPluginManifest, codexPluginManifest);
+  assert.deepEqual(buildClaudePluginManifest, claudePluginManifest);
+  assert.match(agentRaw, /^name: godot-dev$/m);
+  assert.match(agentRaw, /^user-invocable: true$/m);
+  assert.match(agentRaw, /godot-devtool-project-setup/);
+  assert.match(agentRaw, /godot-devtool-live-editor/);
+  assert.match(agentRaw, /godot-devtool-runtime-test/);
+  assert.match(agentRaw, /godot-devtool-scene-authoring/);
+  assert.match(agentRaw, /godot-devtool-release-verify/);
+  assert.match(agentRaw, /get_capabilities/);
+  assert.match(agentRaw, /plugin_dock_status/);
+  assert.equal(buildAgentRaw, agentRaw);
   assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-capabilities.js')), false);
   assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-plugin-router.js')), false);
   assert.equal(existsSync(join(process.cwd(), 'scripts/verify-v2-runtime-bridge.js')), false);

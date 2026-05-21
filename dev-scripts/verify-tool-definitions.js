@@ -82,9 +82,9 @@ if (compatibilityAliasDescriptions.length > 0) {
   console.error(`Compatibility alias tool definitions remain: ${compatibilityAliasDescriptions.map((tool) => tool.name).join(', ')}`);
   process.exit(1);
 }
-for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload', 'plugin_cleanup_port']) {
+for (const requiredName of ['plugin_install', 'plugin_status', 'plugin_reload', 'plugin_cleanup_port', 'plugin_dock_status']) {
   if (!toolsByName.has(requiredName)) {
-    console.error(`Missing v2 plugin tool: ${requiredName}`);
+    console.error(`Missing plugin tool: ${requiredName}`);
     process.exit(1);
   }
 }
@@ -129,7 +129,7 @@ for (const toolName of ['get_debug_output', 'clear_debug_output', 'stop_project'
 for (const tool of GODOT_TOOL_DEFINITIONS) {
   const missingMetadata = ['routeGroup', 'transport', 'riskLevel'].filter((key) => !tool[key]);
   if (missingMetadata.length > 0) {
-    console.error(`Tool ${tool.name} is missing v2 metadata: ${missingMetadata.join(', ')}`);
+    console.error(`Tool ${tool.name} is missing route metadata: ${missingMetadata.join(', ')}`);
     process.exit(1);
   }
 
@@ -144,13 +144,32 @@ const invalidBridgeModes = GODOT_TOOL_DEFINITIONS.filter((tool) =>
   String(tool.description).toLowerCase().includes('file-based live editor bridge')
 );
 if (invalidBridgeModes.length > 0) {
-  console.error(`v2 must not advertise file-queue bridge routes: ${invalidBridgeModes.map((tool) => tool.name).join(', ')}`);
+  console.error(`Tool catalog must not advertise file-queue bridge routes: ${invalidBridgeModes.map((tool) => tool.name).join(', ')}`);
   process.exit(1);
 }
 
 const pluginInstall = toolsByName.get('plugin_install');
 if (pluginInstall.transport !== 'native' || pluginInstall.routeGroup !== 'editor') {
   console.error('plugin_install must be a native editor route');
+  process.exit(1);
+}
+const pluginDockStatus = toolsByName.get('plugin_dock_status');
+if (
+  !pluginDockStatus ||
+  pluginDockStatus.transport !== 'editor_ws' ||
+  pluginDockStatus.routeGroup !== 'editor' ||
+  pluginDockStatus.riskLevel !== 'read' ||
+  pluginDockStatus.requiresEditor !== true ||
+  pluginDockStatus.requiresRuntime !== false ||
+  !pluginDockStatus.inputSchema?.properties?.projectPath ||
+  !pluginDockStatus.inputSchema?.properties?.sessionId ||
+  !pluginDockStatus.inputSchema?.properties?.timeoutMs
+) {
+  console.error('plugin_dock_status must be an editor_ws read route with projectPath, sessionId, and timeoutMs schema fields');
+  process.exit(1);
+}
+if (!Array.isArray(pluginDockStatus.workflows) || !pluginDockStatus.workflows.includes('live_editor')) {
+  console.error('plugin_dock_status must be discoverable through the live_editor workflow');
   process.exit(1);
 }
 
@@ -505,12 +524,26 @@ const editorBridgeSource = readFileSync(join(repoRoot, 'src/godot/editorBridge.t
 const routeRegistrySource = readFileSync(join(repoRoot, 'src/server/routeRegistry.ts'), 'utf8');
 const pluginRouterSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/command_router.gd'), 'utf8');
 const pluginEditorCommandsSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/commands/editor_commands.gd'), 'utf8');
+const pluginSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/plugin.gd'), 'utf8');
+const editorBridgeClientSource = readFileSync(join(repoRoot, 'src/addons/godot_devtool/editor/editor_bridge_client.gd'), 'utf8');
 if (!pluginEditorCommandsSource.includes('"get_open_scripts"') || !pluginEditorCommandsSource.includes('"get_editor_performance"') || !pluginEditorCommandsSource.includes('"reload_project"')) {
   console.error('Installed editor plugin routes must implement get_open_scripts, get_editor_performance, and reload_project before advertising them');
   process.exit(1);
 }
 if (!pluginEditorCommandsSource.includes('func _reload_project')) {
   console.error('Installed editor plugin must implement reload_project instead of routing it to unknown_command');
+  process.exit(1);
+}
+if (!pluginEditorCommandsSource.includes('"plugin_dock_status"') || !pluginEditorCommandsSource.includes('func _plugin_dock_status')) {
+  console.error('Installed editor plugin routes must implement plugin_dock_status');
+  process.exit(1);
+}
+if (!pluginSource.includes('func get_devtool_dock_status')) {
+  console.error('Godot editor plugin must expose get_devtool_dock_status for machine-readable Dock validation');
+  process.exit(1);
+}
+if (!editorBridgeClientSource.includes('func dock_status')) {
+  console.error('Editor bridge client must expose dock_status for plugin_dock_status');
   process.exit(1);
 }
 const editorWsBlock = routeRegistrySource.match(/const EDITOR_WS_TOOLS = new Set\(\[([\s\S]*?)\]\);/)?.[1] ?? '';

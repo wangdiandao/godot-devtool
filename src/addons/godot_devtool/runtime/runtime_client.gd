@@ -6,7 +6,7 @@ const REQUIRED_RUNTIME_INPUT_ROUTE := "simulate_action"
 const REQUIRED_RUNTIME_PROPERTY_ROUTE := "get_game_node_properties"
 const REQUIRED_RUNTIME_SCREENSHOT_ROUTE := "get_game_screenshot"
 const CONFIG_PATH := "res://.godot-devtool/bridge-config.json"
-const PLUGIN_VERSION := "3.0.1"
+const PLUGIN_VERSION := "3.1.0"
 const HANDSHAKE_PROTOCOL_VERSION := 1
 const HELLO_RETRY_INTERVAL_MS := 1000
 const HEARTBEAT_INTERVAL_MS := 5000
@@ -35,6 +35,15 @@ func ready() -> void:
 	_load_config()
 	_try_connect()
 	_write_runtime_state()
+
+func exit_tree() -> void:
+	_reset_registration_state()
+	_registered = false
+	_hello_acknowledged = false
+	_last_error = "runtime exited"
+	if _socket.get_ready_state() != WebSocketPeer.STATE_CLOSED:
+		_socket.close()
+	_write_runtime_state(true)
 
 func input(event: InputEvent) -> void:
 	_router.capture_input_event(event)
@@ -174,8 +183,8 @@ func _write_runtime_state_throttled() -> void:
 	_last_state_write_ms = now
 	_write_runtime_state()
 
-func _write_runtime_state() -> void:
-	var socket_state := _socket.get_ready_state()
+func _write_runtime_state(force_disconnected := false) -> void:
+	var socket_state := WebSocketPeer.STATE_CLOSED if force_disconnected else _socket.get_ready_state()
 	_state_store.write({
 		"timestamp": Time.get_datetime_string_from_system(true),
 		"projectPath": ProjectSettings.globalize_path("res://"),
@@ -184,9 +193,9 @@ func _write_runtime_state() -> void:
 		"runId": _run_id,
 		"brokerId": _broker_id,
 		"socketState": socket_state,
-		"connected": socket_state == WebSocketPeer.STATE_OPEN,
-		"registered": _registered,
-		"helloAcknowledged": _hello_acknowledged,
+		"connected": false if force_disconnected else socket_state == WebSocketPeer.STATE_OPEN,
+		"registered": false if force_disconnected else _registered,
+		"helloAcknowledged": false if force_disconnected else _hello_acknowledged,
 		"helloAttempts": _hello_attempts,
 		"lastSeen": Time.get_datetime_string_from_system(true),
 		"lastHeartbeatMs": _last_heartbeat_ms,

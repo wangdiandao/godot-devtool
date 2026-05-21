@@ -1,0 +1,41 @@
+{
+  "name": "godot-devtool",
+  "version": "3.1.0",
+  "description": "Codex skills, an IDE-style Agent, and MCP workflow guidance for Godot Engine development.",
+  "author": {
+    "name": "godot-devtool contributors",
+    "url": "https://github.com/wangdiandao/godot-devtool"
+  },
+  "homepage": "https://github.com/wangdiandao/godot-devtool#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wangdiandao/godot-devtool.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "godot",
+    "mcp",
+    "codex",
+    "agent",
+    "skills",
+    "game-development"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Godot Devtool",
+    "shortDescription": "IDE-style Godot development Agent backed by MCP tools and focused skills.",
+    "longDescription": "Use godot-devtool to install and verify the Godot addon, author scenes and resources, perform live editor operations, run runtime tests, inspect Dock status, and verify releases through a structured MCP workflow.",
+    "developerName": "godot-devtool contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "agents",
+      "skills",
+      "mcp",
+      "godot-editor",
+      "runtime-testing"
+    ],
+    "websiteURL": "https://github.com/wangdiandao/godot-devtool",
+    "defaultPrompt": "Use the godot-dev Agent with the godot-devtool skill router. Start with get_godot_version and get_capabilities, then choose the matching workflow skill before editing, running, or releasing a Godot project.",
+    "brandColor": "#3B82F6"
+  }
+}

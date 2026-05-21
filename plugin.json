@@ -1,0 +1,35 @@
+{
+  "name": "godot-devtool",
+  "description": "Agents and skills for AI-assisted Godot Engine development through the godot-devtool MCP server.",
+  "version": "3.1.0",
+  "author": {
+    "name": "godot-devtool contributors",
+    "url": "https://github.com/wangdiandao/godot-devtool"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/wangdiandao/godot-devtool#readme",
+  "repository": "https://github.com/wangdiandao/godot-devtool",
+  "keywords": [
+    "godot",
+    "mcp",
+    "agent",
+    "skills",
+    "game-development",
+    "editor-automation",
+    "runtime-testing"
+  ],
+  "category": "game-development",
+  "tags": [
+    "godot",
+    "mcp",
+    "game-development",
+    "editor",
+    "runtime",
+    "agent",
+    "skills"
+  ],
+  "agents": "agents/",
+  "skills": [
+    "skills/"
+  ]
+}

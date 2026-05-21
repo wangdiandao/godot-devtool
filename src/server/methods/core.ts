@@ -655,6 +655,7 @@ class GodotServerCoreMethods {
         tool.transport,
         tool.riskLevel,
         tool.canonicalName,
+        Array.isArray(tool.workflows) ? tool.workflows.join(' ') : '',
       ].some((value) => String(value ?? '').toLowerCase().includes(query));
     };
 
@@ -682,6 +683,15 @@ class GodotServerCoreMethods {
       .map(([name, count]) => ({ name, count }))
       .sort((left: any, right: any) => String(left.name).localeCompare(String(right.name)));
 
+    const summarizeWorkflows = () => Object.entries(GODOT_TOOL_DEFINITIONS.reduce((acc: any, tool: any) => {
+      for (const workflowName of Array.isArray(tool.workflows) ? tool.workflows : []) {
+        acc[workflowName] = (acc[workflowName] ?? 0) + 1;
+      }
+      return acc;
+    }, {}))
+      .map(([name, count]) => ({ name, count }))
+      .sort((left: any, right: any) => String(left.name).localeCompare(String(right.name)));
+
     const tools = filteredDefinitions.map((tool) => {
       const entry: any = {
         name: tool.name,
@@ -694,6 +704,9 @@ class GodotServerCoreMethods {
         requiresRuntime: tool.requiresRuntime,
         canonicalName: tool.canonicalName,
       };
+      if (Array.isArray(tool.workflows) && tool.workflows.length > 0) {
+        entry.workflows = tool.workflows;
+      }
       if (includeSchemas) {
         entry.inputSchema = tool.inputSchema;
       }
@@ -723,6 +736,7 @@ class GodotServerCoreMethods {
       routeGroups: summarize('routeGroup'),
       transports: summarize('transport'),
       riskLevels: summarize('riskLevel'),
+      workflows: summarizeWorkflows(),
       unknownToolNames: requestedToolNames.filter((name) => !GODOT_TOOL_DEFINITIONS.some((tool) => tool.name === name)),
       tools,
     };

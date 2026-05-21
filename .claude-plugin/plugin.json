@@ -1,0 +1,20 @@
+{
+  "name": "godot-devtool",
+  "description": "Claude Code skills and an IDE-style Agent for Godot Engine development through the godot-devtool MCP server.",
+  "version": "3.1.0",
+  "author": {
+    "name": "godot-devtool contributors",
+    "url": "https://github.com/wangdiandao/godot-devtool"
+  },
+  "homepage": "https://github.com/wangdiandao/godot-devtool#readme",
+  "repository": "https://github.com/wangdiandao/godot-devtool",
+  "license": "MIT",
+  "keywords": [
+    "godot",
+    "mcp",
+    "claude-code",
+    "agent",
+    "skills",
+    "game-development"
+  ]
+}

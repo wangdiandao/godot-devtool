@@ -330,6 +330,36 @@ export async function enqueueEditorCommand(
   };
 }
 
+export async function enqueueEditorReadCommand(
+  projectPath: string,
+  command: EditorBridgeCommand
+): Promise<QueuedEditorBridgeCommand> {
+  const commandId = command.commandId ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const timeoutMs = normalizeTimeout(command.timeoutMs);
+  const createdAtMs = Date.now();
+  const expiresAtMs = createdAtMs + timeoutMs;
+  const bridge = await readBridgeConfig(projectPath);
+  const commandPayload: QueuedEditorBridgeCommand = {
+    commandId,
+    type: command.type,
+    payload: command.payload ?? {},
+    timeoutMs,
+    createdAt: new Date(createdAtMs).toISOString(),
+    createdAtMs,
+    expiresAt: new Date(expiresAtMs).toISOString(),
+    expiresAtMs,
+    status: 'queued',
+    commandPath: `ws://127.0.0.1:${bridge.port}/editor/${commandId}`,
+  };
+
+  pendingBridgeReceipts.set(
+    commandId,
+    getWsBridge().sendCommand(projectPath, 'editor', String(command.type), commandPayload.payload, timeoutMs) as Promise<EditorBridgeReceipt>
+  );
+
+  return commandPayload;
+}
+
 export async function enqueueRuntimeCommand(
   projectPath: string,
   command: EditorBridgeCommand
